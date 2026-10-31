@@ -65,7 +65,9 @@ homebrew_casks:
         url: git@github.com:trucke/homebrew-tap.git
         private_key: '{{ envOrDefault "HOMEBREW_TAP_KEY" "" }}'
 
-# The commits since the previous release, newest first, as git lists them.
+# The release workflow passes the notes of tools/release-notes.sh, which
+# leave out commits users see nothing of. This list of every commit since
+# the previous tag, newest first, stands in when that script fails.
 changelog:
   use: git
   format: "{{ .Message }}"

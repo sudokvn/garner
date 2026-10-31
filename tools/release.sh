@@ -5,7 +5,11 @@
 # must be on main on GitHub and newer than the last published release.
 # Every push passed `mise run check`, so what is on main is checked.
 #
-# Usage: mise run release vX.Y.Z [revision]
+# Usage: mise run release vX.Y.Z [revision] [--note TEXT]
+#
+# --note adds what users must know before upgrading, such as a setting
+# that is no longer accepted, to the release notes (tools/release-notes.sh).
+# The tag's message keeps it for the workflow.
 set -euo pipefail
 
 fail() {
@@ -13,12 +17,27 @@ fail() {
 	exit 1
 }
 
-version=${1:-}
-rev=${2:-main@origin}
+note=""
+args=()
+while [ $# -gt 0 ]; do
+	case $1 in
+	--note)
+		[ $# -ge 2 ] && [ -n "$2" ] || fail "--note needs the text"
+		note=$2
+		shift 2
+		;;
+	*)
+		args+=("$1")
+		shift
+		;;
+	esac
+done
+version=${args[0]:-}
+rev=${args[1]:-main@origin}
 # Plain versions only: without pre-releases, sort -V orders them as
 # semantic versioning does.
-[[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ $# -le 2 ] ||
-	fail "give the version and, optionally, the commit: mise run release v0.2.0 [revision]"
+[[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ ${#args[@]} -le 2 ] ||
+	fail "give the version and, optionally, the commit: mise run release v0.2.0 [revision] [--note TEXT]"
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 
@@ -43,7 +62,15 @@ released=$(printf '%s\n' "$published" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | so
 	fail "${commit:0:12} is already part of $released"
 
 printf 'Releasing %s (%s) as %s\n' "${commit:0:12}" "$(jj log -r "$commit" --no-graph -T 'description.first_line()')" "$version"
-git tag -a "$version" -m "garner $version" "$commit"
+# The notes the workflow will write, to read while it runs.
+if notes=$(RELEASE_NOTE=$note bash tools/release-notes.sh "$version" "$commit"); then
+	printf '\nRelease notes:\n\n%s\n\n' "$notes" | sed 's/^/  /'
+else
+	printf '! could not preview the release notes; the workflow writes them\n' >&2
+fi
+message=("-m" "garner $version")
+[ -z "$note" ] || message+=("-m" "$note")
+git tag -a "$version" "${message[@]}" "$commit"
 git push --quiet origin "refs/tags/$version" || {
 	git tag -d "$version" >/dev/null
 	fail "could not push the tag $version; nothing was released"

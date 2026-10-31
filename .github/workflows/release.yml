@@ -128,10 +128,29 @@ jobs:
           provenance: false
           sbom: false
 
+      # The notes list the commits that change garner itself and what to
+      # know before upgrading, the tag's note included. The tag is fetched
+      # again because a checkout may keep it without its message. Should the
+      # notes fail, GoReleaser lists every commit instead of failing the
+      # release.
+      - name: Write the release notes
+        id: notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          git fetch --quiet --force origin "refs/tags/$TAG:refs/tags/$TAG" || true
+          if bash tools/release-notes.sh "$TAG" >"$RUNNER_TEMP/notes.md"; then
+            echo "args=--release-notes=$RUNNER_TEMP/notes.md" >>"$GITHUB_OUTPUT"
+            cat "$RUNNER_TEMP/notes.md" >>"$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::could not write the release notes; GoReleaser lists every commit instead"
+          fi
+
       - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
           version: v${{ steps.tools.outputs.goreleaser }}
-          args: release --clean
+          args: release --clean ${{ steps.notes.outputs.args }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           IMAGE_REF: ${{ env.IMAGE }}:${{ env.TAG }}@${{ steps.image.outputs.digest }}

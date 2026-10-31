@@ -32,8 +32,8 @@ description = "Check the working copy on macOS and Linux; run it before every pu
 run = "bash tools/check.sh"
 
 # Releases a commit of main, the newest by default:
-# mise run release vX.Y.Z [revision]. GitHub then builds the image and,
-# with GoReleaser, the terminal interface and the release.
+# mise run release vX.Y.Z [revision] [--note TEXT]. GitHub then builds the
+# image and, with GoReleaser, the terminal interface and the release.
 [tasks.release]
 description = "Release a commit of main as a version: tag it and let GitHub build the image and the release"
 run = "bash tools/release.sh"
