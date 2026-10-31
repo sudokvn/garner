@@ -51,13 +51,22 @@ The palette is in `style.go`:
 | subtle | `#80848D` | headers, rows that need nothing |
 | border | `#3D3D47` | rules and frames |
 | select | `#242037` | cursor row |
-| mint | `#75B39C` | keys in the key bar (bold), success |
+| mint | `#75B39C` | keys in the key bar (bold), success, Garner's mark |
 | amber | `#F79926` | work in progress, needs you, files below the profile's first preference |
 | red | `#F54D47` | failures, offline |
 | iris | `#9BA0E3` | links, underlined |
 | faded | `#3A3A44` | everything behind an overlay |
 
 The interface sets no background colour, so it uses the terminal's own.
+
+## Mark
+
+Garner's mark, the logo from `docs/brand` drawn with half blocks in mint (`markLines` in `mark.go`), is 17 cells wide and 9 rows tall. It appears in two places:
+
+- **Empty library:** centred above "No shows yet", with two blank rows above and below it. It needs 14 rows in the table; with fewer, the message stands alone at the left as usual.
+- **About:** left of the name and versions, which then start in column 24. It needs 80 columns.
+
+The mark shows only in terminals with 256 colours or more. With 16 colours or `NO_COLOR`, both screens look as they would without it. Keep the mark to these two places.
 
 ## Keys
 

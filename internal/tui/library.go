@@ -441,7 +441,7 @@ func (s *libraryScreen) view(width, height int) string {
 	case s.cat == catMovies:
 		b.WriteString("   " + sMuted.Render("Movies are not available yet."))
 	case len(s.sess.shows) == 0:
-		b.WriteString("   " + sMuted.Render("No shows yet. Press ") + sKey.Render("a") + sMuted.Render(" to add one."))
+		b.WriteString(s.welcome(width))
 	case len(rows) == 0 && s.filter != "":
 		b.WriteString("   " + sMuted.Render("No show matches "+strconv.Quote(s.filter)+"."))
 	case len(rows) == 0:
@@ -457,6 +457,25 @@ func (s *libraryScreen) view(width, height int) string {
 		return overlay(page, deleteQuestion(showName(sh), sh, s.choice), width, height)
 	}
 	return page
+}
+
+// welcome is what an empty library shows: how to add a show, under
+// Garner's mark when the terminal shows it and the table has room for it.
+// Two blank rows above and below the mark are the brand's free space
+// (docs/brand).
+func (s *libraryScreen) welcome(width int) string {
+	msg := sMuted.Render("No shows yet. Press ") + sKey.Render("a") + sMuted.Render(" to add one.")
+	if !s.sess.mark || s.page < 2+len(markLines)+2+1 {
+		return "   " + msg
+	}
+	w := min(width, designWidth)
+	var b strings.Builder
+	b.WriteString("\n\n")
+	for _, row := range markRows() {
+		b.WriteString(strings.Repeat(" ", max(0, (w-markWidth)/2)) + row + "\n")
+	}
+	b.WriteString("\n\n" + strings.Repeat(" ", max(0, (w-lipgloss.Width(msg))/2)) + msg)
+	return b.String()
 }
 
 func (s *libraryScreen) tabs() string {

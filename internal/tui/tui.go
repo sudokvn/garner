@@ -11,6 +11,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 
 	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/client"
@@ -36,6 +37,10 @@ type session struct {
 	shows []api.Show
 	// folded remembers each show's folded seasons.
 	folded map[int64]map[int]bool
+	// mark is whether the terminal shows Garner's mark: with 256 colours
+	// or more. With 16, mint turns into the palette's green; NO_COLOR
+	// leaves no colour at all.
+	mark bool
 }
 
 // connectedMsg opens the library once Connect has stored a working code.
@@ -65,6 +70,7 @@ type app struct {
 	help          bool   // the Help overlay is open
 	helpScroll    scroller
 	width, height int
+	mark          bool // see session.mark
 	sess          *session
 	screen        screen
 	library       *libraryScreen
@@ -111,7 +117,7 @@ func (a *app) open(cl *client.Client, st client.Status) tea.Cmd {
 		a.sess.stop()
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	a.sess = &session{client: cl, status: st, stop: cancel, events: cl.Watch(ctx)}
+	a.sess = &session{client: cl, status: st, stop: cancel, events: cl.Watch(ctx), mark: a.mark}
 	a.library = newLibrary(a.sess)
 	a.screen = a.library
 	return tea.Batch(a.screen.init(), waitEvent(a.sess.events))
@@ -146,6 +152,12 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		a.width, a.height = msg.Width, msg.Height
+		return a, nil
+	case tea.ColorProfileMsg:
+		a.mark = msg.Profile >= colorprofile.ANSI256
+		if a.sess != nil {
+			a.sess.mark = a.mark
+		}
 		return a, nil
 	case tea.KeyPressMsg:
 		key := msg.String()

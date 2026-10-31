@@ -113,19 +113,27 @@ func (s *aboutScreen) view(width, height int) string {
 	w := min(width, designWidth) - 6
 	var b strings.Builder
 	b.WriteString(header(width, s.sess, "Garner", "About") + "\n\n")
-	b.WriteString("   " + sBold.Render("Garner") + "\n")
-	b.WriteString("   " + sMuted.Render("TV and anime manager") + "\n\n")
+
+	// Where the terminal shows Garner's mark and has 80 columns, the mark
+	// stands left of the name and versions, and they start after it.
+	withMark := s.sess.mark && width >= 80
+	left := 3
+	if withMark {
+		left += markWidth + 4
+	}
+	room := min(width, designWidth) - left
+	intro := []string{sBold.Render("Garner"), sMuted.Render("TV and anime manager"), ""}
 
 	// A field's details move to a line of their own when they do not fit.
 	field := func(label, value, rest string) {
-		line := "   " + sSubtle.Render(fmt.Sprintf("%-12s", label)) + sNormal.Render(value)
-		if lipgloss.Width(line+rest) <= w+6 {
-			b.WriteString(line + sMuted.Render(rest) + "\n")
+		line := sSubtle.Render(fmt.Sprintf("%-12s", label)) + sNormal.Render(value)
+		if lipgloss.Width(line+rest) <= room {
+			intro = append(intro, line+sMuted.Render(rest))
 			return
 		}
-		b.WriteString(line + "\n")
+		intro = append(intro, line)
 		if rest = strings.TrimPrefix(rest, " · "); rest != "" {
-			b.WriteString("   " + strings.Repeat(" ", 12) + sMuted.Render(rest) + "\n")
+			intro = append(intro, strings.Repeat(" ", 12)+sMuted.Render(rest))
 		}
 	}
 	field("TUI", clean(s.version), " · "+platform())
@@ -142,14 +150,33 @@ func (s *aboutScreen) view(width, height int) string {
 		}
 		field("Token", clean(st.Token), created)
 	} else {
-		b.WriteString("   " + sSubtle.Render(fmt.Sprintf("%-12s", "Server")) + server + "\n")
+		intro = append(intro, sSubtle.Render(fmt.Sprintf("%-12s", "Server"))+server)
 	}
-	for i, l := range wrapPath(clean(homeShort(s.path)), w-12) {
+	for i, l := range wrapPath(clean(homeShort(s.path)), room-15) {
 		label := "Connection"
 		if i > 0 {
 			label = ""
 		}
 		field(label, l, "")
+	}
+	if withMark {
+		// The text sits in the middle of the mark's rows.
+		mark := markRows()
+		top := max(0, (len(mark)-len(intro))/2)
+		for i := range max(len(mark), top+len(intro)) {
+			row, text := strings.Repeat(" ", markWidth), ""
+			if i < len(mark) {
+				row = mark[i]
+			}
+			if j := i - top; j >= 0 && j < len(intro) {
+				text = intro[j]
+			}
+			b.WriteString(strings.TrimRight("   "+row+"    "+text, " ") + "\n")
+		}
+	} else {
+		for _, l := range intro {
+			b.WriteString(strings.TrimRight("   "+l, " ") + "\n")
+		}
 	}
 	b.WriteString("\n")
 
