@@ -5,83 +5,62 @@
   </picture>
 </h1>
 
-garner manages TV shows and anime for a self-hosted media library. It finds releases through [Prowlarr](https://prowlarr.com), downloads them with [SABnzbd](https://sabnzbd.org), checks every file with FFprobe, moves it into the library and, if you use [Jellyfin](https://jellyfin.org), confirms the import through it. You run the server, `garnerd`, next to those services and use it from a terminal interface, `garner`, on any machine.
+garner downloads TV shows and anime from Usenet and checks every file before it reaches your library.
 
 ![The library in garner's terminal interface](docs/screenshot.png)
 
-- **Watches your shows.** The monitor searches for new episodes, or every missing one, and downloads the best release that fits the show's rules. When the show's profile wants upgrades, it replaces a file below the first preference, such as 720p, when a better release turns up.
-- **Explains every decision.** Every release in a search gets a verdict and the reasons for it: which episode it holds, which language and resolution it has and why it ranks where it does.
-- **Checks files before they reach the library.** FFprobe confirms the audio language, resolution and runtime of each file. If you use Jellyfin, it then has to identify the file as the intended episode.
-- **Handles anime numbering.** Scene numbering and absolute episode numbers come from [TheXEM](https://thexem.info), so releases of long-running anime match the right episodes.
-- **Takes over the files you already have.** When you add a show, garner adopts its existing files instead of downloading them again.
+- **Checks every file.** FFprobe confirms the audio language, resolution and runtime. If a file fails, garner downloads another release. With Jellyfin, garner also waits until Jellyfin identifies the episode.
+- **Explains every decision.** Every release in a search shows its verdict and the reasons for it.
+- **Watches your shows.** garner downloads new and missing episodes and, if the show's profile wants it, upgrades files when a better release turns up.
+- **Handles anime numbering.** Scene and absolute episode numbers come from [TheXEM](https://thexem.info).
+- **Keeps the files you have.** When you add a show, garner takes over its existing files instead of downloading them again.
 
-garner is young: versions start with `0.`, and a new version can change how things work. It handles TV shows and anime from Usenet only; it has no movies, no torrents and no 4K.
+## Compared with Sonarr
+
+garner does less than [Sonarr](https://sonarr.tv) 4 (for now) but checks more:
+
+- garner rejects a downloaded file with the wrong audio language and tries another release. Sonarr can reject a release for the language in its name, but not a downloaded file for its audio.
+- garner shows why it accepts, rejects and ranks each release. Sonarr shows reasons for rejections only.
+- A garner profile is a ranked list of languages and resolutions. Sonarr uses quality profiles and scored custom formats.
+- garner has no web interface, and tools built for Sonarr, such as Jellyseerr and Bazarr, do not work with it.
 
 ## What you need
 
-- A Linux server with Podman or Docker. Release images are built for x86 (`linux/amd64`).
-- Prowlarr with at least one Newznab indexer and SABnzbd with a Usenet provider.
-- Jellyfin with the TheTVDB plugin, if you want it. With Jellyfin, garner waits until Jellyfin identifies each imported file as the intended episode, and finds a show's existing files in Jellyfin's folders too. Without it, garner imports without that confirmation and looks for existing files only in its own folders.
-- One filesystem or share that holds both SABnzbd's completed downloads and the library. garner moves files with a rename, which works only within one filesystem.
+- A Linux server on x86 with Podman or Docker
+- [Prowlarr](https://prowlarr.com) with at least one Newznab indexer
+- [SABnzbd](https://sabnzbd.org) with a Usenet provider
+- SABnzbd's downloads and the library on one filesystem, because garner moves files by renaming them. The [TRaSH Guides folder structure](https://trash-guides.info/File-and-Folder-Structure/) works.
+- Optionally [Jellyfin](https://jellyfin.org) with the TheTVDB plugin, so garner can confirm each import and find existing files in Jellyfin's folders
 
-garner gets show and episode data from TheTVDB with its own key, which the release images bring along. To use a key of your own, set `TVDB_API_KEY`.
+garner brings its own TheTVDB key. To use your own, set `TVDB_API_KEY`.
 
 ## Get started
 
-1. Install the server: [docs/install.md](docs/install.md) walks through the configuration, the container and the first connection. To set up garner, Prowlarr and SABnzbd together with Docker Compose, use the [Compose example](examples/compose) instead.
-2. Install the terminal interface on the machine you use it from, a Mac or a Linux machine:
+1. Set up the server, `garnerd`, with the [install guide](docs/install.md). To run garner, Prowlarr and SABnzbd together with Docker Compose, use the [Compose example](examples/compose) instead.
+2. Install the terminal interface, `garner`, on your Mac or Linux machine:
 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/trucke/garner/main/install.sh | bash
    ```
 
-   The [script](install.sh) downloads the newest release for your machine, checks it against the release's checksums and puts it into `~/.local/bin`; run it again to update. If your shell does not find `garner` afterwards, add `~/.local/bin` to your `PATH`, as the script says.
+   Run it again to update. On a Mac, you can use `brew install trucke/tap/garner` instead.
 
-   On a Mac with Homebrew, `brew install trucke/tap/garner` installs it instead, and `brew upgrade` updates it.
-
-   To install it by hand, download the file for your machine from the [latest release](https://github.com/trucke/garner/releases/latest), such as `garner-<version>-darwin-arm64` for a Mac with Apple silicon or `garner-<version>-linux-amd64` for Linux on x86, make it executable and move it into your path as `garner`.
-
-   Installed with Homebrew or downloaded in a browser, `garner` makes macOS ask once whether to open a program from the internet; choose **Open**. The macOS files are signed with garner's developer certificate and checked by Apple.
-
-3. Run `garnerd token create <device>` on the server, run `garner` on your machine and paste the connection code. The terminal interface remembers the connection in `~/.config/garner/connection`.
+3. On the server, run `garnerd token create <device>`. Then run `garner` and paste the connection code.
 4. Press `a` to add a show. Press `?` on any screen for its keys.
 
-## Choose which releases garner accepts
+## Profiles
 
-Every show has a profile that says which releases garner accepts for it: the audio languages and resolutions, best first, called its preferences, and a few settings. A new installation starts with the profile Original language, which wants each show in its original audio, 1080p before 720p. garner ships four more to start from: German; German, English fallback; English; and Original, English dub.
+A show's profile sets the audio languages and resolutions garner accepts, best first. A new installation starts with Original language: the show's original audio, 1080p before 720p. garner also ships German; German, English fallback; English; and Original, English dub.
 
-To manage the profiles, press `P` in the terminal interface. There you create a profile, start one from a shipped one, change one, import one from a link or pasted text, export one to a file, and choose the profile that new TV and new anime shows get. To give a show another profile, press `p` on its details page. [Profiles](docs/profiles.md) describes the format, so you can share profiles and use the ones others wrote.
+Press `P` to manage profiles, and `p` on a show's page to change its profile or its type, TV or anime. You can import profiles from a link and share your own; [Profiles](docs/profiles.md) describes the format.
 
-Every show also has a type, TV or anime. Anime reads a bare number such as 101 as an absolute episode number first, and the files of anime shows go to `library.anime`. garner sets the type from TheTVDB's genres; `p` on the details page changes it too.
+Some rules apply to every profile. For example, garner never downloads a remux or a 2160p release on its own. [How garner chooses releases](docs/releases.md) lists them all.
 
-A release that names no language counts as the show's original language. The file check after download confirms the language.
+## Existing files
 
-Some rules apply under every profile: garner never downloads a remux or a 2160p release on its own, ranks the releases that meet the same preference by size, completeness, source and age, and checks each video before importing it. [How garner chooses releases](docs/releases.md) lists them all.
+When you add a show, garner takes over the video files that clearly belong to its missing episodes. It looks in its own folder for the show and, with Jellyfin, in every folder where Jellyfin keeps the show.
 
-## Files in the library
-
-garner manages one file per episode: the files it imports and the files it takes over. It leaves every other file in the library alone.
-
-### Taking over files
-
-When you add a show, garner looks for the show's video files before the monitor starts on it. It looks in two places:
-
-- garner's folder for the show, such as `Harbor.Precinct.Night.Shift.2013.[tvdbid-42]`
-- with Jellyfin, every folder that Jellyfin holds the show in, found by the show's TVDB ID, whatever the folder is called
-
-garner takes over a file when its name clearly names episodes that have no file yet. FFprobe reads the file's audio languages and resolution, which say which preference of the profile the file meets, as for a download. A file that meets none, such as English audio under the German profile, ranks below every preference, so an upgrade replaces it. Of two files for one episode, garner takes the one that meets the better preference, then the larger one. The terminal interface lists the files that garner left alone, with the reason. To look again, for example after copying files into the library by hand, press `t` on the show's details page.
-
-garner reaches Jellyfin's folders only through `jellyfin.paths` in `garner.toml`. Map every folder that Jellyfin's libraries use, including the folders of a library from before garner, and mount each one into garner's container at the mapped path. When no mapping covers a folder, the terminal interface names the folder, and garner looks only in its own folder.
-
-### What taking over means for your files
-
-A taken-over file belongs to garner from then on, like a file it imported:
-
-- An upgrade replaces the file and deletes it, with its subtitle files.
-- Deleting the show with **Delete files** deletes the file. **Keep files** leaves it in place, and adding the show again takes it over again.
-- The file keeps its name and folder. After a take-over, the terminal interface asks whether to rename and move the files outside garner's folder into that folder, named the way garner names files. **Keep as they are** is preselected.
-
-Renaming moves the subtitle files along, never overwrites a file and, if you use Jellyfin, tells it about the moves. It removes the folders that the moves left empty. A folder that still holds other files, such as Jellyfin's `tvshow.nfo`, stays, and Jellyfin may still list it as a show. garner moves files without copying them, so a file on another filesystem than garner's folder stays where it is.
+From then on, garner treats these files like its own downloads: an upgrade replaces them, and deleting the show with its files deletes them. It leaves every other file in the library alone. [Files in the library](docs/library.md) has the details.
 
 ## Responsible use
 
