@@ -1,11 +1,11 @@
-# Garner configuration. Copy to garner.toml and adjust.
+# garner configuration. Copy to garner.toml and adjust.
 # Secrets never go in this file. Set them as environment variables, or point
 # NAME_FILE at a file holding the value (systemd credentials, Infisical Agent):
 #   PROWLARR_API_KEY, SABNZBD_API_KEY, JELLYFIN_API_KEY
-# Release images bring Garner's own TheTVDB key. To use a key of your own,
+# Release images bring garner's own TheTVDB key. To use a key of your own,
 # set TVDB_API_KEY, and TVDB_PIN if your key needs a subscriber PIN.
 
-# Database, backups and Garner's own TLS key. Must be on local disk, not a
+# Database, backups and garner's own TLS key. Must be on local disk, not a
 # network share. Relative paths are relative to this file.
 data_dir = "data"
 
@@ -17,7 +17,7 @@ data_dir = "data"
 listen = "127.0.0.1:7979"
 
 # To serve other machines, listen beyond loopback and set the address clients
-# use. Garner then serves HTTPS with its own certificate; `garnerd token create`
+# use. garner then serves HTTPS with its own certificate; `garnerd token create`
 # prints a connection code that lets clients verify it.
 # listen = "0.0.0.0:7979"
 # url = "https://garner.home.lan:7979"
@@ -27,15 +27,15 @@ listen = "127.0.0.1:7979"
 # tls_key = "/etc/garner/key.pem"
 
 # Or put a reverse proxy with a publicly trusted certificate in front: url is
-# the proxy's address, and Garner serves plain HTTP that only the proxy may
+# the proxy's address, and garner serves plain HTTP that only the proxy may
 # reach, so firewall the listener.
 # listen = "192.168.1.20:7979"
 # url = "https://garner.example.com"
 # proxied = true
 
-# Library folders, as Garner reaches them. Garner moves downloads here
+# Library folders, as garner reaches them. garner moves downloads here
 # with a rename, so they must be on the same share or filesystem as
-# SABnzbd's completed folder. Garner creates the show and season folders
+# SABnzbd's completed folder. garner creates the show and season folders
 # below them, never these folders themselves, so an unmounted share fails
 # instead of filling the local disk.
 [library]
@@ -50,15 +50,15 @@ url = "http://prowlarr.home.lan:9696"
 url = "http://sabnzbd.home.lan:8080"
 category = "tv"
 # When SABnzbd runs on another host or in a container, map the folders it
-# reports to where Garner reaches them, such as an NFS or SMB mount.
+# reports to where garner reaches them, such as an NFS or SMB mount.
 paths = { "/data/usenet" = "/srv/media/usenet" }
 
 [jellyfin]
 url = "http://jellyfin.home.lan:8096"
-# The same for Jellyfin's library folders. When you add a show, Garner takes
+# The same for Jellyfin's library folders. When you add a show, garner takes
 # over its files in the folders Jellyfin holds it in, so map every folder
-# Jellyfin's libraries use, including those of a library from before Garner.
-# Garner skips a folder no entry covers and says so.
+# Jellyfin's libraries use, including those of a library from before garner.
+# garner skips a folder no entry covers and says so.
 paths = { "/data/library" = "/srv/media/library" }
 
 # The monitor searches the episodes your shows miss and downloads the best
@@ -69,21 +69,21 @@ paths = { "/data/library" = "/srv/media/library" }
 enabled = true
 
 # An episode counts as "recent" for this many days after it aired. Recent
-# episodes often get new or better releases, so Garner looks for them more
+# episodes often get new or better releases, so garner looks for them more
 # often than for older ones.
 recent_days = 14
 
-# How long Garner waits before searching again for an episode that is not
+# How long garner waits before searching again for an episode that is not
 # in the library: a recent one, and an older one.
 missing_recent = "6h"
 missing_older = "24h"
 
-# Upgrades: for a show whose profile wants them, Garner looks for a better
+# Upgrades: for a show whose profile wants them, garner looks for a better
 # release of an episode whose file is below the profile's first preference,
 # such as 720p when 1080p comes first. How long it waits between looks: for
 # a recent episode, and an older one.
 upgrade_recent = "24h"
 upgrade_older = "7d"
 
-# Profiles, which releases a show accepts, live in Garner's database; the
+# Profiles, which releases a show accepts, live in garner's database; the
 # terminal interface manages them. docs/profiles.md describes them.

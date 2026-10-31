@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raw.githubusercontent.com/trucke/garner/main/docs/profile.schema.json",
-  "title": "Garner profile",
-  "description": "Which releases Garner accepts for a show and how it ranks them. https://github.com/trucke/garner/blob/main/docs/profiles.md describes the format.",
+  "title": "garner profile",
+  "description": "Which releases garner accepts for a show and how it ranks them. https://github.com/trucke/garner/blob/main/docs/profiles.md describes the format.",
   "type": "object",
   "additionalProperties": false,
   "required": ["garner_profile", "name", "audio", "resolution"],
@@ -12,7 +12,7 @@
       "const": 1
     },
     "name": {
-      "description": "The profile's name, unique within one Garner.",
+      "description": "The profile's name, unique within one garner.",
       "type": "string",
       "minLength": 1,
       "maxLength": 40
@@ -41,7 +41,7 @@
       }
     },
     "priority": {
-      "description": "Which list counts more when Garner ranks the preferences.",
+      "description": "Which list counts more when garner ranks the preferences.",
       "enum": ["audio", "resolution"],
       "default": "audio"
     },

@@ -1,6 +1,10 @@
-# Garner's logo
+# garner's logo
 
 The mark is a G that holds one block: an episode, gathered. The wordmark is set in Geist Mono Medium.
+
+## The name
+
+The name is garner, all lowercase, as in the wordmark, also at the start of a sentence and in headings. The programs keep their names in code font: `garner` is the terminal interface and `garnerd` the server.
 
 ## Files
 

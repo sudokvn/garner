@@ -1,14 +1,14 @@
-# Garner's configuration for the Compose example, with the paths as the
+# garner's configuration for the Compose example, with the paths as the
 # containers see them. Set server.url; the repository's
 # garner.example.toml explains every setting. Profiles, which releases a
-# show accepts, live in Garner's database: press P in the terminal
+# show accepts, live in garner's database: press P in the terminal
 # interface.
 
 data_dir = "/data"
 
 [server]
 listen = "0.0.0.0:7979"
-# The address clients reach this machine at. Garner serves HTTPS with its
+# The address clients reach this machine at. garner serves HTTPS with its
 # own certificate, and the connection code lets clients verify it.
 url = "https://garner.home.lan:7979"
 
@@ -16,7 +16,7 @@ url = "https://garner.home.lan:7979"
 tv = "/srv/media/library/tv"
 anime = "/srv/media/library/anime"
 
-# The services by their Compose names. Garner warns at start that their
+# The services by their Compose names. garner warns at start that their
 # API keys travel over plain HTTP; between the containers of one machine,
 # they never leave it.
 [prowlarr]
@@ -26,9 +26,9 @@ url = "http://prowlarr:9696"
 url = "http://sabnzbd:8080"
 category = "tv"
 
-# Without JELLYFIN_API_KEY in .env, Garner runs without Jellyfin and does
+# Without JELLYFIN_API_KEY in .env, garner runs without Jellyfin and does
 # not wait for it to confirm an import. For your own Jellyfin, set its
-# address, and map the folders its libraries use to Garner's, such as
+# address, and map the folders its libraries use to garner's, such as
 # paths = { "/media/tv" = "/srv/media/library/tv" }.
 [jellyfin]
 url = "http://jellyfin:8096"

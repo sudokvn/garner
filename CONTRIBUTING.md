@@ -1,4 +1,4 @@
-# Contributing to Garner
+# Contributing to garner
 
 Bug reports, ideas and pull requests are welcome. For a larger change, open an issue first, so we can agree on the approach before you build it.
 
@@ -8,10 +8,11 @@ Bug reports, ideas and pull requests are welcome. For a larger change, open an i
 - Keep real release names out of the repository: in tests, comments and commit messages, use made-up ones such as `Harbor.Precinct.S01E01.German.DL.1080p.WEB-GRP`.
 - Run `mise run check` before you push. Every pull request runs the same checks on GitHub, without the macOS tests.
 - Keep changes focused, with tests for the behaviour they change.
+- Write the name garner in lowercase, also at the start of a sentence. Write the programs `garner` and `garnerd` in code font, so they read as commands.
 
 ## Run it locally
 
-Garner runs on your machine against a local development stack: SABnzbd, Prowlarr and Jellyfin in a Podman pod, so development never touches other services or libraries. You need [mise](https://mise.jdx.dev), [Podman](https://podman.io), a Usenet account, at least one Newznab indexer and a [TheTVDB API key](https://thetvdb.com/api-information): only release images have Garner's own key built in.
+garner runs on your machine against a local development stack: SABnzbd, Prowlarr and Jellyfin in a Podman pod, so development never touches other services or libraries. You need [mise](https://mise.jdx.dev), [Podman](https://podman.io), a Usenet account, at least one Newznab indexer and a [TheTVDB API key](https://thetvdb.com/api-information): only release images have garner's own key built in.
 
 1. Copy `devstack.example.toml` to `devstack.toml` and fill in your Usenet server and indexers. Set `TVDB_API_KEY` in the environment, for example in `mise.local.toml`:
 
@@ -32,13 +33,13 @@ Garner runs on your machine against a local development stack: SABnzbd, Prowlarr
 | Prowlarr | <http://127.0.0.1:9696> | Set up on first visit |
 | Jellyfin | <http://127.0.0.1:8096> | User `garner-dev`, password in `~/garner-dev/secrets/jellyfin_admin_password` |
 
-The stack listens on `127.0.0.1` only. Downloads, the library, the settings and Garner's development database all live in `~/garner-dev`. The stack's own API keys are in `~/garner-dev/secrets`.
+The stack listens on `127.0.0.1` only. Downloads, the library, the settings and garner's development database all live in `~/garner-dev`. The stack's own API keys are in `~/garner-dev/secrets`.
 
 - `mise run devstack status` shows the containers.
 - `mise run devstack down` stops them and keeps the data.
-- `mise run devstack reset` deletes everything in `~/garner-dev` and builds the stack again. Stop Garner first.
+- `mise run devstack reset` deletes everything in `~/garner-dev` and builds the stack again. Stop garner first.
 
-Keep one-off files from testing, such as a copy of the dev data or a second `garner.toml` on another port, in `~/garner-dev/scratch`; Podman sees that folder too. `mise run clean` deletes it, along with the build output in `bin/` and `dist/`, and keeps the stack and its data. Stop Garner first.
+Keep one-off files from testing, such as a copy of the dev data or a second `garner.toml` on another port, in `~/garner-dev/scratch`; Podman sees that folder too. `mise run clean` deletes it, along with the build output in `bin/` and `dist/`, and keeps the stack and its data. Stop garner first.
 
 `mise run devstack up` removes any Usenet server or indexer that is not in `devstack.toml`, so change them there rather than in SABnzbd or Prowlarr. Some providers and indexers limit how many places may use an account at once; give the stack an account, or an allowance, that nothing else needs.
 
@@ -58,9 +59,9 @@ Other tasks:
 
 ### Writing tests
 
-A test guards behaviour someone relies on: the user's files, the database, who may use the API and what Garner decides about a release. There is no coverage target.
+A test guards behaviour someone relies on: the user's files, the database, who may use the API and what garner decides about a release. There is no coverage target.
 
-- Use the real parts: a real store in `t.TempDir()`, real files in temporary folders and `httptest` servers that answer as SABnzbd, Prowlarr, Jellyfin or TheTVDB do. Garner uses no mocking or assertion libraries, only `testing`, with failure messages that say what went wrong.
+- Use the real parts: a real store in `t.TempDir()`, real files in temporary folders and `httptest` servers that answer as SABnzbd, Prowlarr, Jellyfin or TheTVDB do. garner uses no mocking or assertion libraries, only `testing`, with failure messages that say what went wrong.
 - Use made-up show and release names, as the ground rules say.
 - When you fix a bug, write its test first and watch it fail.
 - In `internal/importer`, only the guard (`internal/importer/guard`) may move, write or remove files. `TestOnlyTheGuardChangesFiles` fails when other code there calls `os.Rename`, `os.Remove` and the like.
@@ -71,15 +72,15 @@ The maintainer also runs tests against real release names, which stay private. W
 
 ### The simulation
 
-`internal/simulation` runs Garner's server against a simulated SABnzbd, Prowlarr, Jellyfin and FFprobe, on a temporary share and a simulated clock. The share holds a library with files from before Garner, the user's own files and an older Jellyfin library; the downloads or the older library may sit on another disk. A seed drives every event: what the user does, how the services answer and fail, when a folder is unplugged or refuses writes, how the catalogue changes, when time jumps and when Garner restarts. The monitor runs too, with upgrades on. Inside a step, right before Garner changes a file, the seed may end Garner as a power cut would, and start it again from its database, or run another step first, as another request or one of Garner's other loops may. After every step, the test checks Garner's promises about files:
+`internal/simulation` runs garner's server against a simulated SABnzbd, Prowlarr, Jellyfin and FFprobe, on a temporary share and a simulated clock. The share holds a library with files from before garner, the user's own files and an older Jellyfin library; the downloads or the older library may sit on another disk. A seed drives every event: what the user does, how the services answer and fail, when a folder is unplugged or refuses writes, how the catalogue changes, when time jumps and when garner restarts. The monitor runs too, with upgrades on. Inside a step, right before garner changes a file, the seed may end garner as a power cut would, and start it again from its database, or run another step first, as another request or one of garner's other loops may. After every step, the test checks garner's promises about files:
 
-- Files no one gave Garner, such as the user's own files and Jellyfin's metadata, stay as they are.
+- Files no one gave garner, such as the user's own files and Jellyfin's metadata, stay as they are.
 - A video leaves the library only when a file as good or better replaced it, or a worse one the user chose over it, or when the user deleted its show with its files.
-- Garner changes nothing outside the library and SABnzbd's folders, and removes a download's folder only when it is done with the download.
-- Every file Garner records exists.
+- garner changes nothing outside the library and SABnzbd's folders, and removes a download's folder only when it is done with the download.
+- Every file garner records exists.
 - Downloads and imports change state only along the allowed transitions.
 
-After a calm period at the end, every download and every import must have ended, every wanted episode that aired must have a file unless it waits for the user, Garner must have removed SABnzbd's folders of the downloads it imported, and a video that was an episode's file must be gone once no episode records it, as after an upgrade.
+After a calm period at the end, every download and every import must have ended, every wanted episode that aired must have a file unless it waits for the user, garner must have removed SABnzbd's folders of the downloads it imported, and a video that was an episode's file must be gone once no episode records it, as after an upgrade.
 
 `go test ./...` runs a fixed list of seeds, each twice: the second run must tell the same story. A failure names the seed, the step, the broken rule and the last steps, and ends with a command that replays it:
 
@@ -87,15 +88,15 @@ After a calm period at the end, every download and every import must have ended,
 go test ./internal/simulation -run TestSimulation -seed 1842 -steps 317 -v
 ```
 
-A failure also says whose mistake it is: Garner broke a rule, or the simulation is out of step with Garner, when its own notes of what it told Garner, such as which shows the user added, differ from Garner's database. The simulation checks those notes before every rule.
+A failure also says whose mistake it is: garner broke a rule, or the simulation is out of step with garner, when its own notes of what it told garner, such as which shows the user added, differ from garner's database. The simulation checks those notes before every rule.
 
 With `-v`, the replay prints every step. To explore, run `-seeds 1000` for a thousand fresh seeds instead of the fixed ones, or `-seeds-for 10m` for fresh seeds during ten minutes. Both stop at the first seed that fails.
 
 Every night, GitHub's Nightly workflow (`.github/workflows/nightly.yml`) runs fresh seeds for 50 minutes and each fuzz test for 15 minutes. Fuzzing goes on from the inputs earlier nights found, which GitHub's cache keeps; the run's summary says how many there are. A failure opens an issue labelled `nightly` with the commit and how to replay it, or adds a comment to the one still open. Close it with the fix.
 
-A failure is a bug in Garner or in the simulation. When you fix a bug it found, also add a focused test for it: after later changes, the same seed may take another path.
+A failure is a bug in garner or in the simulation. When you fix a bug it found, also add a focused test for it: after later changes, the same seed may take another path.
 
-The fixed seeds were chosen so that, together, every event changes something, a crash and another step meet every step that changes files, and they catch bugs built into Garner on purpose. A change to the simulated world sends every seed down another path; the test then fails when an event or a crash point no longer shows up in any fixed seed. The comment on `fixedSeeds` says how to choose them again and lists the bugs to check by hand.
+The fixed seeds were chosen so that, together, every event changes something, a crash and another step meet every step that changes files, and they catch bugs built into garner on purpose. A change to the simulated world sends every seed down another path; the test then fails when an event or a crash point no longer shows up in any fixed seed. The comment on `fixedSeeds` says how to choose them again and lists the bugs to check by hand.
 
 ## How the code is organised
 
@@ -118,10 +119,10 @@ The fixed seeds were chosen so that, together, every event changes something, a 
 
 Maintainers release with `mise run release vX.Y.Z [revision]`. The task tags a commit of `main`, the newest by default, and pushes the tag. The commit must be on `main` on GitHub and newer than the last published release. GitHub's release workflow (`.github/workflows/release.yml`) then builds:
 
-- the server image, `ghcr.io/trucke/garner:vX.Y.Z`, also tagged `latest` for the Compose example in `examples/compose`, with Garner's TheTVDB key from the repository secret `TVDB_API_KEY` built in; the workflow fails without it. Its build cache lives on `ghcr.io` too, so FFprobe is compiled only when the Dockerfile's FFmpeg changes.
+- the server image, `ghcr.io/trucke/garner:vX.Y.Z`, also tagged `latest` for the Compose example in `examples/compose`, with garner's TheTVDB key from the repository secret `TVDB_API_KEY` built in; the workflow fails without it. Its build cache lives on `ghcr.io` too, so FFprobe is compiled only when the Dockerfile's FFmpeg changes.
 - with GoReleaser (`.goreleaser.yaml`), the terminal interface for macOS and Linux, on ARM and x86, with SHA-256 sums, and the GitHub release with the image reference and the commits since the previous version. The release also carries `THIRD-PARTY-NOTICES.txt`, the licenses of the Go modules the binaries are built with; run `mise run notices` to regenerate it when a dependency changed.
 
-GoReleaser signs the macOS binaries with Garner's Developer ID certificate and has Apple notarize them, so macOS opens them. The certificate and its password come from the repository secrets `MACOS_SIGN_P12` and `MACOS_SIGN_PASSWORD`, the App Store Connect key for notarizing from `MACOS_NOTARY_KEY`, `MACOS_NOTARY_KEY_ID` and `MACOS_NOTARY_ISSUER_ID`; the workflow fails without them. The maintainer keeps copies in Infisical (`garner`, `dev`, `/macos-signing`). The certificate expires on 27 November 2027; binaries signed before then stay valid, and later releases need a new certificate in both places.
+GoReleaser signs the macOS binaries with garner's Developer ID certificate and has Apple notarize them, so macOS opens them. The certificate and its password come from the repository secrets `MACOS_SIGN_P12` and `MACOS_SIGN_PASSWORD`, the App Store Connect key for notarizing from `MACOS_NOTARY_KEY`, `MACOS_NOTARY_KEY_ID` and `MACOS_NOTARY_ISSUER_ID`; the workflow fails without them. The maintainer keeps copies in Infisical (`garner`, `dev`, `/macos-signing`). The certificate expires on 27 November 2027; binaries signed before then stay valid, and later releases need a new certificate in both places.
 
 GoReleaser also updates the Homebrew cask in [`trucke/homebrew-tap`](https://github.com/trucke/homebrew-tap), with that repository's deploy key from the secret `HOMEBREW_TAP_KEY`; Infisical keeps a base64 copy in `/homebrew-tap`. `install.sh` in the repository root installs the newest release; GitHub's check runs it on every push.
 

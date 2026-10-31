@@ -1,8 +1,8 @@
-# Garner with Prowlarr and SABnzbd, and Jellyfin if you want it, for
+# garner with Prowlarr and SABnzbd, and Jellyfin if you want it, for
 # Docker Compose. README.md next to this file walks through the setup.
 #
-# SABnzbd, Garner and Jellyfin see the media folder at /srv/media, as one
-# mount: Garner moves each download from /srv/media/usenet into
+# SABnzbd, garner and Jellyfin see the media folder at /srv/media, as one
+# mount: garner moves each download from /srv/media/usenet into
 # /srv/media/library with a rename, which works only within one mount.
 # To keep the media elsewhere, replace ./media below.
 
@@ -15,7 +15,7 @@ services:
     tmpfs: [/tmp]
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
-    # The time zone and Garner's API keys.
+    # The time zone and garner's API keys.
     env_file: .env
     ports:
       - 7979:7979
@@ -40,7 +40,7 @@ services:
     image: lscr.io/linuxserver/sabnzbd:latest
     restart: unless-stopped
     # SABnzbd answers only requests addressed to a name it knows. On its
-    # first start, it learns its host name, which Garner uses.
+    # first start, it learns its host name, which garner uses.
     hostname: sabnzbd
     environment: *linuxserver
     ports:

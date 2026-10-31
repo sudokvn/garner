@@ -1,10 +1,10 @@
-# Run Garner with Docker Compose
+# Run garner with Docker Compose
 
-This folder runs Garner with Prowlarr and SABnzbd on one machine with Docker Compose, and Jellyfin too if you want it. Garner works without Jellyfin, but then it does not wait for Jellyfin to confirm each import. To run Garner as a single container next to services you already have, follow [docs/install.md](../../docs/install.md) instead.
+This folder runs garner with Prowlarr and SABnzbd on one machine with Docker Compose, and Jellyfin too if you want it. garner works without Jellyfin, but then it does not wait for Jellyfin to confirm each import. To run garner as a single container next to services you already have, follow [docs/install.md](../../docs/install.md) instead.
 
-You need an x86 Linux machine with Docker and its Compose plugin, a Usenet provider and a Newznab indexer. Garner's image brings its own TheTVDB key.
+You need an x86 Linux machine with Docker and its Compose plugin, a Usenet provider and a Newznab indexer. garner's image brings its own TheTVDB key.
 
-All services see the media at `/srv/media`, as one folder: SABnzbd downloads into `media/usenet`, and Garner moves the files into `media/library` with a rename, which works only within one mount.
+All services see the media at `/srv/media`, as one folder: SABnzbd downloads into `media/usenet`, and garner moves the files into `media/library` with a rename, which works only within one mount.
 
 ## Set it up
 
@@ -32,7 +32,7 @@ All services see the media at `/srv/media`, as one folder: SABnzbd downloads int
    docker compose up -d
    ```
 
-   Garner starts without its API keys and reports the missing ones in `docker compose logs garner`.
+   garner starts without its API keys and reports the missing ones in `docker compose logs garner`.
 6. Set up SABnzbd at `http://<machine>:8080`:
    1. Run its wizard with your Usenet provider.
    2. Under **Config › General**, set a username and password. Without them, any device on your network can open SABnzbd. Copy the API key from the same page to `SABNZBD_API_KEY` in `.env`.
@@ -43,35 +43,35 @@ All services see the media at `/srv/media`, as one folder: SABnzbd downloads int
    1. Run its wizard and add a library of shows for `/srv/media/library/tv` and one for `/srv/media/library/anime`.
    2. Install the TheTVDB plugin and put it first in the libraries' metadata order, as step 1 of [Prepare the other services](../../docs/install.md#prepare-the-other-services) describes.
    3. Create an API key under **Dashboard › API Keys** and copy it to `JELLYFIN_API_KEY` in `.env`.
-9. Start Garner again with the keys:
+9. Start garner again with the keys:
 
     ```bash
     docker compose up -d
     ```
 
-10. Check that Garner runs:
+10. Check that garner runs:
 
     ```bash
     docker compose exec garner garnerd status
     ```
 
-    The first line reads `● Garner <version> · running since …`.
-11. Create a token for the device you use Garner from:
+    The first line reads `● garner <version> · running since …`.
+11. Create a token for the device you use garner from:
 
     ```bash
     docker compose exec garner garnerd token create laptop
     ```
 
     Install `garner` on that device as the [README](../../README.md#get-started) describes, run it and paste the connection code. Press `?`, then `a`, to open the About screen: it shows whether Prowlarr, SABnzbd, Jellyfin and TheTVDB answer.
-12. Press `P` to see the profiles. Garner starts with Original language, which wants each show in its original audio. To download in another language, press `a` to start a profile from a shipped one, such as German or English, then `u` to make it the profile for new shows. [Choose which releases Garner accepts](../../README.md#choose-which-releases-garner-accepts) says more.
+12. Press `P` to see the profiles. garner starts with Original language, which wants each show in its original audio. To download in another language, press `a` to start a profile from a shipped one, such as German or English, then `u` to make it the profile for new shows. [Choose which releases garner accepts](../../README.md#choose-which-releases-garner-accepts) says more.
 
-At start, Garner warns that the services' API keys travel over plain HTTP. Between containers on one machine, they never leave it.
+At start, garner warns that the services' API keys travel over plain HTTP. Between containers on one machine, they never leave it.
 
 ## Back up and upgrade
 
 `docker compose exec garner garnerd backup` writes a copy of the database to `garner/backups`. Run it daily, for example from a systemd timer.
 
-To upgrade, check that Garner is idle, so the restart interrupts no import:
+To upgrade, check that garner is idle, so the restart interrupts no import:
 
 ```bash
 docker compose exec garner garnerd status --json

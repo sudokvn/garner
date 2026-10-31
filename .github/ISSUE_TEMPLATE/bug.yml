@@ -1,12 +1,12 @@
 name: Bug report
-description: Garner does something wrong or fails.
+description: garner does something wrong or fails.
 labels: [bug]
 body:
   - type: textarea
     id: what
     attributes:
       label: What happened
-      description: What you did, what Garner did, and what you expected instead.
+      description: What you did, what garner did, and what you expected instead.
     validations:
       required: true
   - type: textarea
@@ -19,7 +19,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Garner version
+      label: garner version
       description: The About screen (`?`, then `a`) or `garnerd status` shows it.
     validations:
       required: true
