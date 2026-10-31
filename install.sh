@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 # Installs or updates `garner`, garner's terminal interface, on macOS or
-# Linux: downloads the newest release for this machine from GitHub,
-# checks it against the release's SHA256SUMS and puts it into
-# ~/.local/bin.
+# Linux: downloads the newest release of a channel for this machine from
+# GitHub, checks it against the release's SHA256SUMS and puts it into
+# ~/.local/bin. It downloads nothing when that version is installed already.
 #
 #   curl -fsSL https://raw.githubusercontent.com/trucke/garner/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/trucke/garner/main/install.sh | bash -s -- --channel dev
 #
-# GARNER_VERSION=v0.6.1 installs that version instead of the newest, and
-# GARNER_INSTALL_DIR another folder instead of ~/.local/bin.
+# The stable channel has the stable releases; dev has the release
+# candidates as well, such as v0.9.0-rc.1, and always the newest version.
+# GARNER_CHANNEL=dev does what --channel dev does. GARNER_VERSION=v0.6.1
+# installs that version instead of the newest, and GARNER_INSTALL_DIR
+# another folder instead of ~/.local/bin.
 set -euo pipefail
 
 repo=https://github.com/trucke/garner
@@ -19,6 +23,24 @@ trap 'rm -rf "$tmp" "$part"' EXIT
 fail() {
 	printf '✗ %s\n' "$1" >&2
 	exit 1
+}
+
+version_pattern='^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[1-9][0-9]*)?$'
+
+# newest prints the newest of the versions on stdin, a release after its
+# candidates; sort -V would put v1.0.0 before v1.0.0-rc.1. The release
+# scripts sort the same way (tools/versions.sh).
+newest() {
+	local v base major minor patch rc
+	while read -r v; do
+		[[ "$v" =~ $version_pattern ]] || continue
+		base=${v#v}
+		base=${base%%-*}
+		IFS=. read -r major minor patch <<<"$base"
+		rc=0
+		[[ "$v" != *-rc.* ]] || rc=$((${v##*-rc.} - 1000000))
+		printf '%d %d %d %d %s\n' "$major" "$minor" "$patch" "$rc" "$v"
+	done | sort -n -k1,1 -k2,2 -k3,3 -k4,4 | awk 'END { print $5 }'
 }
 
 # Everything runs from main, so a download cut short runs nothing.
@@ -41,17 +63,45 @@ main() {
 		arch=arm64
 	fi
 
+	local channel=${GARNER_CHANNEL:-stable}
+	while [ $# -gt 0 ]; do
+		case $1 in
+		--channel)
+			[ $# -ge 2 ] || fail "--channel needs stable or dev"
+			channel=$2
+			shift 2
+			;;
+		*) fail "unknown option $1; garner's installer takes --channel stable or --channel dev" ;;
+		esac
+	done
+
 	local version=${GARNER_VERSION:-}
 	if [ -z "$version" ]; then
-		# GitHub redirects the newest release to its tag's page.
-		version=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "$repo/releases/latest") ||
-			fail "could not reach GitHub to find the newest release"
-		version=${version##*/}
+		case $channel in
+		stable)
+			# GitHub redirects its latest release, the newest stable one, to
+			# its tag's page.
+			version=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "$repo/releases/latest") ||
+				fail "could not reach GitHub to find the newest release"
+			version=${version##*/}
+			;;
+		dev)
+			# Candidates are pre-releases, which GitHub's latest leaves out.
+			version=$(curl -fsSL "https://api.github.com/repos/trucke/garner/releases?per_page=30" |
+				sed -n 's/^ *"tag_name": *"\([^"]*\)".*/\1/p' | newest) ||
+				fail "could not reach GitHub to find the newest release"
+			;;
+		*) fail "there is no channel $channel; choose stable or dev" ;;
+		esac
 	fi
-	[[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "no release version found: $version"
+	[[ "$version" =~ $version_pattern ]] || fail "no release version found: $version"
 
 	local file="garner-$version-$os-$arch"
 	local dir=${GARNER_INSTALL_DIR:-$HOME/.local/bin}
+	if [ -x "$dir/garner" ] && [ "$("$dir/garner" --version 2>/dev/null | awk '{ print $2 }')" = "$version" ]; then
+		printf '✓ garner %s is installed already in %s\n' "$version" "$dir"
+		return
+	fi
 	mkdir -p "$dir"
 	tmp=$(mktemp -d)
 	# Next to its target, so the rename below replaces it in one step, even

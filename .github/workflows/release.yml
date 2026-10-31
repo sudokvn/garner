@@ -27,8 +27,8 @@ jobs:
     steps:
       - name: Check the tag
         run: |
-          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
-            echo "::error::$TAG is not a version such as v1.2.3"
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[1-9][0-9]*)?$ ]] || {
+            echo "::error::$TAG is not a version such as v1.2.3 or v1.2.3-rc.1"
             exit 1
           }
 
@@ -75,17 +75,26 @@ jobs:
             }
           done
 
-      # latest names the newest version on main, which the Compose example
-      # pulls, and only the newest updates the Homebrew cask; a rerun of an
-      # older release leaves both alone.
-      - name: Choose the image tags
+      # The channels: latest names the newest stable release on main, which
+      # the Compose example pulls, and dev the newest version of all,
+      # candidates included. Only they move the Homebrew casks garner and
+      # garner@dev and GitHub's latest release; a rerun of an older release
+      # leaves them alone. The image tags move once the release is out.
+      - name: Choose the channels
         id: tags
         run: |
-          newest=$(git tag --merged origin/main | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
-          tags="$IMAGE:$TAG"
-          [ "$newest" != "$TAG" ] || tags="$tags,$IMAGE:latest"
-          echo "tags=$tags" >> "$GITHUB_OUTPUT"
-          echo "newest=$([ "$newest" = "$TAG" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          source tools/versions.sh
+          versions=$(git tag --merged origin/main | sort_versions)
+          newest=$(printf '%s\n' "$versions" | tail -1)
+          stable=$(printf '%s\n' "$versions" | grep -E "$STABLE_PATTERN" | tail -1 || true)
+          channels=""
+          [ "$stable" != "$TAG" ] || channels="$channels latest"
+          [ "$newest" != "$TAG" ] || channels="$channels dev"
+          {
+            echo "channels=${channels# }"
+            echo "newest=$([ "$newest" = "$TAG" ] && echo true || echo false)"
+            echo "newest_stable=$([ "$stable" = "$TAG" ] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Read the tool versions from mise.toml
         id: tools
@@ -117,7 +126,7 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
-          tags: ${{ steps.tags.outputs.tags }}
+          tags: ${{ env.IMAGE }}:${{ env.TAG }}
           build-args: |
             VERSION=${{ env.TAG }}
             COMMIT=${{ github.sha }}
@@ -161,6 +170,22 @@ jobs:
           MACOS_NOTARY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_ISSUER_ID }}
           HOMEBREW_TAP_KEY: ${{ secrets.HOMEBREW_TAP_KEY }}
           NEWEST_RELEASE: ${{ steps.tags.outputs.newest }}
+          NEWEST_STABLE: ${{ steps.tags.outputs.newest_stable }}
+
+      # Only now, with the release out, do the channels' image tags point to
+      # this image, so a failed release leaves them where they were. The
+      # image is tagged again, not built again.
+      - name: Move the channels' image tags
+        if: steps.tags.outputs.channels != ''
+        env:
+          CHANNELS: ${{ steps.tags.outputs.channels }}
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          args=()
+          for channel in $CHANNELS; do
+            args+=(--tag "$IMAGE:$channel")
+          done
+          docker buildx imagetools create "${args[@]}" "$IMAGE@$DIGEST"
 
       # The container registry is free for now; keeping twenty versions
       # (images and their build cache) stays small if that changes. The

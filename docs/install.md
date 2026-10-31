@@ -74,7 +74,7 @@ Secrets never go into `garner.toml`. Instead of the environment, `garnerd` also 
    sudo chown "$USER": /srv/garner
    ```
 
-2. Start the container. Pick the newest version from the [releases](https://github.com/trucke/garner/releases):
+2. Start the container. Pick the newest version from the [releases](https://github.com/trucke/garner/releases), one not marked Pre-release unless you run the dev channel (see [Versions and channels](#versions-and-channels)):
 
    ```bash
    podman run -d --name garner \
@@ -127,6 +127,27 @@ podman exec garner garnerd backup
 ```
 
 Run it daily, for example from a systemd timer, and delete old copies. garner also backs up the database on its own before a new version changes the database's structure.
+
+## Versions and channels
+
+garner comes in two channels:
+
+| Channel | Gets | Server image | Terminal interface |
+| --- | --- | --- | --- |
+| stable | stable releases, such as `v0.9.0` | `ghcr.io/trucke/garner:latest`, or the version | `install.sh`, or `brew install trucke/tap/garner` |
+| dev | release candidates, such as `v0.9.0-rc.1`, and every stable release | `ghcr.io/trucke/garner:dev`, or the version | `install.sh --channel dev`, or `brew install trucke/tap/garner@dev` |
+
+A release candidate is what the next release will be. It runs on the maintainer's own server before it becomes a stable release: a week for new features, a day for a release that only fixes. Run the dev channel to get new versions early and to report what breaks; run stable otherwise. Use the same channel for the server and the terminal interface.
+
+To run the terminal interface from the dev channel:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/trucke/garner/main/install.sh | bash -s -- --channel dev
+```
+
+With Homebrew, the two channels are separate casks that cannot be installed together: run `brew uninstall --cask garner`, then `brew install --cask trucke/tap/garner@dev`, and the other way round to switch back. The terminal interface keeps its connection either way.
+
+Going back from dev to stable means going back to an older version until the next stable release. When a candidate changed the database, that needs the backup garner made before it changed it; its release notes say so.
 
 ## Upgrade
 

@@ -2,7 +2,7 @@
 # locally: formatting, vet, the generated database code, known
 # vulnerabilities, the tests on Linux as the container image builds garner
 # and again with the race detector, and builds for every release platform.
-# It also runs install.sh against the newest release. The private
+# It also runs install.sh against the newest release of each channel. The private
 # real-case tests are not part of it.
 name: Check
 
@@ -54,7 +54,9 @@ jobs:
         run: go vet ./...
 
       - name: Shell scripts
-        run: shellcheck install.sh tools/*.sh
+        run: |
+          shellcheck -x install.sh tools/*.sh
+          bash tools/versions_test.sh
 
       - name: Generated database code
         working-directory: internal/store
@@ -93,11 +95,14 @@ jobs:
           CGO_ENABLED: "1"
         run: go test -race ./...
 
-      # The script users pipe into bash, against the newest release.
+      # The script users pipe into bash, against the newest release of each
+      # channel.
       - name: Install script
         run: |
           GARNER_INSTALL_DIR="$RUNNER_TEMP/bin" bash install.sh
           "$RUNNER_TEMP/bin/garner" --version
+          GARNER_INSTALL_DIR="$RUNNER_TEMP/dev" bash install.sh --channel dev
+          "$RUNNER_TEMP/dev/garner" --version
 
       - name: Builds for the release platforms
         env:

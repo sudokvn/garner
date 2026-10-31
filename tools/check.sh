@@ -46,7 +46,8 @@ step "Vet"
 go vet ./... || fail "vet found problems"
 
 step "Shell scripts"
-shellcheck install.sh tools/*.sh || fail "shellcheck found problems"
+shellcheck -x install.sh tools/*.sh || fail "shellcheck found problems"
+bash tools/versions_test.sh || fail "the release scripts order versions wrongly"
 
 step "Generated database code"
 (cd internal/store && sqlc diff) || fail "internal/store/query does not match the SQL; run mise run generate"

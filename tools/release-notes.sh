@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Writes a version's release notes to stdout: the commits since the last
-# published release that change garner itself, then what to know before
-# upgrading. A commit counts when it changes a file other than the
+# published stable release that change garner itself, then what to know
+# before upgrading. A candidate's notes are those its release will have. A commit counts when it changes a file other than the
 # documentation, the tests, CI and the project's scripts in tools/, which
 # GoReleaser cannot tell from commit messages. The build files, such as
 # .goreleaser.yaml and the Dockerfile, count: they decide what users get. The upgrade notes say when
@@ -14,6 +14,8 @@
 # note before the tag exists. Needs the tags and the GitHub CLI, which
 # lists the published releases.
 set -euo pipefail
+# shellcheck source=tools/versions.sh
+source "$(dirname "$0")/versions.sh"
 
 version=${1:?give the version, such as v0.9.0}
 commit=${2:-$version}
@@ -22,13 +24,10 @@ if [ -z "$note" ] && [ "$(git cat-file -t "refs/tags/$version" 2>/dev/null)" = t
 	note=$(git for-each-ref --format='%(contents:body)' "refs/tags/$version")
 fi
 
-# The last published release before this version. A failed release keeps
-# its tag, so its commits go out with the next version.
+# The last published stable release before this version. A failed release
+# keeps its tag, so its commits go out with the next version.
 published=$(gh release list --limit 100 --exclude-drafts --json tagName --jq '.[].tagName')
-previous=$({
-	printf '%s\n' "$published" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true
-	printf '%s\n' "$version"
-} | sort -uV | awk -v v="$version" '$0 == v { print prev; exit } { prev = $0 }')
+previous=$({ printf '%s\n' "$published" | grep -E "$STABLE_PATTERN" || true; } | before "$version")
 range=$commit
 [ -z "$previous" ] || range="$previous..$commit"
 

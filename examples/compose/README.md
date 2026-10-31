@@ -77,7 +77,7 @@ To upgrade, check that garner is idle, so the restart interrupts no import:
 docker compose exec garner garnerd status --json
 ```
 
-When `work.idle` is `true`, pull the new images and restart:
+When `work.idle` is `true`, pull the new images and restart. `compose.yaml` follows the stable channel, `ghcr.io/trucke/garner:latest`; for release candidates, use `:dev` (see [Versions and channels](../../docs/install.md#versions-and-channels)):
 
 ```bash
 docker compose pull

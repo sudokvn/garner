@@ -42,17 +42,40 @@ checksum:
   extra_files:
     - glob: THIRD-PARTY-NOTICES.txt
 
-# A Homebrew cask in trucke/homebrew-tap, for brew install trucke/tap/garner
-# and brew upgrade. The release workflow sets the tap's deploy key and says
-# whether this is the newest release; otherwise the cask is only written
-# into dist/.
+# Homebrew casks in trucke/homebrew-tap, one per channel: garner for the
+# stable releases, garner@dev for candidates and stable releases alike, so
+# brew upgrade keeps each on its channel. Both install the command garner,
+# so each conflicts with the other. The release workflow sets the tap's
+# deploy key and says whether this is the newest release of each channel;
+# otherwise a cask is only written into dist/.
 homebrew_casks:
   - name: garner
     binaries: [garner]
     homepage: https://github.com/trucke/garner
     description: Terminal interface for garner, a self-hosted TV and anime manager
     license: MIT
+    conflicts:
+      - cask: garner@dev
     commit_msg_template: "Update garner to {{ .Tag }}"
+    commit_author:
+      name: github-actions[bot]
+      email: 41898282+github-actions[bot]@users.noreply.github.com
+    skip_upload: '{{ if and (isEnvSet "HOMEBREW_TAP_KEY") (eq (envOrDefault "NEWEST_STABLE" "") "true") }}false{{ else }}true{{ end }}'
+    repository:
+      owner: trucke
+      name: homebrew-tap
+      branch: main
+      git:
+        url: git@github.com:trucke/homebrew-tap.git
+        private_key: '{{ envOrDefault "HOMEBREW_TAP_KEY" "" }}'
+  - name: garner@dev
+    binaries: [garner]
+    homepage: https://github.com/trucke/garner
+    description: Terminal interface for garner, a self-hosted TV and anime manager; release candidates and stable releases
+    license: MIT
+    conflicts:
+      - cask: garner
+    commit_msg_template: "Update garner@dev to {{ .Tag }}"
     commit_author:
       name: github-actions[bot]
       email: 41898282+github-actions[bot]@users.noreply.github.com
@@ -72,7 +95,12 @@ changelog:
   use: git
   format: "{{ .Message }}"
 
+# A candidate, such as v0.9.0-rc.1, is a pre-release on GitHub: the dev
+# channel. GitHub's latest release, which install.sh follows by default,
+# is the newest stable one.
 release:
+  prerelease: auto
+  make_latest: '{{ envOrDefault "NEWEST_STABLE" "false" }}'
   name_template: "garner {{ .Tag }}"
   header: |
     Server image: `{{ envOrDefault "IMAGE_REF" "not built in this run" }}`

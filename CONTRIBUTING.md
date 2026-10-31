@@ -117,15 +117,49 @@ The fixed seeds were chosen so that, together, every event changes something, a 
 
 ## Releases
 
-Maintainers release with `mise run release vX.Y.Z [revision] [--note TEXT]`. The task tags a commit of `main`, the newest by default, and pushes the tag. The commit must be on `main` on GitHub and newer than the last published release. Before it tags, the task shows the release notes the workflow will write. Use `--note` for what users must do or know before upgrading, such as a setting that is no longer accepted. GitHub's release workflow (`.github/workflows/release.yml`) then builds:
+### Channels
 
-- the server image, `ghcr.io/trucke/garner:vX.Y.Z`, also tagged `latest` for the Compose example in `examples/compose`, with garner's TheTVDB key from the repository secret `TVDB_API_KEY` built in; the workflow fails without it. Its build cache lives on `ghcr.io` too, so FFprobe is compiled only when the Dockerfile's FFmpeg changes.
-- with GoReleaser (`.goreleaser.yaml`), the terminal interface for macOS and Linux, on ARM and x86, with SHA-256 sums, and the GitHub release with the image reference and its notes from `tools/release-notes.sh`: the commits since the previous published release that change garner itself, leaving out those that only change the documentation, the tests, CI or the scripts in `tools/` (the build files, such as `.goreleaser.yaml`, count), then an Upgrading section when the version changes the database or the tag carries a note. The release also carries `THIRD-PARTY-NOTICES.txt`, the licenses of the Go modules the binaries are built with; run `mise run notices` to regenerate it when a dependency changed.
+garner has two channels:
+
+| Channel | Versions | Server image | Terminal interface |
+| --- | --- | --- | --- |
+| stable | stable releases, such as `v0.9.0` | `latest` | `install.sh`, the Homebrew cask `garner` |
+| dev | release candidates, such as `v0.9.0-rc.1`, and every stable release | `dev` | `install.sh --channel dev`, the Homebrew cask `garner@dev` |
+
+A candidate is a pre-release on GitHub. The maintainer's own server and terminal interface run the dev channel, so every stable release has run there first.
+
+### Versions
+
+Versions follow semantic versioning. Until 1.0, a new minor version, such as `v0.9.0`, brings new features, a change to the database or a setting that changes meaning or is no longer accepted. A patch version, such as `v0.9.1`, only fixes. Candidates count up per version: `v0.9.0-rc.1`, `v0.9.0-rc.2`.
+
+### From change to release
+
+1. A change lands on `main` after `mise run check`, as every change does.
+2. When `main` holds something worth releasing, release it as a candidate: `mise run release v0.9.0-rc.1`. It goes to the dev channel, and the maintainer upgrades their server and terminal interface to it. Fixes found meanwhile go into the next candidate.
+3. Run the nightly on the newest candidate: `gh workflow run nightly.yml --ref v0.9.0-rc.1`. The scheduled nightly tests `main`, which may have moved on.
+4. Once the newest candidate proved itself, release it as stable: `mise run release v0.9.0` releases the commit of the newest candidate.
+
+`mise run release` refuses a stable release until:
+
+- a candidate of it exists, and the release is the commit of the newest candidate: what goes out is what ran. Only when a stable release failed, so its version is taken, may the next patch version release the same candidate;
+- the nightly passed on that commit;
+- the candidate ran long enough: for a new minor version, 7 days since its first candidate and 3 days since the newest; for a patch version, 1 day.
+
+`--hotfix` skips the waiting, not the candidate or the nightly. Use it only for data loss, a security problem or imports broken for everyone; the candidate still runs on the maintainer's server for a few hours first.
+
+There is no fixed release day. Fixes collect: at most one stable release a week, hotfixes aside.
+
+### How a release is built
+
+`mise run release VERSION [revision] [--note TEXT] [--hotfix]` tags a commit of `main`, the newest by default, and pushes the tag. The commit must be on `main` on GitHub and newer than the last published release. Before it tags, the task shows the release notes the workflow will write. Use `--note` for what users must do or know before upgrading, such as a setting that is no longer accepted. GitHub's release workflow (`.github/workflows/release.yml`) then builds:
+
+- the server image, `ghcr.io/trucke/garner:VERSION`, with garner's TheTVDB key from the repository secret `TVDB_API_KEY` built in; the workflow fails without it. Once the release is out, the newest version also gets the tag `dev`, and the newest stable one `latest`, which the Compose example in `examples/compose` pulls; a failed release leaves both where they were. Its build cache lives on `ghcr.io` too, so FFprobe is compiled only when the Dockerfile's FFmpeg changes.
+- with GoReleaser (`.goreleaser.yaml`), the terminal interface for macOS and Linux, on ARM and x86, with SHA-256 sums, and the GitHub release with the image reference and its notes from `tools/release-notes.sh`: the commits since the last published stable release that change garner itself, leaving out those that only change the documentation, the tests, CI or the scripts in `tools/` (the build files, such as `.goreleaser.yaml`, count), then an Upgrading section when the version changes the database or the tag carries a note. The release also carries `THIRD-PARTY-NOTICES.txt`, the licenses of the Go modules the binaries are built with; run `mise run notices` to regenerate it when a dependency changed.
 
 GoReleaser signs the macOS binaries with garner's Developer ID certificate and has Apple notarize them, so macOS opens them. The certificate and its password come from the repository secrets `MACOS_SIGN_P12` and `MACOS_SIGN_PASSWORD`, the App Store Connect key for notarizing from `MACOS_NOTARY_KEY`, `MACOS_NOTARY_KEY_ID` and `MACOS_NOTARY_ISSUER_ID`; the workflow fails without them. The maintainer keeps copies in Infisical (`garner`, `dev`, `/macos-signing`). The certificate expires on 27 November 2027; binaries signed before then stay valid, and later releases need a new certificate in both places.
 
-GoReleaser also updates the Homebrew cask in [`trucke/homebrew-tap`](https://github.com/trucke/homebrew-tap), with that repository's deploy key from the secret `HOMEBREW_TAP_KEY`; Infisical keeps a base64 copy in `/homebrew-tap`. `install.sh` in the repository root installs the newest release; GitHub's check runs it on every push.
+GoReleaser also updates the Homebrew casks in [`trucke/homebrew-tap`](https://github.com/trucke/homebrew-tap), `garner` for a stable release and `garner@dev` for every newest version, with that repository's deploy key from the secret `HOMEBREW_TAP_KEY`; Infisical keeps a base64 copy in `/homebrew-tap`. `install.sh` in the repository root installs the newest release of a channel; GitHub's check runs it for both on every push.
 
-`goreleaser release --snapshot --clean` runs GoReleaser's part locally into `dist/` without publishing anything. The workflow keeps the twenty newest image versions, build cache included. Versions follow semantic versioning.
+`goreleaser release --snapshot --clean` runs GoReleaser's part locally into `dist/` without publishing anything. The workflow keeps the twenty newest image versions, build cache included.
 
-Version tags cannot be deleted or moved. When the workflow fails, its version stays taken and nothing is published: fix the cause and release the next patch version, from the same commit if the cause lay outside the code.
+Version tags cannot be deleted or moved. When the workflow fails, its version stays taken and nothing is published: fix the cause and release the next version, the next candidate or, from the same candidate, the next patch version.
