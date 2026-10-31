@@ -189,3 +189,11 @@ func (s *Store) FileInUse(ctx context.Context, path string) (bool, error) {
 	n, err := s.q.CountEpisodeFilesAt(ctx, path)
 	return n > 0, err
 }
+
+// FileOfAnother reports whether an episode's file at path came from
+// another download than downloadID, or was taken over: another version,
+// not the download's own file recorded before a restart.
+func (s *Store) FileOfAnother(ctx context.Context, path string, downloadID int64) (bool, error) {
+	n, err := s.q.CountOtherEpisodeFilesAt(ctx, query.CountOtherEpisodeFilesAtParams{Path: path, DownloadID: sql.NullInt64{Int64: downloadID, Valid: true}})
+	return n > 0, err
+}

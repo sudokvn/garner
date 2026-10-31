@@ -365,12 +365,28 @@ func (s *Service) move(ctx context.Context, d *store.Download) {
 // files whose episodes kept the library's own file. It reports false when
 // the move failed, or when another change to the library's files runs:
 // then the move stays due, and UnlockFiles wakes the loop for it.
+//
+// Another version of an episode can have the very name a file of the
+// import gets, as two releases of one group can. Whether the library keeps
+// it is decided before the move, as recordFiles decides it for a file
+// elsewhere: a rename onto it would replace it before that.
 func (s *Service) moveFiles(ctx context.Context, d *store.Download) ([]store.ImportFile, []string, bool) {
 	if !s.files.TryLock() {
 		return nil, nil, false
 	}
 	defer s.files.Unlock()
 	files := d.Import.Files
+	c, err := s.context(ctx, d.EpisodeID)
+	var have map[int64]string
+	if err == nil {
+		have, err = s.store.SeriesFileTiers(ctx, c.data.Series.ID)
+	}
+	if err != nil {
+		s.fail(ctx, d, files, "could not compare with the library's files: "+err.Error(), "Retry the import.")
+		return nil, nil, false
+	}
+	var moved, left []store.ImportFile
+	var kept []int64
 	// SABnzbd's folder is looked up only when a file is still in it: after a
 	// restart, it may be gone with every file moved already.
 	job := sync.OnceValues(func() (guard.Job, error) { return s.guard.Job(d.Storage, d.Title) })
@@ -392,9 +408,22 @@ func (s *Service) moveFiles(ctx context.Context, d *store.Download) ([]store.Imp
 				"Mount the media share and check library.tv and library.anime in garner.toml, then retry the import. Garner never creates the library folders themselves.")
 			return nil, nil, false
 		}
+		if _, err := os.Lstat(f.Target); err == nil {
+			other, err := s.store.FileOfAnother(ctx, f.Target, d.ID)
+			if err != nil {
+				s.fail(ctx, d, files, "could not check who imported "+f.Target+": "+err.Error(), "Retry the import.")
+				return nil, nil, false
+			}
+			if other && keepsGained(c, d, have, f.Episodes) {
+				left = append(left, f)
+				kept = append(kept, f.Episodes...)
+				continue
+			}
+		}
 		if _, err := os.Stat(f.Source); errors.Is(err, fs.ErrNotExist) {
 			// Moved already, before a restart.
 			if st, err := os.Stat(f.Target); err == nil && st.Size() == f.Size {
+				moved = append(moved, f)
 				continue
 			}
 			s.fail(ctx, d, files, f.Source+" is gone and not in the library", "Check SABnzbd's completed folder; download the episode again if the file was deleted.")
@@ -436,15 +465,25 @@ func (s *Service) moveFiles(ctx context.Context, d *store.Download) ([]store.Imp
 			return nil, nil, false
 		}
 		s.log.Info("imported file", "download", d.ID, "target", f.Target)
+		moved = append(moved, f)
 	}
-	all := files
-	files, kept, err := s.recordFiles(ctx, d, files)
+	recorded, keptNotes, err := s.recordFiles(ctx, d, moved, kept)
 	if err != nil {
-		s.fail(ctx, d, all, "the files are in the library, but recording them failed: "+err.Error(), "Retry the import.")
+		s.fail(ctx, d, files, "the files are in the library, but recording them failed: "+err.Error(), "Retry the import.")
 		return nil, nil, false
 	}
 	s.removeKept(ctx, d, job)
-	notes := append(append(slices.Clone(d.Import.Notes), kept...), s.tidy(ctx, d, files)...)
+	for _, f := range left {
+		claimed, err := claim(f.Source)
+		if err == nil {
+			err = s.guard.Remove(claimed)
+		}
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			s.log.Warn("could not remove a file the library did not take", "download", d.ID, "file", f.Source, "err", err)
+		}
+	}
+	files = recorded
+	notes := append(append(slices.Clone(d.Import.Notes), keptNotes...), s.tidy(ctx, d, files)...)
 	if notes == nil {
 		notes = []string{}
 	}
@@ -588,8 +627,9 @@ func (s *Service) removeKept(ctx context.Context, d *store.Download, job func() 
 // episodes the library keeps its own files of, as keepsGained decides, is
 // not recorded but removed; the plan may be older than the library's
 // files, as after a retry or a restart. It returns the files it recorded
-// and a note naming the episodes that kept their file.
-func (s *Service) recordFiles(ctx context.Context, d *store.Download, files []store.ImportFile) ([]store.ImportFile, []string, error) {
+// and a note naming the episodes that kept their file, these and kept,
+// those moveFiles left alone.
+func (s *Service) recordFiles(ctx context.Context, d *store.Download, files []store.ImportFile, kept []int64) ([]store.ImportFile, []string, error) {
 	c, err := s.context(ctx, d.EpisodeID)
 	if err != nil {
 		return nil, nil, err
@@ -604,7 +644,6 @@ func (s *Service) recordFiles(ctx context.Context, d *store.Download, files []st
 	var records []store.EpisodeFile
 	var recorded []store.ImportFile
 	var dropped []string
-	var kept []int64
 	for _, f := range files {
 		// A file recorded already is the import's own, as when Garner
 		// ended after recording it and before saving that it had; one it

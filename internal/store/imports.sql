@@ -37,6 +37,10 @@ ORDER BY f.path, f.episode_id;
 -- name: CountEpisodeFilesAt :one
 SELECT count(*) FROM episode_files WHERE path = ?;
 
+-- IS NOT counts files without a download, those taken over, as well.
+-- name: CountOtherEpisodeFilesAt :one
+SELECT count(*) FROM episode_files WHERE path = sqlc.arg(path) AND download_id IS NOT sqlc.arg(download_id);
+
 -- name: InsertFileChange :exec
 INSERT INTO file_changes (path, new_path) VALUES (?, ?)
 ON CONFLICT (path) DO UPDATE SET new_path = excluded.new_path;

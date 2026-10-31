@@ -21,6 +21,23 @@ func (q *Queries) CountEpisodeFilesAt(ctx context.Context, path string) (int64, 
 	return count, err
 }
 
+const countOtherEpisodeFilesAt = `-- name: CountOtherEpisodeFilesAt :one
+SELECT count(*) FROM episode_files WHERE path = ?1 AND download_id IS NOT ?2
+`
+
+type CountOtherEpisodeFilesAtParams struct {
+	Path       string
+	DownloadID sql.NullInt64
+}
+
+// IS NOT counts files without a download, those taken over, as well.
+func (q *Queries) CountOtherEpisodeFilesAt(ctx context.Context, arg CountOtherEpisodeFilesAtParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countOtherEpisodeFilesAt, arg.Path, arg.DownloadID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countPlannedRemovals = `-- name: CountPlannedRemovals :one
 SELECT count(*) FROM file_changes WHERE path = ? AND new_path = ''
 `

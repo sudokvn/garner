@@ -770,6 +770,75 @@ func TestImportKeepsBetterGainedMeanwhile(t *testing.T) {
 	}
 }
 
+// TestImportKeepsBetterOfTheSameName imports a 720p release the user chose
+// for S01E01 while it had no file. Before the move, a 1080p version of the
+// same name lands where the import would put its file, as another release
+// of the same group can: the library keeps it, as keepsGained decides, and
+// the move must not overwrite it (seed 1793435706322247649).
+func TestImportKeepsBetterOfTheSameName(t *testing.T) {
+	ctx := context.Background()
+	p720 := german
+	p720.Video = []inspect.Video{{Width: 1280, Height: 720}}
+	e, _ := setup(t, p720)
+	os.RemoveAll(filepath.Join(e.share, jobDir))
+	const title = "Harbor.Precinct.S01E01.German.DL.720p.WEB-GRP"
+	job := filepath.Join(e.share, "usenet/complete/tv", title)
+	os.MkdirAll(job, 0o755)
+	os.WriteFile(filepath.Join(job, "c0ffee.mkv"), make([]byte, 1000), 0o644)
+	d, err := e.st.StartDownload(ctx, store.Download{EpisodeID: 101, Title: title, Link: "x", Verdict: "accept", Tier: "German 720p", Manual: true}, time.Now())
+	if err != nil || d.Replaces != "" {
+		t.Fatalf("download %+v, %v; want one started while S01E01 had no file", d, err)
+	}
+	d.State, d.Storage = store.Completed, "/data/usenet/complete/tv/"+title
+	if err := e.st.UpdateDownload(ctx, d, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.MarkImportPending(ctx, d.ID, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+
+	// Stop at the move, once the import has planned where the file goes.
+	type crash struct{}
+	opts := e.svc.opts
+	opts.Before = func(op, _ string) {
+		if op == "rename" {
+			panic(crash{})
+		}
+	}
+	func() {
+		defer func() {
+			if _, ok := recover().(crash); !ok {
+				t.Fatal("the import did not reach the move")
+			}
+		}()
+		New(e.st, e.svc.probe, e.svc.jellyfin, opts, slog.New(slog.DiscardHandler)).Work(ctx)
+	}()
+	planned, _ := e.st.GetDownload(ctx, d.ID)
+	if len(planned.Import.Files) != 1 {
+		t.Fatalf("planned %+v", planned.Import.Files)
+	}
+	target := planned.Import.Files[0].Target
+	os.WriteFile(target, make([]byte, 2000), 0o644)
+	if err := e.st.SetEpisodeFile(ctx, store.EpisodeFile{EpisodeID: 101, Path: target, Size: 2000, Tier: "German 1080p"}, 0, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+
+	e.svc.Work(ctx)
+	if st, err := os.Stat(target); err != nil || st.Size() != 2000 {
+		t.Errorf("the 1080p file at %s was overwritten or removed: %v", target, err)
+	}
+	if f, _, _ := e.st.EpisodeFile(ctx, 101); f.Path != target || f.Tier != "German 1080p" {
+		t.Errorf("S01E01's file is %+v; the 1080p one should stay", f)
+	}
+	if _, err := os.Stat(filepath.Join(job, "c0ffee.mkv")); err == nil {
+		t.Error("the 720p video the library did not take is still in SABnzbd's folder")
+	}
+	got, _ := e.st.GetDownload(ctx, d.ID)
+	if got.Import.State != store.ImportDone || !slices.ContainsFunc(got.Import.Notes, func(n string) bool { return strings.HasPrefix(n, "kept the existing file of S01E01") }) {
+		t.Errorf("import %s %q, notes %q", got.Import.State, got.Import.Detail, got.Import.Notes)
+	}
+}
+
 // TestImportChosenWorseReplaces imports a 720p release the user chose for
 // S01E01 over its 1080p file: the choice was made knowing the file, so the
 // import replaces it, as keepsGained leaves to the user (GRR-47).
