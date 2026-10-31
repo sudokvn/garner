@@ -174,7 +174,8 @@ jobs:
 
       # Only now, with the release out, do the channels' image tags point to
       # this image, so a failed release leaves them where they were. The
-      # image is tagged again, not built again.
+      # image is tagged again, not built again, and copied as it is: by
+      # default imagetools wraps it in an index with a digest of its own.
       - name: Move the channels' image tags
         if: steps.tags.outputs.channels != ''
         env:
@@ -185,7 +186,7 @@ jobs:
           for channel in $CHANNELS; do
             args+=(--tag "$IMAGE:$channel")
           done
-          docker buildx imagetools create "${args[@]}" "$IMAGE@$DIGEST"
+          docker buildx imagetools create --prefer-index=false "${args[@]}" "$IMAGE@$DIGEST"
 
       # The container registry is free for now; keeping twenty versions
       # (images and their build cache) stays small if that changes. The
