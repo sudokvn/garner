@@ -427,7 +427,7 @@ func (s *libraryScreen) view(width, height int) string {
 	s.offset = min(max(s.offset, cursor-s.page+1), cursor)
 
 	var b strings.Builder
-	b.WriteString(header(width, s.sess, "Garner", "Library") + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "Library") + "\n\n")
 	b.WriteString("   " + s.tabs() + "\n\n")
 	cols := s.columns(width)
 	b.WriteString(cols.head(s.sort, s.reverse) + "\n")
@@ -435,7 +435,7 @@ func (s *libraryScreen) view(width, height int) string {
 
 	switch {
 	case !s.loaded && s.sess.offline:
-		b.WriteString("   " + sMuted.Render("Garner at "+clean(s.sess.client.Addr())+" does not answer. Trying again."))
+		b.WriteString("   " + sMuted.Render("garner at "+clean(s.sess.client.Addr())+" does not answer. Trying again."))
 	case !s.loaded:
 		b.WriteString("   " + sMuted.Render("Loading the library…"))
 	case s.cat == catMovies:

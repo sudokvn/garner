@@ -318,7 +318,7 @@ const (
 
 func (s *activityScreen) view(width, height int) string {
 	var b strings.Builder
-	b.WriteString(header(width, s.sess, "Garner", "Activity") + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "Activity") + "\n\n")
 	// Wide: State takes the room, as on the other tables. Narrow: the show
 	// names give way to State, down to a minimum.
 	fixed := 3 + 1 + 3 + 3 + activityEpWidth + 3 + 3 + activitySinceWidth + 3

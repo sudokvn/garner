@@ -38,7 +38,7 @@ func (c Code) String() string {
 func Parse(s string) (Code, error) {
 	raw, ok := strings.CutPrefix(strings.TrimSpace(s), prefix)
 	if !ok {
-		return Code{}, errors.New("not a Garner connection code")
+		return Code{}, errors.New("not a garner connection code")
 	}
 	b, err := base64.RawURLEncoding.DecodeString(raw)
 	if err != nil {

@@ -166,7 +166,7 @@ func TestSeasonReplacementLimit(t *testing.T) {
 	if err != nil || len(active) != 0 {
 		t.Fatal("the season retry limit left another download running")
 	}
-	if attempts, _ := st.EpisodeDownloads(ctx, 101); !strings.HasSuffix(attempts[0].Stopped, "failed in a row, so Garner stopped trying others.") {
+	if attempts, _ := st.EpisodeDownloads(ctx, 101); !strings.HasSuffix(attempts[0].Stopped, "failed in a row, so garner stopped trying others.") {
 		t.Errorf("stopped = %q", attempts[0].Stopped)
 	}
 }
@@ -204,7 +204,7 @@ func TestReplaceKeepsTheChoice(t *testing.T) {
 	fake.finish(attempts[0].JobID, "Failed", "Aborted, encryption detected", "")
 	svc.Poll(ctx)
 	if got := fake.submitted(); len(got) != 2 {
-		t.Errorf("submitted %q after both uploads of the choice failed; want Garner to stop", got)
+		t.Errorf("submitted %q after both uploads of the choice failed; want garner to stop", got)
 	}
 	// The user learns why nothing else started.
 	if attempts, _ := st.EpisodeDownloads(ctx, 101); !strings.HasPrefix(attempts[0].Stopped, "No other upload of this release is left") {

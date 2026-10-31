@@ -219,7 +219,7 @@ func (s *addScreen) view(width, height int) string {
 	cols := searchColumns(s.page.Results, width)
 
 	var b strings.Builder
-	b.WriteString(header(width, s.sess, "Garner", "Library", "Add show") + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "Library", "Add show") + "\n\n")
 	b.WriteString(cols.head() + "\n")
 	b.WriteString("   " + sBorder.Render(strings.Repeat("─", max(0, width-6))) + "\n")
 
@@ -502,7 +502,7 @@ const detailsWidth = 78
 
 func (s *previewScreen) view(width, height int) string {
 	var b strings.Builder
-	b.WriteString(header(width, s.sess, "Garner", "Library", "Add show", s.name()) + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "Library", "Add show", s.name()) + "\n\n")
 	w := max(40, min(detailsWidth, width-6))
 	p := s.preview
 	switch {

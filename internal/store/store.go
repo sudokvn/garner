@@ -92,7 +92,7 @@ func connect(ctx context.Context, dataDir string, log *slog.Logger) (*sql.DB, st
 	if err := db.PingContext(ctx); err != nil {
 		db.Close()
 		if strings.Contains(err.Error(), "locked by another process") {
-			return nil, "", fmt.Errorf("database %s is in use by another Garner process", path)
+			return nil, "", fmt.Errorf("database %s is in use by another garner process", path)
 		}
 		return nil, "", fmt.Errorf("open database: %w", err)
 	}

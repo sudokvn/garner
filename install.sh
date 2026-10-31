@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs or updates garner, Garner's terminal interface, on macOS or
+# Installs or updates `garner`, garner's terminal interface, on macOS or
 # Linux: downloads the newest release for this machine from GitHub,
 # checks it against the release's SHA256SUMS and puts it into
 # ~/.local/bin.

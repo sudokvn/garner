@@ -143,7 +143,7 @@ func (s *Service) showFolders(ctx context.Context, c showContext) (folders, note
 	if s.jellyfin != nil {
 		remote, err := s.jellyfin.ShowFolders(ctx, c.data.Series.ID)
 		if err != nil {
-			notes = append(notes, "Jellyfin did not answer, so Garner looked only in its own folder: "+err.Error())
+			notes = append(notes, "Jellyfin did not answer, so garner looked only in its own folder: "+err.Error())
 		}
 		for _, r := range remote {
 			local, ok := s.opts.JellyfinPaths.Local(r)
@@ -375,7 +375,7 @@ func (s *Service) Rename(ctx context.Context, seriesID int64) (api.Renamed, erro
 		}
 		if err := s.guard.Move(ctx, source, f.Target); err != nil {
 			if errors.Is(err, syscall.EXDEV) {
-				note("%s stayed: it is on another filesystem than the library, and Garner moves files without copying", f.Source)
+				note("%s stayed: it is on another filesystem than the library, and garner moves files without copying", f.Source)
 			} else {
 				note("%s stayed: %v", f.Source, unwrapPath(err))
 			}
@@ -423,7 +423,7 @@ func (s *Service) Rename(ctx context.Context, seriesID int64) (api.Renamed, erro
 			continue
 		}
 		if n := countFiles(dir); n > 0 && slices.ContainsFunc(moved, func(f store.ImportFile) bool { return contains(dir, f.Source) }) {
-			note("%s stays with %s that Garner does not manage, so Jellyfin may still list it", dir, count(n, "other file"))
+			note("%s stays with %s that garner does not manage, so Jellyfin may still list it", dir, count(n, "other file"))
 		}
 	}
 	s.announceMoves(ctx, moved)

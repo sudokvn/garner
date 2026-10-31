@@ -117,7 +117,7 @@ func TestPipelineFailures(t *testing.T) {
 		{"file check rejected it", api.Download{State: api.Failed, JobID: "j", Failure: "file check: audio is Japanese",
 			Import: api.Import{State: api.ImportRejected, Files: checked}}, 3},
 		{"share not mounted", api.Download{State: api.Completed, JobID: "j",
-			Import: api.Import{State: api.ImportFailed, Detail: "Garner cannot see it"}}, 3},
+			Import: api.Import{State: api.ImportFailed, Detail: "garner cannot see it"}}, 3},
 		{"move failed", api.Download{State: api.Completed, JobID: "j",
 			Import: api.Import{State: api.ImportFailed, Detail: "the library folder is missing", Files: planned}}, 4},
 	} {

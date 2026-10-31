@@ -60,7 +60,7 @@ func helpLines(s screen, room int) []string {
 		}
 		lines = append(lines, strings.TrimRight("  "+strings.Join(row, ""), " "))
 	}
-	return append(lines, "", keyBar("? esc", "close", "a", "about Garner"))
+	return append(lines, "", keyBar("? esc", "close", "a", "about garner"))
 }
 
 // keyColumns lays key, label pairs out in two columns, each as wide as

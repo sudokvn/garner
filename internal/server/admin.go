@@ -271,7 +271,7 @@ func (s *Server) internalError(w http.ResponseWriter, what string, err error) {
 }
 
 // ErrNotRunning means no server answers on the admin socket.
-var ErrNotRunning = errors.New("Garner isn't running")
+var ErrNotRunning = errors.New("garner isn't running")
 
 // Admin talks to a running server over its admin socket.
 type Admin struct {

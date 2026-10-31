@@ -44,7 +44,7 @@ func TestFailedDownloadDetails(t *testing.T) {
 	if err := st.UpdateDownload(ctx, d, now); err != nil {
 		t.Fatal(err)
 	}
-	const stopped = "No other release meets German 1080p, and Garner does not switch to another preference on its own."
+	const stopped = "No other release meets German 1080p, and garner does not switch to another preference on its own."
 	if err := st.StopReplacing(ctx, d.ID, stopped); err != nil {
 		t.Fatal(err)
 	}

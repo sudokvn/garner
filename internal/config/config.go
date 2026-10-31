@@ -204,9 +204,9 @@ func Load(path string, explicit bool) (*Config, error) {
 	case err != nil:
 		return nil, fmt.Errorf("read %s: %w", path, err)
 	case meta.IsDefined("profiles"):
-		return nil, fmt.Errorf("%s: [profiles] is no setting of garner.toml any more: Garner keeps its profiles in its database, where the terminal interface manages them; remove [profiles]", path)
+		return nil, fmt.Errorf("%s: [profiles] is no setting of garner.toml any more: garner keeps its profiles in its database, where the terminal interface manages them; remove [profiles]", path)
 	case meta.IsDefined("monitor", "upgrades"):
-		return nil, fmt.Errorf("%s: monitor.upgrades is no setting of garner.toml any more: each profile says whether Garner upgrades its shows' files; remove upgrades from [monitor]", path)
+		return nil, fmt.Errorf("%s: monitor.upgrades is no setting of garner.toml any more: each profile says whether garner upgrades its shows' files; remove upgrades from [monitor]", path)
 	default:
 		if undecoded := meta.Undecoded(); len(undecoded) > 0 {
 			keys := make([]string, len(undecoded))
@@ -281,7 +281,7 @@ func (c *Config) validate() error {
 		}
 	} else if c.Server.URL == "" {
 		if !IsLoopback(host) {
-			return errors.New("server.url is required when Garner listens beyond loopback: set the address clients use, such as https://garner.home.lan:7979")
+			return errors.New("server.url is required when garner listens beyond loopback: set the address clients use, such as https://garner.home.lan:7979")
 		}
 		scheme := "http"
 		if c.Server.TLSCert != "" {
@@ -294,10 +294,10 @@ func (c *Config) validate() error {
 		return fmt.Errorf("server.url %q must be an http:// or https:// address", c.Server.URL)
 	}
 	if u.Scheme == "http" && (!IsLoopback(host) || c.Server.TLSCert != "") {
-		return errors.New("server.url must use https:// when Garner listens beyond loopback or has a certificate")
+		return errors.New("server.url must use https:// when garner listens beyond loopback or has a certificate")
 	}
 	if u.Scheme == "https" && IsLoopback(host) && c.Server.TLSCert == "" && !c.Server.Proxied {
-		return errors.New("server.url uses https://, but Garner listens on loopback without a certificate; set server.tls_cert and server.tls_key or use http://")
+		return errors.New("server.url uses https://, but garner listens on loopback without a certificate; set server.tls_cert and server.tls_key or use http://")
 	}
 	if c.Monitor.RecentDays < 0 {
 		return errors.New("monitor.recent_days must not be negative")

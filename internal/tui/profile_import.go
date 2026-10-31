@@ -157,7 +157,7 @@ func (s *importScreen) preview() tea.Cmd {
 
 func (s *importScreen) view(width, height int) string {
 	var b strings.Builder
-	b.WriteString(header(width, s.sess, "Garner", "Profiles", "Import") + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "Profiles", "Import") + "\n\n")
 	b.WriteString("   " + sMuted.Render("Paste a profile, or type a link to one, then press enter.") + "\n\n")
 	var lines []string
 	link := isLink(strings.TrimSpace(s.text))
@@ -385,7 +385,7 @@ func (s *importPreviewScreen) save() tea.Cmd {
 func (s *importPreviewScreen) view(width, height int) string {
 	w := min(width, designWidth) - 6
 	var b strings.Builder
-	b.WriteString(header(width, s.sess, "Garner", "Profiles", "Import", "Preview") + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "Profiles", "Import", "Preview") + "\n\n")
 	b.WriteString("   " + sBold.Render(s.p.Name) + "\n")
 	if s.existing != nil {
 		b.WriteString(s.replaceLines(w))

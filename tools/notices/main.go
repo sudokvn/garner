@@ -38,12 +38,12 @@ const (
 	// identified and where the text lives.
 	reportTemplate = `{{range .}}{{printf "%s|%s|%s|%s\n" .Name .Version .LicenseName .LicensePath}}{{end}}`
 
-	header = `Garner's third-party notices
+	header = `garner's third-party notices
 
-The programs Garner releases, the server (garnerd) and the terminal
+The programs garner releases, the server (garnerd) and the terminal
 interface (garner), are built with the Go modules listed below, in the
-versions that Garner's go.mod pins. Each module's license text follows,
-with any NOTICE file it carries: those licenses let Garner, under the
+versions that garner's go.mod pins. Each module's license text follows,
+with any NOTICE file it carries: those licenses let garner, under the
 MIT license in the LICENSE file next to this one, ship the binaries
 with them, and they ask that these texts travel with the binaries.
 FFprobe, the image's other program, is not a Go module and is covered
@@ -102,7 +102,7 @@ func main() {
 	for _, m := range modules {
 		rootLicenseFiles(m)
 		if len(m.names) == 0 {
-			fail("%s %s compiled in, but go-licenses found no license for it; find it and decide whether Garner may ship it", m.path, m.version)
+			fail("%s %s compiled in, but go-licenses found no license for it; find it and decide whether garner may ship it", m.path, m.version)
 		}
 	}
 
@@ -258,7 +258,7 @@ func rootLicenseFiles(m *module) {
 		}
 	}
 	if len(m.files) == 0 {
-		fail("%s %s has no license file in its module cache folder; find its license and decide whether Garner may ship it", m.path, m.version)
+		fail("%s %s has no license file in its module cache folder; find its license and decide whether garner may ship it", m.path, m.version)
 	}
 }
 

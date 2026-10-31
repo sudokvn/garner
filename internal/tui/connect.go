@@ -126,7 +126,7 @@ func (s *connectScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		}
 		s.status = msg.status
 		s.checks[1].state = passed
-		s.checks[1].detail = clean("Garner " + msg.status.Version + " · token " + msg.status.Token)
+		s.checks[1].detail = clean("garner " + msg.status.Version + " · token " + msg.status.Token)
 		s.checks[2].state = running
 		path, code := s.path, s.code
 		return s, func() tea.Msg { return savedMsg{connect.Save(path, code)} }
@@ -203,13 +203,13 @@ func (s *connectScreen) fail(i int, err error) {
 	case errors.As(err, &untrusted) && untrusted.ServerPin != "":
 		c.problem = untrusted.Error()
 		c.pin = untrusted.ServerPin
-		c.help = []string{"Garner did not send the token. Create a new code on the server.", "If the certificate did not change, do not connect from this network."}
+		c.help = []string{"garner did not send the token. Create a new code on the server.", "If the certificate did not change, do not connect from this network."}
 	case errors.Is(err, client.ErrNotLoopback):
 		c.problem = err.Error()
-		c.help = []string{"Garner did not send the token. For another machine, use HTTPS or an SSH tunnel."}
+		c.help = []string{"garner did not send the token. For another machine, use HTTPS or an SSH tunnel."}
 	case errors.As(err, &untrusted):
 		c.problem = clean(untrusted.Error())
-		c.help = []string{"Garner did not send the token."}
+		c.help = []string{"garner did not send the token."}
 	case errors.Is(err, client.ErrUnauthorized):
 		c.problem = err.Error()
 		c.help = []string{"It may have been revoked. Create a new code on the server."}
@@ -231,7 +231,7 @@ func (s *connectScreen) view(width, height int) string {
 	if s.notice != "" {
 		title = "connect again"
 	}
-	b.WriteString(sBold.Render("Garner") + "  " + sSubtle.Render(title) + "\n\n")
+	b.WriteString(sBold.Render("garner") + "  " + sSubtle.Render(title) + "\n\n")
 	if s.notice != "" {
 		b.WriteString(gFailed + " " + sNormal.Render(s.notice) + "\n\n")
 	}

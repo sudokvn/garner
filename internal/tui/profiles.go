@@ -233,7 +233,7 @@ func (s *profilesScreen) key(key string) tea.Cmd {
 	switch key {
 	case "e", "enter":
 		if !r.ok {
-			s.flash.stay(gFailed + " " + sRed.Render(r.Name+" can't be read by this Garner; update it."))
+			s.flash.stay(gFailed + " " + sRed.Render(r.Name+" can't be read by this garner; update it."))
 			return nil
 		}
 		next := newEditor(s.sess, s, r.ID, r.parsed, len(r.Shows))
@@ -496,7 +496,7 @@ func (s *profilesScreen) newPicker() pickList {
 		}
 		p.items = append(p.items, pickItem{header: true})
 	}
-	p.items = append(p.items, pickItem{label: "Shipped with Garner", header: true})
+	p.items = append(p.items, pickItem{label: "Shipped with garner", header: true})
 	for _, sp := range profile.Shipped() {
 		p.items = append(p.items, pickItem{label: sp.Name, note: prefsLine(sp), value: sp})
 	}
@@ -528,7 +528,7 @@ func (s *profilesScreen) view(width, height int) string {
 	s.offset = min(max(s.offset, cursor-s.page+1), cursor)
 
 	var b strings.Builder
-	b.WriteString(header(width, s.sess, "Garner", "Profiles") + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "Profiles") + "\n\n")
 	b.WriteString(factLines(width, s.facts()...) + "\n\n")
 	cols := s.columns(width)
 	b.WriteString(cols.head() + "\n")
@@ -624,7 +624,7 @@ func (c profileColumns) row(r profileRow, selected bool) string {
 	gap := bg(lipgloss.NewStyle()).Render("   ")
 	prefs, prefsStyle := prefsLine(r.parsed), sMuted
 	if !r.ok {
-		prefs, prefsStyle = "can't be read by this Garner", sRed
+		prefs, prefsStyle = "can't be read by this garner", sRed
 	}
 	line := gap + bg(sNormal).Render(fit(r.Name, c.name, false)) + gap +
 		bg(prefsStyle).Render(fit(prefs, c.prefs, false)) + gap +
@@ -674,7 +674,7 @@ func wrapLabelled(label, value string, inner int) []string {
 // settings and the shows that use it.
 func (s *profilesScreen) detailLines(r profileRow, inner int) []string {
 	if !r.ok {
-		return []string{gFailed + " " + sRed.Render("The profile's text can't be read by this Garner; update it.")}
+		return []string{gFailed + " " + sRed.Render("The profile's text can't be read by this garner; update it.")}
 	}
 	var lines []string
 	if r.parsed.Description != "" {

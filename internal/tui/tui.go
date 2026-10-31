@@ -261,7 +261,7 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (a *app) View() tea.View {
 	v := tea.NewView("")
 	v.AltScreen = true
-	v.WindowTitle = "Garner"
+	v.WindowTitle = "garner"
 	if a.width > 0 && a.height > 0 {
 		v.Content = a.screen.view(a.width, a.height)
 		if a.help {

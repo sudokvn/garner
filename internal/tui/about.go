@@ -112,7 +112,7 @@ func (s *aboutScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 func (s *aboutScreen) view(width, height int) string {
 	w := min(width, designWidth) - 6
 	var b strings.Builder
-	b.WriteString(header(width, s.sess, "Garner", "About") + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "About") + "\n\n")
 
 	// Where the terminal shows Garner's mark and has 80 columns, the mark
 	// stands left of the name and versions, and they start after it.
@@ -122,7 +122,7 @@ func (s *aboutScreen) view(width, height int) string {
 		left += markWidth + 4
 	}
 	room := min(width, designWidth) - left
-	intro := []string{sBold.Render("Garner"), sMuted.Render("TV and anime manager"), ""}
+	intro := []string{sBold.Render("garner"), sMuted.Render("TV and anime manager"), ""}
 
 	// A field's details move to a line of their own when they do not fit.
 	field := func(label, value, rest string) {

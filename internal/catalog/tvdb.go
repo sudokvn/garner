@@ -128,7 +128,7 @@ func (c *TVDB) reserve(ctx context.Context) error {
 	}
 	if c.used >= tvdbBudget {
 		c.pausedUntil = c.windowStart.Add(tvdbWindow)
-		c.pauseReason = fmt.Sprintf("Garner sent TVDB %d requests within %s, its limit; this points to a bug in Garner, please report it",
+		c.pauseReason = fmt.Sprintf("garner sent TVDB %d requests within %s, its limit; this points to a bug in garner, please report it",
 			tvdbBudget, tvdbWindow)
 		err := &PausedError{Until: c.pausedUntil, Reason: c.pauseReason}
 		c.lim.Unlock()
@@ -181,7 +181,7 @@ func (c *TVDB) slowDown(resp *http.Response) *PausedError {
 	} else if t, err := http.ParseTime(v); err == nil && t.After(now) {
 		wait = t.Sub(now)
 	}
-	return c.pause(now.Add(min(wait, tvdbMaxBackoff)), fmt.Sprintf("TVDB answered %s and asked Garner to wait", resp.Status))
+	return c.pause(now.Add(min(wait, tvdbMaxBackoff)), fmt.Sprintf("TVDB answered %s and asked garner to wait", resp.Status))
 }
 
 type envelope struct {
@@ -233,7 +233,7 @@ func (c *TVDB) login(ctx context.Context) (string, error) {
 		return "", c.slowDown(resp)
 	case http.StatusUnauthorized, http.StatusForbidden:
 		return "", c.pause(c.Now().Add(tvdbRefusedPause), fmt.Sprintf(
-			"TVDB refused the API key (%s %s); with Garner's built-in key, set TVDB_API_KEY to a key of your own", resp.Status, env.Message))
+			"TVDB refused the API key (%s %s); with garner's built-in key, set TVDB_API_KEY to a key of your own", resp.Status, env.Message))
 	default:
 		return "", fmt.Errorf("TVDB login failed (%s): %s", resp.Status, env.Message)
 	}

@@ -80,7 +80,7 @@ func TestTakeOver(t *testing.T) {
 	}
 	// The other files stay in the old folder, and the notes say so.
 	if _, err := os.Stat(filepath.Join(season, "Behind the scenes.mkv")); err != nil {
-		t.Errorf("a file Garner does not manage moved: %v", err)
+		t.Errorf("a file garner does not manage moved: %v", err)
 	}
 	if !slices.ContainsFunc(renamed.Notes, func(n string) bool { return strings.HasPrefix(n, old+" stays with 3 other files") }) {
 		t.Errorf("notes %q", renamed.Notes)
@@ -165,7 +165,7 @@ func TestImportDuringRename(t *testing.T) {
 	for _, entry := range entries {
 		p := filepath.Join(own, entry.Name())
 		if used, _ := e.st.FileInUse(ctx, p); !used {
-			t.Errorf("%s is in Garner's folder, but no episode records it", entry.Name())
+			t.Errorf("%s is in garner's folder, but no episode records it", entry.Name())
 		}
 	}
 }

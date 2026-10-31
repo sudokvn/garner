@@ -25,7 +25,7 @@ var version, commit string
 func main() {
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Usage = func() {
-		fmt.Fprint(flag.CommandLine.Output(), "Garner's terminal interface. It keeps its connection to the server in\n"+
+		fmt.Fprint(flag.CommandLine.Output(), "garner's terminal interface. It keeps its connection to the server in\n"+
 			"$GARNER_CONNECTION or ~/.config/garner/connection.\n\n"+
 			"Usage: garner [--version]\n"+
 			"       garner profile check FILE   check a profile file, or - for standard input,\n"+

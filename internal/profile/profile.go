@@ -213,7 +213,7 @@ func (r *reader) version() {
 	case !ok:
 		r.fail("garner_profile must be the number %d", Version)
 	case n > Version:
-		r.fail("garner_profile = %d is a newer format than this Garner reads (%d); update Garner", n, Version)
+		r.fail("garner_profile = %d is a newer format than this garner reads (%d); update garner", n, Version)
 	case n != Version:
 		r.fail("garner_profile must be %d", Version)
 	}
@@ -287,7 +287,7 @@ func (r *reader) audio() []string {
 			r.fail("audio: write %q instead of %q", code, c)
 			continue
 		}
-		r.fail("audio: %q is not a language Garner knows; use original (the show's own) or one of %s",
+		r.fail("audio: %q is not a language garner knows; use original (the show's own) or one of %s",
 			c, strings.Join(Languages(), ", "))
 	}
 	return codes
@@ -386,7 +386,7 @@ func Encode(p Profile) string {
 		res[i] = fmt.Sprintf("%dp", r)
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "#:schema %s\n# A Garner profile; %s describes the format.\n", SchemaURL, DocsURL)
+	fmt.Fprintf(&b, "#:schema %s\n# A garner profile; %s describes the format.\n", SchemaURL, DocsURL)
 	err := toml.NewEncoder(&b).Encode(file{
 		Version: Version, Name: p.Name, Description: p.Description, Audio: p.Audio, Resolution: res,
 		Priority: string(p.Priority), DualAudio: string(p.DualAudio), UnnamedAudio: string(p.UnnamedAudio), Upgrades: p.Upgrades,

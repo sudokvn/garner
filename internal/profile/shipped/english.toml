@@ -1,5 +1,5 @@
 #:schema https://raw.githubusercontent.com/trucke/garner/main/docs/profile.schema.json
-# A Garner profile; https://github.com/trucke/garner/blob/main/docs/profiles.md describes the format.
+# A garner profile; https://github.com/trucke/garner/blob/main/docs/profiles.md describes the format.
 garner_profile = 1
 name = "English"
 description = "English audio"

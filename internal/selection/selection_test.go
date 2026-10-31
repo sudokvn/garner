@@ -58,7 +58,7 @@ var evaluateTests = []struct {
 	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.1080p.WEB-DL-GRP", nil, Reject, "", "no German audio named"},
 	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.Subbed.1080p.WEB-GRP", nil, Reject, "", "no German audio named"},
 	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.iTALiAN.MULTi.1080p.WEB-GRP", nil, Reject, "", "audio is Italian, not German"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.2160p.WEB-GRP", nil, Reject, "", "Garner does not take 2160p yet"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.2160p.WEB-GRP", nil, Reject, "", "garner does not take 2160p yet"},
 	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.480p.WEB-GRP", nil, Reject, "", "below 720p"},
 	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E02.German.1080p.WEB-GRP", nil, Reject, "", "holds S01E02, not S01E01"},
 	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.1080p.WEB-DL-GRP", []string{"German", "en-US"}, Accept, "German 1080p", "as the indexer reports"},
@@ -130,7 +130,7 @@ func TestEvaluateDegrades(t *testing.T) {
 		panic("invariant broken: a test panic")
 	})
 	if got.Verdict != Reject || len(got.Reasons) != 1 || !strings.Contains(got.Reasons[0], "could not judge") || got.Decisive != 0 {
-		t.Errorf("degrade yielded %s %q decisive %d, want a rejection that says Garner could not judge", got.Verdict, got.Reasons, got.Decisive)
+		t.Errorf("degrade yielded %s %q decisive %d, want a rejection that says garner could not judge", got.Verdict, got.Reasons, got.Decisive)
 	}
 	if got.rank.verdict != 2 {
 		t.Errorf("a degraded rejection ranks like a verdict of %d, want a rejection's rank", got.rank.verdict)
@@ -290,7 +290,7 @@ resolution = ["1080p", "720p"]`, "eng", "English 1080p → English 720p · dual 
 resolution = ["1080p", "720p"]
 priority = "resolution"
 dual_audio = "ignore"`, "deu", "German 1080p → English 1080p → German 720p → English 720p"},
-		{"language Garner does not know", `audio = ["original"]
+		{"language garner does not know", `audio = ["original"]
 resolution = ["1080p"]`, "yue", "yue 1080p · dual audio preferred"},
 		{"no original language", `audio = ["original", "de"]
 resolution = ["1080p"]`, "", "German 1080p · dual audio preferred"},

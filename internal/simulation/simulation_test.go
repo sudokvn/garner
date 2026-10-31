@@ -511,18 +511,18 @@ func (s *sim) outOfStep(episodes bool) string {
 	for _, sh := range s.w.shows {
 		sr, added := garner[sh.id]
 		if added != sh.added {
-			return fmt.Sprintf("show %d: the simulation notes added %v, Garner has it %v", sh.id, sh.added, added)
+			return fmt.Sprintf("show %d: the simulation notes added %v, garner has it %v", sh.id, sh.added, added)
 		}
 		if !added {
 			continue
 		}
 		delete(garner, sh.id)
 		if sr.Monitor != sh.monitor || sr.Type != sh.profile || sr.ProfileID != s.profiles[sh.profile] {
-			return fmt.Sprintf("show %d: the simulation notes monitor %s and type %s, Garner has %s, %s and profile %d",
+			return fmt.Sprintf("show %d: the simulation notes monitor %s and type %s, garner has %s, %s and profile %d",
 				sh.id, sh.monitor, sh.profile, sr.Monitor, sr.Type, sr.ProfileID)
 		}
 		if sr.Monitor == store.MonitorNew && sr.MonitorSince.Unix() != sh.since.Unix() {
-			return fmt.Sprintf("show %d: the simulation notes new episodes from %s, Garner from %s", sh.id, sh.since, sr.MonitorSince)
+			return fmt.Sprintf("show %d: the simulation notes new episodes from %s, garner from %s", sh.id, sh.since, sr.MonitorSince)
 		}
 		if !episodes {
 			continue
@@ -539,16 +539,16 @@ func (s *sim) outOfStep(episodes bool) string {
 			n := e.Numbers["official"]
 			got := fmt.Sprintf("S%02dE%02d aired %s", n.Season, n.Number, e.Aired)
 			if noted[e.ID] != got {
-				return fmt.Sprintf("show %d: episode %d is %q in the simulation's notes, %q in Garner", sh.id, e.ID, noted[e.ID], got)
+				return fmt.Sprintf("show %d: episode %d is %q in the simulation's notes, %q in garner", sh.id, e.ID, noted[e.ID], got)
 			}
 			delete(noted, e.ID)
 		}
 		for _, id := range sortedKeys64(noted) {
-			return fmt.Sprintf("show %d: episode %d is %q in the simulation's notes and not in Garner", sh.id, id, noted[id])
+			return fmt.Sprintf("show %d: episode %d is %q in the simulation's notes and not in garner", sh.id, id, noted[id])
 		}
 	}
 	for _, id := range sortedKeys64(garner) {
-		return fmt.Sprintf("Garner has show %d, which the simulation does not know", id)
+		return fmt.Sprintf("garner has show %d, which the simulation does not know", id)
 	}
 	return ""
 }
@@ -564,10 +564,10 @@ func (s *sim) fail(rule, msg string) {
 		return
 	}
 	last := s.trace[max(0, len(s.trace)-15):]
-	what := "Garner broke " + rule
+	what := "garner broke " + rule
 	switch rule {
 	case simOutOfStep:
-		what = "the simulation is out of step with Garner, its own mistake"
+		what = "the simulation is out of step with garner, its own mistake"
 	case simStopped:
 		what = "the simulation could not go on"
 	}
@@ -583,7 +583,7 @@ func (s *sim) restart() string {
 	if err := s.boot(); err != nil {
 		s.fail(simStopped, "restart: "+err.Error())
 	}
-	return "Garner started again"
+	return "garner started again"
 }
 
 // boot starts Garner again, as after a restart or a crash: its import
@@ -1422,7 +1422,7 @@ func (s *sim) outsideStays(before, after snapshot) (string, string) {
 		case ok && j.gone && d.State == store.Cancelled:
 		case ok && !j.gone && slices.Contains(done, d.Import.State):
 		default:
-			return "S5", fmt.Sprintf("SABnzbd's folder %s of %s went, but Garner was not done with its download (%s, import %q)", j.dir, j.id, d.State, d.Import.State)
+			return "S5", fmt.Sprintf("SABnzbd's folder %s of %s went, but garner was not done with its download (%s, import %q)", j.dir, j.id, d.State, d.Import.State)
 		}
 	}
 	return "", ""

@@ -13,11 +13,11 @@ description = "Build bin/garner (the terminal interface) and bin/garnerd (the se
 run = ["go build -o bin/garner ./cmd/garner", "go build -o bin/garnerd ./cmd/garnerd"]
 
 # Air (.air.toml) builds bin/garnerd, runs it and rebuilds and restarts it
-# on every code change. Garner uses the garner.toml that devstack writes;
+# on every code change. garner uses the garner.toml that devstack writes;
 # the stack's API keys come from its secrets folder, the TVDB key from
 # TVDB_API_KEY in the environment (for example in mise.local.toml).
 [tasks.dev]
-description = "Run Garner against the local dev stack and rebuild it on code changes (start the stack with mise run devstack up)"
+description = "Run garner against the local dev stack and rebuild it on code changes (start the stack with mise run devstack up)"
 env = { SABNZBD_API_KEY_FILE = "{{env.HOME}}/garner-dev/secrets/sabnzbd_api_key", PROWLARR_API_KEY_FILE = "{{env.HOME}}/garner-dev/secrets/prowlarr_api_key", JELLYFIN_API_KEY_FILE = "{{env.HOME}}/garner-dev/secrets/jellyfin_api_key" }
 run = "air"
 

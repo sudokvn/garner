@@ -108,7 +108,7 @@ func (id *Identity) issueLocked(now time.Time) error {
 	}
 	tmpl := &x509.Certificate{
 		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: "Garner"},
+		Subject:      pkix.Name{CommonName: "garner"},
 		// Backdate a little so small clock differences don't reject it.
 		NotBefore:   now.Add(-time.Hour),
 		NotAfter:    now.Add(validity),

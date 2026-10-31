@@ -220,7 +220,7 @@ func TestWrites(t *testing.T) {
 	// and nothing else.
 	foreign := s.file("library/tv/Show/Season.01/foreign.mkv")
 	if err := g.Move(ctx, claim("c.mkv"), foreign); !isRefusal(err) {
-		t.Errorf("overwrote a file Garner does not record: %v", err)
+		t.Errorf("overwrote a file garner does not record: %v", err)
 	}
 	s.recorded[foreign] = true
 	if err := g.Move(ctx, claim("c.mkv"), foreign); err != nil {

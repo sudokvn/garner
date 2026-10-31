@@ -244,7 +244,7 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) err
 	case resp.StatusCode == http.StatusUnauthorized:
 		return ErrUnauthorized
 	case resp.StatusCode >= 300 && resp.StatusCode < 400:
-		return &ServerError{Status: resp.StatusCode, Message: "the server answered with a redirect, which Garner does not follow"}
+		return &ServerError{Status: resp.StatusCode, Message: "the server answered with a redirect, which garner does not follow"}
 	case resp.StatusCode >= 400:
 		var e struct {
 			Error    string   `json:"error"`

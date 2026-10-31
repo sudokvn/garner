@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/trucke/garner/internal/token"
@@ -192,6 +193,56 @@ func TestMigrationFileTier(t *testing.T) {
 		var tier string
 		if err := db.QueryRow("SELECT tier FROM episode_files WHERE episode_id = ?", episode).Scan(&tier); err != nil || tier != want {
 			t.Errorf("episode %d: tier %q, %v; want %q", episode, tier, err, want)
+		}
+	}
+}
+
+// TestMigrationProfileHeader checks migration 23: the comment that starts a
+// profile's text names garner in lowercase, after the #:schema line or on
+// the first line, in the shipped profile and in ones the user edited, and
+// nothing else in a profile's text changes, not even the header's words
+// further down in a profile that has no header.
+func TestMigrationProfileHeader(t *testing.T) {
+	ctx := context.Background()
+	db := openAt(t, t.TempDir(), 22)
+	const edited = "#:schema x\n# A Garner profile; see the docs.\n# Garner, my own notes.\n# Copied: # A Garner profile; old.\nname = \"Mine\"\n"
+	const bare = "name = \"Bare\"\n# A Garner profile; written by hand, not the header.\n"
+	const first = "# A Garner profile; an older export.\nname = \"First\"\n"
+	exec(t, db, "INSERT INTO profiles (name, text) VALUES ('Mine', ?), ('Bare', ?), ('First', ?)", edited, bare, first)
+	var shipped string
+	if err := db.QueryRow("SELECT text FROM profiles WHERE name = 'Original language'").Scan(&shipped); err != nil {
+		t.Fatal(err)
+	}
+	p, err := migrator(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.UpTo(ctx, 23); err != nil {
+		t.Fatal(err)
+	}
+	for name, want := range map[string]string{
+		"Original language": strings.Replace(shipped, "# A Garner profile;", "# A garner profile;", 1),
+		"Mine":              "#:schema x\n# A garner profile; see the docs.\n# Garner, my own notes.\n# Copied: # A Garner profile; old.\nname = \"Mine\"\n",
+		"Bare":              bare,
+		"First":             "# A garner profile; an older export.\nname = \"First\"\n",
+	} {
+		var text string
+		if err := db.QueryRow("SELECT text FROM profiles WHERE name = ?", name).Scan(&text); err != nil || text != want {
+			t.Errorf("%s: text %q, %v; want %q", name, text, err, want)
+		}
+	}
+	if !strings.Contains(shipped, "# A Garner profile;") {
+		t.Error("the shipped profile at migration 22 has no header to change; the test checks nothing")
+	}
+
+	// Going back restores every text as it was.
+	if _, err := p.DownTo(ctx, 22); err != nil {
+		t.Fatal(err)
+	}
+	for name, want := range map[string]string{"Original language": shipped, "Mine": edited, "Bare": bare, "First": first} {
+		var text string
+		if err := db.QueryRow("SELECT text FROM profiles WHERE name = ?", name).Scan(&text); err != nil || text != want {
+			t.Errorf("%s after going back: text %q, %v; want %q", name, text, err, want)
 		}
 	}
 }

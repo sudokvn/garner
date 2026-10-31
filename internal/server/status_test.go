@@ -59,7 +59,7 @@ func TestServices(t *testing.T) {
 		"TVDB":     "not set up: TVDB_API_KEY is missing, and this build has no built-in key",
 		"Prowlarr": "not set up: PROWLARR_API_KEY is missing",
 		"SABnzbd":  "not set up: sabnzbd.url and SABNZBD_API_KEY are missing",
-		"Jellyfin": "not used: importing is unavailable, and Garner's log says why",
+		"Jellyfin": "not used: importing is unavailable, and garner's log says why",
 	}
 	for _, c := range got.Services {
 		if c.OK || c.Detail != want[c.Name] {
@@ -133,7 +133,7 @@ func TestTVDBStatus(t *testing.T) {
 		return got.Services[0]
 	}
 
-	if c := tvdbCheck(); !c.OK || !strings.Contains(c.Detail, "Garner's built-in key") {
+	if c := tvdbCheck(); !c.OK || !strings.Contains(c.Detail, "garner's built-in key") {
 		t.Errorf("before any request: %+v", c)
 	}
 	get("/api/v1/search?q=harbor").Body.Close()

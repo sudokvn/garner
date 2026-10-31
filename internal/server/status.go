@@ -63,7 +63,7 @@ func (s *Server) checkTVDB(ctx context.Context) api.ServiceCheck {
 	}
 	key := "your TVDB_API_KEY"
 	if s.cfg.TVDB.BuiltIn {
-		key = "Garner's built-in key"
+		key = "garner's built-in key"
 	}
 	if until, reason := s.catalog.Paused(); !until.IsZero() {
 		c.Detail = (&catalog.PausedError{Until: until, Reason: reason}).Error()
@@ -126,7 +126,7 @@ func (s *Server) checkSABnzbd(ctx context.Context) api.ServiceCheck {
 func (s *Server) checkJellyfin(ctx context.Context) api.ServiceCheck {
 	c := api.ServiceCheck{Name: "Jellyfin"}
 	if s.jellyfin == nil {
-		c.Detail = "not used: importing is unavailable, and Garner's log says why"
+		c.Detail = "not used: importing is unavailable, and garner's log says why"
 		if m := s.jellyfinMissing(); len(m) > 0 {
 			c.Detail = "not set up: " + lacking(m)
 		}

@@ -48,7 +48,7 @@ func monitorKey(key string, chosen *int) (done bool, mode string) {
 // choices, a note when the monitor does not run, and its keys with ok, the
 // enter key's action.
 func monitorQuestion(title string, chosen int, off, ok string) []string {
-	lines := []string{sBold.Render(title), sMuted.Render("Which episodes should Garner get on its own?"), ""}
+	lines := []string{sBold.Render(title), sMuted.Render("Which episodes should garner get on its own?"), ""}
 	width := 0
 	for _, m := range monitorModes {
 		width = max(width, len(m.label))

@@ -46,7 +46,7 @@ jobs:
             exit 1
           }
 
-      # Every release builds Garner's TheTVDB key into the server, so users
+      # Every release builds garner's TheTVDB key into the server, so users
       # need none of their own.
       - name: Check that the TheTVDB key is set
         env:

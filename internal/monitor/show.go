@@ -13,7 +13,7 @@ import (
 )
 
 // ErrSearching means the show's missing episodes are being searched already.
-var ErrSearching = errors.New("Garner is already searching this show's missing episodes")
+var ErrSearching = errors.New("garner is already searching this show's missing episodes")
 
 // showQueue holds the shows asked for, in order, and their progress.
 type showQueue struct {

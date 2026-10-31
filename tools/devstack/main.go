@@ -199,7 +199,7 @@ func up() error {
 			return err
 		}
 	}
-	step("Garner")
+	step("garner")
 	if err := writeGarnerConfig(); err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ The dev stack is ready. Data: %s
   SABnzbd   %s
   Prowlarr  %s
   Jellyfin  %s  (user garner-dev, password in secrets/jellyfin_admin_password)
-Run Garner against it with: mise run dev
+Run garner against it with: mise run dev
 `, root(), sabURL, prowlarrURL, jellyfinURL)
 	return nil
 }
@@ -272,9 +272,9 @@ func hostZone() string {
 
 func reset() error {
 	if _, err := os.Stat(path("garner", "garner.sock")); err == nil {
-		return errors.New("Garner seems to run against the stack (garner/garner.sock exists); stop it first")
+		return errors.New("garner seems to run against the stack (garner/garner.sock exists); stop it first")
 	}
-	fmt.Printf("This deletes the dev stack and everything in %s: downloads, library, settings and Garner's dev database.\nType reset to continue: ", root())
+	fmt.Printf("This deletes the dev stack and everything in %s: downloads, library, settings and garner's dev database.\nType reset to continue: ", root())
 	answer, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 	if strings.TrimSpace(answer) != "reset" {
 		return errors.New("cancelled")
@@ -348,7 +348,7 @@ func writeGarnerConfig() error {
 	cfg.SABnzbd = service{URL: sabURL, Category: "tv", Paths: map[string]string{"/data/usenet": path("media/usenet")}}
 	cfg.Jellyfin = service{URL: jellyfinURL, Paths: map[string]string{"/data/library": path("media/library")}}
 	var b bytes.Buffer
-	b.WriteString(generatedMark + "\n# Garner against the local dev stack. API keys come from ~/garner-dev/secrets.\n\n")
+	b.WriteString(generatedMark + "\n# garner against the local dev stack. API keys come from ~/garner-dev/secrets.\n\n")
 	if err := toml.NewEncoder(&b).Encode(cfg); err != nil {
 		return err
 	}

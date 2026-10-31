@@ -248,7 +248,7 @@ func degrade(ctx Context, r Release, build func() Evaluation) (e Evaluation) {
 				"invariant", rec, "name", r.Claims.Name)
 			e = Evaluation{
 				Verdict: Reject,
-				Reasons: []string{"Garner could not judge the release: an internal check failed"},
+				Reasons: []string{"garner could not judge the release: an internal check failed"},
 				rank:    rankKey{verdict: 2, tier: len(ctx.Profile.Tiers) + 2, published: r.Published},
 			}
 		}
@@ -301,7 +301,7 @@ func judge(ctx Context, r Release) Evaluation {
 	case state == release.Missing:
 		fallbacks = append(fallbacks, "resolution not named; a last resort, checked after download")
 	case res >= 2160:
-		rejects = append(rejects, "2160p; Garner does not take 2160p yet")
+		rejects = append(rejects, "2160p; garner does not take 2160p yet")
 	case res < 720:
 		rejects = append(rejects, fmt.Sprintf("%s is below 720p", res))
 	}

@@ -44,14 +44,14 @@ const (
 	scanTimeout = 3 * time.Minute
 
 	detailWaiting  = "moved into the library; waiting for Jellyfin"
-	detailFullScan = "moved into the library; Jellyfin did not pick the files up, so Garner asked it to scan all libraries"
+	detailFullScan = "moved into the library; Jellyfin did not pick the files up, so garner asked it to scan all libraries"
 )
 
 // ErrNotRetryable means the import has no failed step to repeat.
 var ErrNotRetryable = errors.New("only failed or unconfirmed imports can be retried")
 
 // ErrBusy refuses a change to the library's files while another one runs.
-var ErrBusy = errors.New("Garner is changing files in the library; try again in a moment")
+var ErrBusy = errors.New("garner is changing files in the library; try again in a moment")
 
 var videoExtensions = map[string]bool{
 	".mkv": true, ".mp4": true, ".m4v": true, ".avi": true, ".ts": true, ".m2ts": true, ".webm": true, ".wmv": true,
@@ -239,18 +239,18 @@ func (s *Service) check(ctx context.Context, d *store.Download) {
 	local, ok := s.opts.SABnzbdPaths.Local(d.Storage)
 	if !ok {
 		s.fail(ctx, d, nil, fmt.Sprintf("SABnzbd put the files in %s, which no sabnzbd.paths entry covers", d.Storage),
-			"Add the folder to sabnzbd.paths in garner.toml, restart Garner and retry the import.")
+			"Add the folder to sabnzbd.paths in garner.toml, restart garner and retry the import.")
 		return
 	}
 	files, err := videoFiles(local)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		s.fail(ctx, d, nil, fmt.Sprintf("Garner cannot see %s", local),
+		s.fail(ctx, d, nil, fmt.Sprintf("garner cannot see %s", local),
 			"Check that the media share is mounted and that sabnzbd.paths points at it, then retry the import.")
 		return
 	case errors.Is(err, fs.ErrPermission):
-		s.fail(ctx, d, nil, fmt.Sprintf("Garner may not read %s", local),
-			"Give the account Garner uses read access to SABnzbd's completed folder, then retry the import.")
+		s.fail(ctx, d, nil, fmt.Sprintf("garner may not read %s", local),
+			"Give the account garner uses read access to SABnzbd's completed folder, then retry the import.")
 		return
 	case err != nil:
 		s.fail(ctx, d, nil, err.Error(), "Check the folder, then retry the import.")
@@ -290,8 +290,8 @@ func (s *Service) check(ctx context.Context, d *store.Download) {
 	for i := range files {
 		f := &files[i]
 		if fh, err := os.Open(f.Source); err != nil {
-			s.fail(ctx, d, files, fmt.Sprintf("Garner may not read %s: %v", filepath.Base(f.Source), unwrapPath(err)),
-				"Give the account Garner uses read access to SABnzbd's completed folder, then retry the import.")
+			s.fail(ctx, d, files, fmt.Sprintf("garner may not read %s: %v", filepath.Base(f.Source), unwrapPath(err)),
+				"Give the account garner uses read access to SABnzbd's completed folder, then retry the import.")
 			return
 		} else {
 			fh.Close()
@@ -315,7 +315,7 @@ func (s *Service) check(ctx context.Context, d *store.Download) {
 		}
 		f.Target, err = c.target(s.opts.Library, f.Episodes, releaseTags(d.Title, d.Tier, p), filepath.Ext(f.Source))
 		if err != nil {
-			s.fail(ctx, d, files, err.Error(), "Set library.tv and library.anime in garner.toml, restart Garner and retry the import.")
+			s.fail(ctx, d, files, err.Error(), "Set library.tv and library.anime in garner.toml, restart garner and retry the import.")
 			return
 		}
 	}
@@ -349,7 +349,7 @@ func (s *Service) move(ctx context.Context, d *store.Download) {
 	}
 	if len(paths) < len(files) {
 		s.save(ctx, d, store.Import{State: store.ImportUnverified, Detail: "moved into the library, but jellyfin.paths does not cover the library folder",
-			Recovery: "Add the library folder to jellyfin.paths in garner.toml, restart Garner and retry the import.", Files: files, Notes: notes})
+			Recovery: "Add the library folder to jellyfin.paths in garner.toml, restart garner and retry the import.", Files: files, Notes: notes})
 		return
 	}
 	if err := s.jellyfin.Created(ctx, paths); err != nil {
@@ -405,7 +405,7 @@ func (s *Service) moveFiles(ctx context.Context, d *store.Download) ([]store.Imp
 		}
 		if st, err := os.Stat(root); err != nil || !st.IsDir() {
 			s.fail(ctx, d, files, fmt.Sprintf("the library folder %s is missing", root),
-				"Mount the media share and check library.tv and library.anime in garner.toml, then retry the import. Garner never creates the library folders themselves.")
+				"Mount the media share and check library.tv and library.anime in garner.toml, then retry the import. garner never creates the library folders themselves.")
 			return nil, nil, false
 		}
 		if _, err := os.Lstat(f.Target); err == nil {
@@ -432,14 +432,14 @@ func (s *Service) moveFiles(ctx context.Context, d *store.Download) ([]store.Imp
 		if _, err := os.Lstat(f.Target); err == nil {
 			ours, err := s.store.FileInUse(ctx, f.Target)
 			if err != nil || !ours {
-				s.fail(ctx, d, files, f.Target+" already exists and was not imported by Garner",
-					"Move or delete that file, then retry the import. Garner never overwrites files it did not import.")
+				s.fail(ctx, d, files, f.Target+" already exists and was not imported by garner",
+					"Move or delete that file, then retry the import. garner never overwrites files it did not import.")
 				return nil, nil, false
 			}
 		}
 		source, err := claim(f.Source)
 		if err != nil {
-			s.fail(ctx, d, files, fmt.Sprintf("Garner may not move %s: %v", filepath.Base(f.Source), err), guardFix)
+			s.fail(ctx, d, files, fmt.Sprintf("garner may not move %s: %v", filepath.Base(f.Source), err), guardFix)
 			return nil, nil, false
 		}
 		if err := s.guard.Mkdir(filepath.Dir(f.Target)); err != nil {
@@ -453,12 +453,12 @@ func (s *Service) moveFiles(ctx context.Context, d *store.Download) ([]store.Imp
 		if err := s.guard.Move(ctx, source, f.Target); err != nil {
 			switch {
 			case refused(err):
-				s.fail(ctx, d, files, fmt.Sprintf("Garner may not move %s: %v", filepath.Base(f.Source), err), guardFix)
+				s.fail(ctx, d, files, fmt.Sprintf("garner may not move %s: %v", filepath.Base(f.Source), err), guardFix)
 			case errors.Is(err, syscall.EXDEV):
 				s.fail(ctx, d, files, "the download and the library are on different filesystems, so the file would have to be copied",
-					"Keep SABnzbd's completed folder and the library on the same share and dataset, then retry the import. Garner moves files; it does not copy them.")
+					"Keep SABnzbd's completed folder and the library on the same share and dataset, then retry the import. garner moves files; it does not copy them.")
 			case errors.Is(err, fs.ErrPermission):
-				s.fail(ctx, d, files, fmt.Sprintf("Garner may not move %s", filepath.Base(f.Source)), permissionFix)
+				s.fail(ctx, d, files, fmt.Sprintf("garner may not move %s", filepath.Base(f.Source)), permissionFix)
 			default:
 				s.fail(ctx, d, files, fmt.Sprintf("moving %s failed: %v", filepath.Base(f.Source), unwrapPath(err)), "Check both folders, then retry the import.")
 			}
@@ -490,11 +490,11 @@ func (s *Service) moveFiles(ctx context.Context, d *store.Download) ([]store.Imp
 	return files, notes, true
 }
 
-const permissionFix = "On the NAS, give the account Garner uses write access to SABnzbd's completed folder and the library (UID 1000 in this setup), then retry the import."
+const permissionFix = "On the NAS, give the account garner uses write access to SABnzbd's completed folder and the library (UID 1000 in this setup), then retry the import."
 
 // guardFix is the recovery step when the guard refused to change a file
 // that Garner does not own.
-const guardFix = "Check sabnzbd.paths, jellyfin.paths, library.tv and library.anime in garner.toml, then retry the import. Garner changes only files and folders it owns."
+const guardFix = "Check sabnzbd.paths, jellyfin.paths, library.tv and library.anime in garner.toml, then retry the import. garner changes only files and folders it owns."
 
 // refused reports whether the guard refused a change.
 func refused(err error) bool {
@@ -680,7 +680,7 @@ func (s *Service) recordFiles(ctx context.Context, d *store.Download, files []st
 			}
 		}
 		if err := s.removeVersion(ctx, claim); err != nil {
-			s.log.Warn("could not remove the previous version yet; Garner tries again later", "path", p, "err", err)
+			s.log.Warn("could not remove the previous version yet; garner tries again later", "path", p, "err", err)
 		}
 	}
 	if len(kept) == 0 {
@@ -819,7 +819,7 @@ func (s *Service) verify(ctx context.Context, d *store.Download) {
 			s.save(ctx, d, store.Import{State: store.ImportUnverified, Files: files,
 				Detail: fmt.Sprintf("Jellyfin identified %s as %s (show TVDB %s), not %s (TVDB episode %d)",
 					filepath.Base(f.Target), f.Jellyfin, cmp.Or(ep.SeriesTVDB, "none"), c.show.Label(want.ID), want.ID),
-				Recovery: "Correct the match in Jellyfin (Identify on the show or episode), then retry the import so Garner checks again."})
+				Recovery: "Correct the match in Jellyfin (Identify on the show or episode), then retry the import so garner checks again."})
 			return
 		}
 		f.Verified = true
@@ -846,7 +846,7 @@ func (s *Service) verify(ctx context.Context, d *store.Download) {
 	case s.Now().Sub(d.Import.Updated) > scanTimeout:
 		s.save(ctx, d, store.Import{State: store.ImportUnverified, Files: files,
 			Detail:   fmt.Sprintf("the files are in the library, but Jellyfin has not listed them after %s", scanTimeout),
-			Recovery: "Scan the library in Jellyfin, then retry the import so Garner checks again."})
+			Recovery: "Scan the library in Jellyfin, then retry the import so garner checks again."})
 	}
 }
 

@@ -135,7 +135,7 @@ func Run(ctx context.Context, cfg *config.Config, version string, log *slog.Logg
 	if s.pin != "" {
 		attrs = append(attrs, "pin", s.pin)
 	}
-	log.Info("Garner is running", attrs...)
+	log.Info("garner is running", attrs...)
 
 	if s.catalog != nil {
 		go s.catalog.Run(ctx)
@@ -165,7 +165,7 @@ func Run(ctx context.Context, cfg *config.Config, version string, log *slog.Logg
 	if errors.Is(err, http.ErrServerClosed) {
 		err = nil
 	}
-	log.Info("Garner stopped")
+	log.Info("garner stopped")
 	return err
 }
 
@@ -200,7 +200,7 @@ func (s *Server) httpClient(caFile string, timeout time.Duration) (*http.Client,
 	if s.deps.Transport != nil {
 		return &http.Client{Transport: s.deps.Transport, Timeout: timeout}, nil
 	}
-	return httpx.New("Garner/"+s.version, caFile, timeout)
+	return httpx.New("garner/"+s.version, caFile, timeout)
 }
 
 // PollDownloads, WorkImports and StepMonitor run one step of a background
@@ -283,7 +283,7 @@ func (s *Server) schedule() *store.Schedule {
 
 func (s *Server) setupMonitor() {
 	if off := s.monitorOff(); off != "" {
-		s.log.Info("the monitor is off: Garner searches and downloads only when asked", "reason", off)
+		s.log.Info("the monitor is off: garner searches and downloads only when asked", "reason", off)
 	}
 	if s.search == nil || s.downloads == nil {
 		return

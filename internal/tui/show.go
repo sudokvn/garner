@@ -403,7 +403,7 @@ const showTop = 6 // rows above the table: header, blank, facts, blank, column n
 
 func (s *showScreen) view(width, height int) string {
 	var b strings.Builder
-	b.WriteString(header(width, s.sess, "Garner", "Library", clean(s.name)) + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "Library", clean(s.name)) + "\n\n")
 	switch {
 	case s.detail == nil && s.err != nil:
 		b.WriteString("   " + gFailed + " " + sRed.Render(clean(s.err.Error())))

@@ -265,7 +265,7 @@ func (s *releasesScreen) view(width, height int) string {
 	if s.season > 0 {
 		label = fmt.Sprintf("Season %d", s.season)
 	}
-	b.WriteString(header(width, s.sess, "Garner", "Library", clean(s.back.name), label, "Releases") + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "Library", clean(s.back.name), label, "Releases") + "\n\n")
 	b.WriteString(s.facts(width) + "\n\n")
 
 	switch {
@@ -589,7 +589,7 @@ func attemptLines(d api.Download, w int, now time.Time) []string {
 		glyph = style.Render("✗")
 	}
 	if d.State == api.Failed || d.State == api.Cancelled {
-		text += " Garner does not pick this upload again on its own."
+		text += " garner does not pick this upload again on its own."
 	}
 	var lines []string
 	for i, l := range strings.Split(ansi.Wrap(clean(text), max(10, w), ""), "\n") {

@@ -330,7 +330,7 @@ func (s *episodeScreen) view(width, height int) string {
 	now := time.Now()
 	row, _ := s.row()
 	var b strings.Builder
-	b.WriteString(header(width, s.sess, "Garner", "Library", clean(s.show.name), s.label()) + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "Library", clean(s.show.name), s.label()) + "\n\n")
 	b.WriteString(factLines(width, episodeFacts(row)...) + "\n")
 	switch {
 	case s.detail == nil && s.err != nil:

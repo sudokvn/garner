@@ -312,7 +312,7 @@ func (s *Service) confirm(ctx context.Context, d *store.Download) {
 	}
 	if age >= giveUpAfter && !unsure {
 		d.State, d.Retryable = store.Failed, true
-		d.Failure = "SABnzbd has no job for this release; Garner stopped or lost the connection before SABnzbd confirmed it"
+		d.Failure = "SABnzbd has no job for this release; garner stopped or lost the connection before SABnzbd confirmed it"
 	}
 }
 
@@ -365,7 +365,7 @@ func (s *Service) replace(ctx context.Context, failed store.Download) {
 		return
 	}
 	if n > maxReplacements {
-		s.stopReplacing(ctx, failed, fmt.Sprintf("%d releases failed in a row, so Garner stopped trying others.", n))
+		s.stopReplacing(ctx, failed, fmt.Sprintf("%d releases failed in a row, so garner stopped trying others.", n))
 		return
 	}
 	like := func(c store.Candidate) bool { return c.Verdict == failed.Verdict && c.Tier == failed.Tier }
@@ -393,9 +393,9 @@ func (s *Service) replace(ctx context.Context, failed store.Download) {
 func noneLike(failed store.Download) string {
 	switch {
 	case failed.Manual:
-		return "No other upload of this release is left, and Garner does not swap a release you chose for another."
+		return "No other upload of this release is left, and garner does not swap a release you chose for another."
 	case failed.Verdict == "accept" && failed.Tier != "":
-		return fmt.Sprintf("No other release meets %s, and Garner does not switch to another preference on its own.", failed.Tier)
+		return fmt.Sprintf("No other release meets %s, and garner does not switch to another preference on its own.", failed.Tier)
 	case failed.Verdict == "fallback":
 		return "No other last resort is left to try."
 	}

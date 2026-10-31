@@ -1,5 +1,5 @@
-# Garner's container image: the server, garnerd, plus an FFprobe that can only read
-# the files Garner imports. Build with `mise run image`.
+# garner's container image: the server, garnerd, plus an FFprobe that can only read
+# the files garner imports. Build with `mise run image`.
 #
 # Base images are pinned by index digest and FFmpeg by checksum; update them
 # deliberately. The image runs as UID 1000 on a read-only root filesystem.
@@ -42,7 +42,7 @@ COPY internal internal
 ARG VERSION=dev
 ARG COMMIT=
 # musl selects Turso's library for Alpine; timetzdata embeds time zones.
-# The release passes Garner's TheTVDB key as the build secret tvdb_api_key,
+# The release passes garner's TheTVDB key as the build secret tvdb_api_key,
 # so the key reaches the binary but not the image's metadata, as a build
 # argument would; other builds have none. -trimpath also keeps -ldflags,
 # and with them the key, out of the build information `go version -m`
@@ -57,7 +57,7 @@ FROM ${ALPINE}
 ARG VERSION=dev
 ARG COMMIT=
 # The source label links the image on ghcr.io to the repository.
-LABEL org.opencontainers.image.title="Garner" \
+LABEL org.opencontainers.image.title="garner" \
       org.opencontainers.image.source="https://github.com/trucke/garner" \
       org.opencontainers.image.licenses="MIT AND LGPL-2.1-or-later AND Zlib" \
       org.opencontainers.image.version="${VERSION}" \

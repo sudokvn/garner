@@ -43,7 +43,7 @@ released=$(printf '%s\n' "$published" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | so
 	fail "${commit:0:12} is already part of $released"
 
 printf 'Releasing %s (%s) as %s\n' "${commit:0:12}" "$(jj log -r "$commit" --no-graph -T 'description.first_line()')" "$version"
-git tag -a "$version" -m "Garner $version" "$commit"
+git tag -a "$version" -m "garner $version" "$commit"
 git push --quiet origin "refs/tags/$version" || {
 	git tag -d "$version" >/dev/null
 	fail "could not push the tag $version; nothing was released"

@@ -1,6 +1,6 @@
 # Checks every pull request and every push to main as `mise run check` does
 # locally: formatting, vet, the generated database code, known
-# vulnerabilities, the tests on Linux as the container image builds Garner
+# vulnerabilities, the tests on Linux as the container image builds garner
 # and again with the race detector, and builds for every release platform.
 # It also runs install.sh against the newest release. The private
 # real-case tests are not part of it.

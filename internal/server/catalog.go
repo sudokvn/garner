@@ -122,7 +122,7 @@ func (s *Server) handleAddSeries(w http.ResponseWriter, r *http.Request) {
 		t, err := s.imports.TakeOver(ctx, req.TVDBID)
 		if err != nil {
 			s.log.Error("take over files", "series", req.TVDBID, "err", err)
-			t.Notes = append(t.Notes, "Garner could not finish looking for files: "+err.Error())
+			t.Notes = append(t.Notes, "garner could not finish looking for files: "+err.Error())
 		}
 		taken = &t
 	}
@@ -248,7 +248,7 @@ func (s *Server) handleDeleteSeries(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, d := range busy {
 		if !d.Active() {
-			writeError(w, http.StatusConflict, "Garner is moving files of this show into the library; try again when that has finished")
+			writeError(w, http.StatusConflict, "garner is moving files of this show into the library; try again when that has finished")
 			return
 		}
 	}

@@ -352,7 +352,7 @@ func (s *editorScreen) openPicker(kind editorRowKind, at int, replace bool) {
 			}
 		}
 		if len(p.items) == 0 {
-			s.flash.info(sMuted.Render("Every language Garner knows is listed already."))
+			s.flash.info(sMuted.Render("Every language garner knows is listed already."))
 			return
 		}
 	} else {
@@ -445,7 +445,7 @@ func (s *editorScreen) save() tea.Cmd {
 func (s *editorScreen) view(width, height int) string {
 	row := s.row()
 	var b strings.Builder
-	b.WriteString(header(width, s.sess, "Garner", "Profiles", s.name()) + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "Profiles", s.name()) + "\n\n")
 	// A row is built from styled parts, each with the select background on
 	// the cursor row, which then runs across the full width.
 	type styler = func(lipgloss.Style) lipgloss.Style

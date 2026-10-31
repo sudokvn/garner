@@ -50,7 +50,7 @@ func (s *showScreen) askSearch() {
 	switch missing, _ := s.missingCount(); {
 	case s.detail == nil:
 	case s.detail.Searching != nil:
-		s.flash.info(sMuted.Render("Garner is already searching the missing episodes."))
+		s.flash.info(sMuted.Render("garner is already searching the missing episodes."))
 	case missing == 0:
 		s.flash.info(sMuted.Render("No episode is missing."))
 	default:
@@ -88,7 +88,7 @@ func (s *showScreen) searchQuestion() []string {
 	lines := []string{
 		sBold.Render("Search " + plural(missing, "missing episode") + " of " + clean(s.name) + "?"),
 		"",
-		sNormal.Render("Garner downloads the best release of each that meets the show's rules."),
+		sNormal.Render("garner downloads the best release of each that meets the show's rules."),
 	}
 	if cancelled > 0 {
 		lines = append(lines, sNormal.Render("This includes "+plural(cancelled, "episode")+" whose download was cancelled."))

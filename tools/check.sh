@@ -58,8 +58,8 @@ go run ./tools/notices --check || fail "THIRD-PARTY-NOTICES.txt is not current; 
 
 # govulncheck reads the code and what it calls; it needs nothing built.
 step "Known vulnerabilities, on macOS and in the server as the container image builds it"
-govulncheck ./... || fail "known vulnerabilities reach Garner's code on macOS; see above"
-GOOS=linux GOARCH=amd64 govulncheck -tags "$tags" ./... || fail "known vulnerabilities reach Garner's code on Linux; see above"
+govulncheck ./... || fail "known vulnerabilities reach garner's code on macOS; see above"
+GOOS=linux GOARCH=amd64 govulncheck -tags "$tags" ./... || fail "known vulnerabilities reach garner's code on Linux; see above"
 
 # The race detector needs cgo, which the Linux run below builds without.
 step "Tests on macOS, with the race detector"

@@ -309,7 +309,7 @@ func TestImportFailsAndRetries(t *testing.T) {
 		t.Fatalf("import = %+v", got.Import)
 	}
 	if _, err := os.Stat(lib); !os.IsNotExist(err) {
-		t.Error("Garner created the library folder")
+		t.Error("garner created the library folder")
 	}
 	if _, err := os.Stat(filepath.Join(e.share, jobDir, "x7f3a.mkv")); err != nil {
 		t.Error("a failed import lost the downloaded file")
@@ -333,7 +333,7 @@ func TestImportKeepsForeignFiles(t *testing.T) {
 	os.WriteFile(existing, []byte("someone else's file"), 0o644)
 	e.svc.Work(ctx)
 	got, _ := e.st.GetDownload(ctx, d.ID)
-	if got.Import.State != store.ImportFailed || !strings.Contains(got.Import.Detail, "not imported by Garner") {
+	if got.Import.State != store.ImportFailed || !strings.Contains(got.Import.Detail, "not imported by garner") {
 		t.Errorf("import = %+v", got.Import)
 	}
 	if b, _ := os.ReadFile(existing); string(b) != "someone else's file" {
@@ -761,7 +761,7 @@ func TestImportKeepsBetterGainedMeanwhile(t *testing.T) {
 	entries, _ := os.ReadDir(own)
 	for _, entry := range entries {
 		if used, _ := e.st.FileInUse(ctx, filepath.Join(own, entry.Name())); !used {
-			t.Errorf("%s is in Garner's folder, but no episode records it", entry.Name())
+			t.Errorf("%s is in garner's folder, but no episode records it", entry.Name())
 		}
 	}
 	got, _ := e.st.GetDownload(ctx, d.ID)

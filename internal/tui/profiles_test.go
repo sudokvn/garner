@@ -152,7 +152,7 @@ func TestNewProfilePicker(t *testing.T) {
 		t.Fatalf("after a: overlay %d, choice %q", p.overlay, p.picker.items[p.picker.choice].label)
 	}
 	view := ansi.Strip(p.view(120, 36))
-	for _, want := range []string{"New profile", "Your profiles", "Shipped with Garner", "Original language"} {
+	for _, want := range []string{"New profile", "Your profiles", "Shipped with garner", "Original language"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the picker lacks %q", want)
 		}

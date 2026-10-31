@@ -324,7 +324,7 @@ func TestLanguageNamed(t *testing.T) {
 		}
 	}
 	if got, ok := LanguageNamed("yue"); ok {
-		t.Errorf("LanguageNamed(yue) = %q, a language Garner does not know", got)
+		t.Errorf("LanguageNamed(yue) = %q, a language garner does not know", got)
 	}
 }
 

@@ -27,7 +27,7 @@ func execute(version string) int {
 	defer stop()
 	if err := newRoot(version).ExecuteContext(ctx); err != nil {
 		if errors.Is(err, server.ErrNotRunning) {
-			err = fmt.Errorf("Garner isn't running. Start it with %s.", code("garnerd serve"))
+			err = fmt.Errorf("garner isn't running. Start it with %s.", code("garnerd serve"))
 		}
 		printError(err)
 		return 1
@@ -44,8 +44,8 @@ func newRoot(version string) *cobra.Command {
 	a := &app{version: version}
 	root := &cobra.Command{
 		Use:   "garnerd",
-		Short: "Garner's server",
-		Long: "Garner's server. garnerd serve runs it; the other commands manage the server\n" +
+		Short: "garner's server",
+		Long: "garner's server. garnerd serve runs it; the other commands manage the server\n" +
 			"running on this machine. The terminal interface is the separate program garner.",
 		Version:       version,
 		Args:          cobra.NoArgs,
@@ -80,7 +80,7 @@ func (a *app) admin() (*server.Admin, error) {
 func (a *app) serveCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "serve",
-		Short: "Run the Garner server",
+		Short: "Run the garner server",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, err := a.config()
@@ -118,7 +118,7 @@ func (a *app) tokenCmd() *cobra.Command {
 				lipgloss.Println(bold.Render("Connection code"))
 				lipgloss.Println(accent.Render(t.Code))
 				lipgloss.Println()
-				lipgloss.Println(dim.Render("Paste it into Garner on that device. It contains the token."))
+				lipgloss.Println(dim.Render("Paste it into garner on that device. It contains the token."))
 				lipgloss.Println()
 				lipgloss.Println(bold.Render("Token") + dim.Render(" for scripts and the API"))
 				lipgloss.Println(accent.Render(t.Token))
@@ -236,14 +236,14 @@ func (a *app) statusCmd() *cobra.Command {
 				out.SetIndent("", "  ")
 				return out.Encode(st)
 			}
-			lipgloss.Println(good.Render("●") + " " + bold.Render("Garner "+st.Version) + dim.Render(" · running since "+ago(st.Started)))
+			lipgloss.Println(good.Render("●") + " " + bold.Render("garner "+st.Version) + dim.Render(" · running since "+ago(st.Started)))
 			lipgloss.Println()
 			tls := st.TLS
 			switch st.TLS {
 			case server.TLSOff:
 				tls = dim.Render("off (loopback only)")
 			case server.TLSProxy:
-				tls = "at the proxy" + dim.Render(" · Garner serves it plain HTTP")
+				tls = "at the proxy" + dim.Render(" · garner serves it plain HTTP")
 			}
 			integrity := good.Render(st.Integrity)
 			if st.Integrity != "ok" {

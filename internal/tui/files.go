@@ -78,7 +78,7 @@ func (p filesPrompt) lines(name string) []string {
 		lines = append(lines, sMuted.Render("They hold "+plural(t.Episodes, "episode")+"."))
 	}
 	if len(t.Folders) == 0 {
-		lines = append(lines, sMuted.Render("Garner found no folder of the show."))
+		lines = append(lines, sMuted.Render("garner found no folder of the show."))
 	}
 	for i, f := range t.Folders {
 		label := "Looked in "
@@ -106,8 +106,8 @@ func (p filesPrompt) lines(name string) []string {
 		return append(lines, "", "  "+choice("OK", true), "", keyBar("enter", "ok"))
 	}
 	return append(lines, "",
-		sNormal.Render(plural(t.Renamable, "file")+" of the show lie outside Garner's folder for it."),
-		sNormal.Render("Rename and move them there, named the way Garner names files?"),
+		sNormal.Render(plural(t.Renamable, "file")+" of the show lie outside garner's folder for it."),
+		sNormal.Render("Rename and move them there, named the way garner names files?"),
 		"",
 		"  "+choice("Keep as they are", p.choice == 0)+"   "+choice("Rename and move", p.choice == 1),
 		"",
@@ -141,9 +141,9 @@ func reportRenamed(msg renamedMsg, f *flash) {
 	case msg.err != nil:
 		f.stay(gFailed + " " + sRed.Render("Could not rename the files: "+clean(msg.err.Error())))
 	case len(msg.result.Notes) > 0:
-		f.stay(gDone + " " + sNormal.Render("Moved "+plural(msg.result.Files, "file")+" into Garner's folder; ") +
+		f.stay(gDone + " " + sNormal.Render("Moved "+plural(msg.result.Files, "file")+" into garner's folder; ") +
 			sAmber.Render(clean(msg.result.Notes[0])))
 	default:
-		f.info(gDone + " " + sNormal.Render("Moved "+plural(msg.result.Files, "file")+" into Garner's folder"))
+		f.info(gDone + " " + sNormal.Render("Moved "+plural(msg.result.Files, "file")+" into garner's folder"))
 	}
 }

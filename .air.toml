@@ -1,4 +1,4 @@
-# Air rebuilds and restarts Garner when its code changes. Run it through
+# Air rebuilds and restarts garner when its code changes. Run it through
 # `mise run dev`, which supplies the dev stack's secrets.
 root = "."
 tmp_dir = "bin/air"
@@ -18,13 +18,13 @@ delay = 500
 # A failed build stops the server, so the TUI shows it offline instead of
 # quietly running the previous code.
 stop_on_error = true
-# Garner closes the database on an interrupt and takes up to 5 seconds;
+# garner closes the database on an interrupt and takes up to 5 seconds;
 # the next build may only start once the lock is free.
 send_interrupt = true
 kill_delay = "10s"
 
 [log]
-# Garner's own log lines carry the time.
+# garner's own log lines carry the time.
 time = false
 
 [screen]

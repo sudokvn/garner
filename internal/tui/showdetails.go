@@ -205,7 +205,7 @@ func (s *showDetailsScreen) overlayKey(key string) tea.Cmd {
 		if mode == "" || mode == d.Series.Monitor {
 			return nil
 		}
-		s.busy = "Changing which episodes Garner gets…"
+		s.busy = "Changing which episodes garner gets…"
 		cl, id := s.sess.client, s.show.id
 		return func() tea.Msg {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -273,7 +273,7 @@ func typeIndex(typ string) int {
 func (s *showDetailsScreen) view(width, height int) string {
 	d := s.show.detail
 	var b strings.Builder
-	b.WriteString(header(width, s.sess, "Garner", "Library", s.name(), "Details") + "\n\n")
+	b.WriteString(header(width, s.sess, "garner", "Library", s.name(), "Details") + "\n\n")
 	switch {
 	case d == nil && s.show.err != nil:
 		b.WriteString("   " + gFailed + " " + sRed.Render(clean(s.show.err.Error())))
@@ -363,7 +363,7 @@ func monitorLine(sr api.Series) string {
 	case api.MonitorAll:
 		return "all missing episodes"
 	case api.MonitorOff:
-		return "off; Garner gets only what you search for"
+		return "off; garner gets only what you search for"
 	}
 	return clean(sr.Monitor)
 }
@@ -503,7 +503,7 @@ func (s *showDetailsScreen) captures() bool {
 
 func (s *showDetailsScreen) help() (string, []string) {
 	return "Show details", []string{
-		"p", "change the profile or the type", "m", "choose the episodes Garner gets",
+		"p", "change the profile or the type", "m", "choose the episodes garner gets",
 		"r", "refresh from TVDB", "o", "open on TVDB",
 		"t", "take over the show's files in the library", "d", "delete the show",
 	}

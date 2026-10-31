@@ -54,7 +54,7 @@ func TestAboutMark(t *testing.T) {
 	s := newAbout(&session{mark: true}, nil, "/home/user/.config/garner/connection", "0.4.0")
 	got := strings.Split(ansi.Strip(s.view(120, 36)), "\n")
 	column := -1
-	if i := strings.Index(got[3], "Garner"); i >= 0 {
+	if i := strings.Index(got[3], "garner"); i >= 0 {
 		column = ansi.StringWidth(got[3][:i])
 	}
 	if strings.TrimRight(got[2], " ") != "   "+markLines[0] || column != 3+markWidth+4 {
@@ -62,7 +62,7 @@ func TestAboutMark(t *testing.T) {
 	}
 
 	got = strings.Split(ansi.Strip(s.view(79, 36)), "\n")
-	if strings.Contains(strings.Join(got, "\n"), "█") || got[2] != "   Garner" {
+	if strings.Contains(strings.Join(got, "\n"), "█") || got[2] != "   garner" {
 		t.Errorf("at 79 columns, want no mark and the name at the left, got\n%s", strings.Join(got[:12], "\n"))
 	}
 }

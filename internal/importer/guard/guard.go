@@ -194,7 +194,7 @@ func (g *Guard) Recorded(ctx context.Context, path string) (File, error) {
 		return File{}, err
 	}
 	if !ok {
-		return File{}, refuse("Garner does not record %s as an episode's file", path)
+		return File{}, refuse("garner does not record %s as an episode's file", path)
 	}
 	return File{path: filepath.Clean(path)}, nil
 }
@@ -208,7 +208,7 @@ func (g *Guard) Planned(ctx context.Context, path string) (File, error) {
 		return File{}, err
 	}
 	if !ok {
-		return File{}, refuse("Garner did not plan to remove %s", path)
+		return File{}, refuse("garner did not plan to remove %s", path)
 	}
 	return File{path: filepath.Clean(path)}, nil
 }
@@ -281,7 +281,7 @@ func (g *Guard) Move(ctx context.Context, f File, target string) error {
 			return err
 		}
 		if !ours {
-			return refuse("%s exists already and is not Garner's", target)
+			return refuse("%s exists already and is not garner's", target)
 		}
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		return err
@@ -350,7 +350,7 @@ func (g *Guard) RemoveJob(ctx context.Context, j Job) error {
 		return err
 	}
 	if recorded != "" {
-		return refuse("it holds %s, which Garner records as an episode's file", recorded)
+		return refuse("it holds %s, which garner records as an episode's file", recorded)
 	}
 	g.opts.Before("remove all", j.real)
 	return os.RemoveAll(j.real)
