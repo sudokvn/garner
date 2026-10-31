@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"encoding/xml"
@@ -141,6 +142,9 @@ type show struct {
 	added    bool // Garner has the show
 	episodes []*episode
 	numbered int // episode IDs handed out
+	// language and status are TheTVDB's original language and status;
+	// empty means "eng" and "Continuing".
+	language, status string
 }
 
 func (s *show) dotted() string { return strings.ReplaceAll(s.name, " ", ".") }
@@ -154,8 +158,12 @@ type episode struct {
 	show           *show
 	season, number int
 	aired          time.Time
-	runtime        int // minutes
+	runtime        int    // minutes
+	title          string // empty means "Part <number>"
 }
+
+// name is the episode's title as TheTVDB and Jellyfin tell it.
+func (e *episode) name() string { return cmp.Or(e.title, fmt.Sprintf("Part %d", e.number)) }
 
 // posting is a release: on the indexers, or the one a file in the library
 // came from.
@@ -412,12 +420,12 @@ func (w *world) seedShow(ctx context.Context, st *store.Store, s *show, monitor 
 func (w *world) seriesData(s *show) store.SeriesData {
 	d := store.SeriesData{Series: store.Series{
 		ID: s.id, Slug: strings.ToLower(strings.ReplaceAll(s.name, " ", "-")), Name: s.name, NameEng: s.name,
-		OriginalLanguage: "eng", OriginalCountry: "usa", Status: "Continuing", Year: s.year,
+		OriginalLanguage: cmp.Or(s.language, "eng"), OriginalCountry: "usa", Status: cmp.Or(s.status, "Continuing"), Year: s.year,
 		DefaultOrder: "official", TVDBUpdated: "2026-01-01", Type: s.profile,
 	}}
 	for _, e := range s.episodes {
 		d.Episodes = append(d.Episodes, store.Episode{
-			ID: e.id, Aired: e.aired.Format(time.DateOnly), Runtime: e.runtime, NameEng: fmt.Sprintf("Part %d", e.number),
+			ID: e.id, Aired: e.aired.Format(time.DateOnly), Runtime: e.runtime, NameEng: e.name(),
 			Numbers: map[string]store.Position{"official": {Season: e.season, Number: e.number}},
 		})
 	}
@@ -656,6 +664,11 @@ func (prober) Probe(_ context.Context, path string) (inspect.Probe, error) {
 	if err != nil {
 		return inspect.Probe{}, err
 	}
+	return probeVideo(data)
+}
+
+// probeVideo is what FFprobe finds in a simulated video's content.
+func probeVideo(data []byte) (inspect.Probe, error) {
 	var v video
 	if err := json.Unmarshal(data, &v); err != nil {
 		return inspect.Probe{}, fmt.Errorf("%w: invalid data found when processing input", inspect.ErrUnreadable)
@@ -806,7 +819,7 @@ func (w *world) sabnzbd(rw http.ResponseWriter, r *http.Request) {
 		for _, j := range w.sab.jobs {
 			if j.active() && !j.hidden && matches(j, j.name) {
 				slots = append(slots, map[string]any{"nzo_id": j.id, "filename": j.name, "cat": j.cat, "status": j.status,
-					"percentage": strconv.Itoa(j.percent), "timeleft": "0:10:00", "time_added": j.added.Unix()})
+					"percentage": strconv.Itoa(j.percent), "timeleft": fmt.Sprintf("0:%02d:00", (100-j.percent)/10), "time_added": j.added.Unix()})
 			}
 		}
 		writeJSON(rw, map[string]any{"queue": map[string]any{"slots": slots}})
@@ -1112,7 +1125,7 @@ func (w *world) jellyfin(rw http.ResponseWriter, r *http.Request) {
 			it := w.jf.items[p]
 			item := map[string]any{"Path": w.view(p), "Name": filepath.Base(p), "ProviderIds": map[string]string{}}
 			if e := w.episode(it.episode); e != nil {
-				item["Name"], item["ParentIndexNumber"], item["IndexNumber"] = fmt.Sprintf("Part %d", e.number), e.season, e.number
+				item["Name"], item["ParentIndexNumber"], item["IndexNumber"] = e.name(), e.season, e.number
 				item["ProviderIds"] = map[string]string{"Tvdb": strconv.FormatInt(e.id, 10)}
 			}
 			items = append(items, item)

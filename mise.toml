@@ -43,6 +43,10 @@ run = "bash tools/release.sh"
 description = "Control the local dev stack (SABnzbd, Prowlarr, Jellyfin in Podman): up, down, reset or status"
 run = "go run ./tools/devstack"
 
+[tasks.demo]
+description = "Drive the terminal interface with a VHS tape against a simulated world: mise run demo <tape> (needs vhs)"
+run = "bash tools/demo.sh"
+
 [tasks.clean]
 description = "Remove the build output and the dev stack's scratch folder (~/garner-dev/scratch)"
 run = "bash tools/clean.sh"

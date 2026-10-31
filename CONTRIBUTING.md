@@ -98,6 +98,16 @@ A failure is a bug in garner or in the simulation. When you fix a bug it found, 
 
 The fixed seeds were chosen so that, together, every event changes something, a crash and another step meet every step that changes files, and they catch bugs built into garner on purpose. A change to the simulated world sends every seed down another path; the test then fails when an event or a crash point no longer shows up in any fixed seed. The comment on `fixedSeeds` says how to choose them again and lists the bugs to check by hand.
 
+### The demo
+
+`internal/simulation/demo_test.go` serves garner on a fixed world built from the simulation's fakes: a library of made-up shows and one new anime episode whose best-looking release turns out to be an English dub. It runs only with `-demo`. To drive the terminal interface on it with a [VHS](https://github.com/charmbracelet/vhs) tape, for screenshots or a recording, run:
+
+```bash
+mise run demo path/to/some.tape
+```
+
+The task builds `bin/garner`, serves the demo world and plays the tape in the repository, with `GARNER_CONNECTION` pointing `bin/garner` at the demo. Flags after the tape go to the demo, such as `-demo-tick 1s` for slower downloads. Nothing reaches a real service or library. To change the shows and releases, change `newDemoWorld`.
+
 ## How the code is organised
 
 | Folder | Holds |
