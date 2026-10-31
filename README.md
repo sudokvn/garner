@@ -1,4 +1,9 @@
-# Garner
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/garner-logo-on-dark.svg">
+    <img alt="Garner" src="docs/brand/garner-logo-on-light.svg" height="56">
+  </picture>
+</h1>
 
 Garner manages TV shows and anime for a self-hosted media library. It finds releases through [Prowlarr](https://prowlarr.com), downloads them with [SABnzbd](https://sabnzbd.org), checks every file with FFprobe, moves it into the library and, if you use [Jellyfin](https://jellyfin.org), confirms the import through it. You run the server, `garnerd`, next to those services and use it from a terminal interface, `garner`, on any machine.
 
