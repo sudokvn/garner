@@ -5,11 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"maps"
 	"os"
 	"path/filepath"
-	"regexp"
-	"slices"
 	"strings"
 	"time"
 
@@ -221,76 +218,4 @@ func count(n int, noun string) string {
 		return "1 " + noun
 	}
 	return fmt.Sprintf("%d %ss", n, noun)
-}
-
-var seasonFolder = regexp.MustCompile(`^Season\.\d+$`)
-
-// ClaimFiles claims a show's files while the database still records them,
-// so DeleteFiles may remove them after the records went.
-func (s *Service) ClaimFiles(ctx context.Context, paths []string) ([]guard.File, error) {
-	files := make([]guard.File, 0, len(paths))
-	for _, p := range paths {
-		f, err := s.guard.Recorded(ctx, p)
-		if err != nil {
-			return nil, err
-		}
-		files = append(files, f)
-	}
-	return files, nil
-}
-
-// DeleteFiles removes a show's claimed files and their subtitle files,
-// then the season and show folders that are left empty. Only folders named
-// the way garner names them are removed, so a library root or someone
-// else's folder never goes. It returns the files it removed and the
-// problems it met.
-func (s *Service) DeleteFiles(ctx context.Context, seriesID int64, files []guard.File) (removed, problems []string) {
-	showSuffix := fmt.Sprintf(".[tvdbid-%d]", seriesID)
-	emptied := map[string]guard.File{} // by folder: a file that lay in it
-	for _, f := range files {
-		if err := s.guard.Remove(f); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			problems = append(problems, err.Error())
-			continue
-		} else if err == nil {
-			removed = append(removed, f.Path())
-		}
-		s.guard.RemoveSubtitles(f)
-		emptied[filepath.Dir(f.Path())] = f
-	}
-	folders := s.guard.Folders(ctx)
-	for _, season := range slices.Sorted(maps.Keys(emptied)) {
-		if !seasonFolder.MatchString(filepath.Base(season)) {
-			continue
-		}
-		stop := season
-		if show := filepath.Dir(season); strings.HasSuffix(filepath.Base(show), showSuffix) {
-			// Stays while other seasons are left; it goes with the last.
-			stop = show
-		}
-		folders.RemoveEmpty(emptied[season], stop)
-	}
-	return removed, problems
-}
-
-// Removed tells Jellyfin that files are gone. When that fails, Jellyfin
-// drops them at its next library scan.
-func (s *Service) Removed(ctx context.Context, paths []string) {
-	if s.jellyfin == nil {
-		return
-	}
-	var remote []string
-	for _, p := range paths {
-		if r, ok := s.opts.JellyfinPaths.Remote(p); ok {
-			remote = append(remote, r)
-		}
-	}
-	if len(remote) == 0 {
-		return
-	}
-	// The files are gone: tell Jellyfin even when the caller stopped waiting.
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
-	defer cancel()
-	if err := s.jellyfin.Deleted(ctx, remote); err != nil {
-		s.log.Warn("could not tell Jellyfin about deleted files; it drops them at its next scan", "err", err)
-	}
 }

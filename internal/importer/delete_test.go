@@ -42,15 +42,15 @@ func TestDeleteFiles(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := e.svc.ClaimFiles(ctx, []string{a, outside}); err == nil {
+	if _, err := e.svc.claimFiles(ctx, []string{a, outside}); err == nil {
 		t.Fatal("claimed a file the database does not record")
 	}
-	claimed, err := e.svc.ClaimFiles(ctx, []string{a, b})
+	claimed, err := e.svc.claimFiles(ctx, []string{a, b})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	removed, problems := e.svc.DeleteFiles(ctx, 42, claimed)
+	removed, problems := e.svc.deleteFiles(ctx, 42, claimed)
 	if len(removed) != 2 || len(problems) != 0 {
 		t.Fatalf("removed %v, problems %v; want 2 files and none", removed, problems)
 	}
@@ -68,7 +68,7 @@ func TestDeleteFiles(t *testing.T) {
 	// Once the other file is gone too, the empty folders go, the root stays.
 	// A file that is gone already is no problem.
 	os.Remove(notes)
-	if removed, problems := e.svc.DeleteFiles(ctx, 42, claimed[1:]); len(removed) != 0 || len(problems) != 0 {
+	if removed, problems := e.svc.deleteFiles(ctx, 42, claimed[1:]); len(removed) != 0 || len(problems) != 0 {
 		t.Errorf("deleting a file that is gone: removed %v, problems %v", removed, problems)
 	}
 	if _, err := os.Stat(show); !os.IsNotExist(err) {

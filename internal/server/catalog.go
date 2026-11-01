@@ -13,7 +13,6 @@ import (
 	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/catalog"
 	"github.com/trucke/garner/internal/importer"
-	"github.com/trucke/garner/internal/importer/guard"
 	"github.com/trucke/garner/internal/selection"
 	"github.com/trucke/garner/internal/store"
 )
@@ -236,56 +235,20 @@ func (s *Server) handleDeleteSeries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	// From reading the show's files until they are gone, no take-over,
-	// rename or import may change them.
-	if !keep && s.imports != nil {
-		if err := s.imports.LockFiles(); err != nil {
-			writeError(w, http.StatusConflict, err.Error())
-			return
-		}
-		defer s.imports.UnlockFiles()
-	}
-	busy, err := s.store.BusyDownloads(ctx, id)
-	if err != nil {
-		s.internalError(w, "delete series", err)
+	del, err := importer.StartDeletion(ctx, s.store, s.imports, id, !keep)
+	switch {
+	case errors.Is(err, importer.ErrBusy), errors.Is(err, importer.ErrMoving):
+		writeError(w, http.StatusConflict, err.Error())
 		return
-	}
-	for _, d := range busy {
-		if !d.Active() {
-			writeError(w, http.StatusConflict, "garner is moving files of this show into the library; try again when that has finished")
-			return
-		}
-	}
-	// Read before cancelling, so nothing is cancelled when this fails.
-	files, err := s.store.SeriesFiles(ctx, id)
-	if err != nil {
-		s.internalError(w, "delete series", err)
-		return
-	}
-	// A file holding several episodes is listed once per episode.
-	paths := make([]string, 0, len(files))
-	seen := make(map[string]bool, len(files))
-	var size int64
-	for _, f := range files {
-		if !seen[f.Path] {
-			seen[f.Path] = true
-			paths = append(paths, f.Path)
-			size += f.Size
-		}
-	}
-	deleteFiles := !keep && len(paths) > 0
-	if deleteFiles && s.imports == nil {
+	case errors.Is(err, importer.ErrNoLibrary):
 		writeError(w, http.StatusServiceUnavailable, "deleting a show's files needs library.tv or library.anime and ffprobe; delete it with files=keep to leave them in place")
 		return
+	case err != nil:
+		s.internalError(w, "delete series", err)
+		return
 	}
-	// Claimed while the records still say the files are garner's.
-	var claimed []guard.File
-	if deleteFiles {
-		if claimed, err = s.imports.ClaimFiles(ctx, paths); err != nil {
-			s.internalError(w, "delete series", err)
-			return
-		}
-	}
+	defer del.Abort()
+	busy := del.Busy
 	if len(busy) > 0 && s.downloads == nil {
 		writeError(w, http.StatusConflict, "the show has running downloads, and SABnzbd is not configured to cancel them")
 		return
@@ -324,25 +287,18 @@ func (s *Server) handleDeleteSeries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if keep {
-		s.log.Info("deleted a show, kept its files", "series", id, "files", len(paths))
+		s.log.Info("deleted a show, kept its files", "series", id, "files", del.Files)
 		s.events.publish(Event{Type: api.EventSeriesDeleted, Data: api.SeriesChanged{ID: id}})
-		writeJSON(w, http.StatusOK, api.Deleted{Kept: len(paths), Bytes: size, Problems: []string{}})
+		writeJSON(w, http.StatusOK, api.Deleted{Kept: del.Files, Bytes: del.Bytes, Problems: []string{}})
 		return
 	}
-	var removed, problems []string
-	if deleteFiles {
-		removed, problems = s.imports.DeleteFiles(ctx, id, claimed)
-		if len(problems) > 0 {
-			s.log.Error("delete series files", "series", id, "problems", problems)
-		}
-		s.imports.Removed(ctx, removed)
-	}
+	removed, problems := del.Finish(ctx)
 	s.log.Info("deleted a show", "series", id, "files", len(removed))
 	s.events.publish(Event{Type: api.EventSeriesDeleted, Data: api.SeriesChanged{ID: id}})
 	if problems == nil {
 		problems = []string{}
 	}
-	writeJSON(w, http.StatusOK, api.Deleted{Files: len(removed), Bytes: size, Problems: problems})
+	writeJSON(w, http.StatusOK, api.Deleted{Files: len(removed), Bytes: del.Bytes, Problems: problems})
 }
 
 func seriesID(w http.ResponseWriter, r *http.Request) (int64, bool) {
