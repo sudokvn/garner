@@ -47,7 +47,7 @@ Keep one-off files from testing, such as a copy of the dev data or a second `gar
 
 `mise run check` checks the working copy:
 
-- formatting, `go vet`, the generated database code and known vulnerabilities
+- formatting, `go vet`, the links between the docs, the generated database code and known vulnerabilities
 - the tests on macOS with the race detector, and again on Linux in the Go image the container is built with
 - a build for Linux on x86
 

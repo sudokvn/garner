@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Checks the working copy in place: formatting, vet, the generated database
-# code and known vulnerabilities; the tests on macOS with the race
+# Checks the working copy in place: formatting, vet, the links in the
+# docs, the generated database code and known vulnerabilities; the tests on macOS with the race
 # detector, and again on Linux in the Go image the container is built
 # with; and builds for Linux x86. With jj, every file that is not ignored
 # belongs to the working-copy commit, so the folder is what gets
@@ -48,6 +48,15 @@ go vet ./... || fail "vet found problems"
 step "Shell scripts"
 shellcheck -x install.sh tools/*.sh || fail "shellcheck found problems"
 bash tools/versions_test.sh || fail "the release scripts order versions wrongly"
+
+# Only the links between the repository's files: --offline leaves the web
+# alone, and the anchors must name a heading of the file they point to.
+step "Links in the Markdown files"
+# jj lists the working copy's files, deleted ones left out, as Git's index
+# would not.
+jj file list -r @ 'glob:"**/*.md"' | tr '\n' '\0' |
+	xargs -0 lychee --offline --include-fragments --no-progress ||
+	fail "the docs link to a file or heading that does not exist; see above"
 
 step "Generated database code"
 (cd internal/store && sqlc diff) || fail "internal/store/query does not match the SQL; run mise run generate"

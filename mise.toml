@@ -7,6 +7,8 @@ air = "1.67.4"
 goreleaser = "2.18.3"
 # The same in mise run check and on GitHub; versions disagree on what they flag.
 shellcheck = "0.11.0"
+# Checks the links between the Markdown files in mise run check.
+lychee = "0.24.2"
 
 [tasks.build]
 description = "Build bin/garner (the terminal interface) and bin/garnerd (the server)"

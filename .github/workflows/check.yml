@@ -1,7 +1,8 @@
 # Checks every pull request and every push to main as `mise run check` does
-# locally: formatting, vet, the generated database code, known
-# vulnerabilities, the tests on Linux as the container image builds garner
-# and again with the race detector, and builds for every release platform.
+# locally: formatting, vet, the links in the docs, the generated database
+# code, known vulnerabilities, the tests on Linux as the container image
+# builds garner and again with the race detector, and builds for every
+# release platform.
 # It also runs install.sh against the newest release of each channel. The private
 # real-case tests are not part of it.
 name: Check
@@ -27,10 +28,10 @@ jobs:
         with:
           persist-credentials: false
 
-      # Go, sqlc and shellcheck in the versions mise.toml pins.
+      # Go, sqlc, shellcheck and lychee in the versions mise.toml pins.
       - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
         with:
-          install_args: go sqlc shellcheck
+          install_args: go sqlc shellcheck lychee
 
       - name: Read the build settings from the Dockerfile and mise.toml
         id: settings
@@ -57,6 +58,11 @@ jobs:
         run: |
           shellcheck -x install.sh tools/*.sh
           bash tools/versions_test.sh
+
+      - name: Links in the Markdown files
+        run: |
+          git ls-files -z --cached --others --exclude-standard '*.md' |
+            xargs -0 lychee --offline --include-fragments --no-progress
 
       - name: Generated database code
         working-directory: internal/store
