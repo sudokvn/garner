@@ -51,7 +51,7 @@
       "default": "prefer"
     },
     "unnamed_audio": {
-      "description": "A release marked dual or multi that names no languages: reject it, or take it as a last resort and check it after download.",
+      "description": "A release marked dual, multi or dubbed that names no languages: reject it, or take it as a last resort and check it after download.",
       "enum": ["reject", "fallback"],
       "default": "reject"
     },

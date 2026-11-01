@@ -1,6 +1,6 @@
 # Profiles
 
-A profile says which releases garner accepts for a show: the audio languages and resolutions, best first, and how garner ranks and upgrades releases within them. A profile is a short TOML text, so you can share it and use profiles others wrote. [How garner chooses releases](releases.md) lists the rules that apply under every profile.
+A profile says which releases garner accepts for a show: the audio languages and resolutions, best first, and how garner ranks and upgrades releases within them. A profile is a short TOML text that you can share. [How garner chooses releases](releases.md) lists the rules that apply under every profile.
 
 ## Format
 
@@ -26,14 +26,14 @@ upgrades = true
 | `resolution` | yes | best first: `1080p`, `720p` | The accepted resolutions |
 | `priority` | no, default `audio` | `audio`, `resolution` | Which list counts more when garner ranks the preferences |
 | `dual_audio` | no, default `prefer` | `prefer`, `ignore` | `prefer` ranks a release that also has the show's original audio first, when the preference's language is another one |
-| `unnamed_audio` | no, default `reject` | `reject`, `fallback` | What to do with a release marked dual or multi that names no languages: reject it, or take it as a last resort and check it after download |
+| `unnamed_audio` | no, default `reject` | `reject`, `fallback` | What to do with a release marked dual, multi or dubbed that names no languages: reject it, or take it as a last resort and check it after download |
 | `upgrades` | no, default `true` | `true`, `false` | Whether garner replaces a file below the first preference when a release in a better preference appears |
 
-Each language has one spelling: its two-letter code, such as `de` for German.
+garner stores and exports every profile in a standard form, with every key written out. It does not keep the comments of a profile you import.
 
 ### Languages
 
-garner recognises these audio languages in release names, in what the indexers report and in the files it imports:
+garner recognises these audio languages in release names, in what the indexers report and in the files it imports. A profile names each by its two-letter code:
 
 | Code | Language |
 | --- | --- |
@@ -53,11 +53,11 @@ garner recognises these audio languages in release names, in what the indexers r
 | `sv` | Swedish |
 | `tr` | Turkish |
 
-A show's original language counts with `original` even when garner does not know it: then releases that name no language count as the show's own.
+`original` also works for a show whose original language is not in this list: releases that name no language count as the show's own. When TheTVDB names no original language for a show, `original` drops out of the profile for that show, and a profile of only `original` accepts no release for it.
 
 ## Preferences
 
-garner combines every language of `audio` with every resolution of `resolution` into the profile's preferences, best first. With `priority = "audio"`, the language counts more:
+garner combines every language of `audio` with every resolution of `resolution` into the profile's preferences, best first. For `audio = ["de", "en"]` with `priority = "audio"`, the language counts more:
 
 1. German 1080p
 2. German 720p
@@ -77,14 +77,18 @@ For each show, `original` becomes the show's original language. When that langua
 
 ## Manage profiles in garner
 
-Press `P` on any screen of the terminal interface to see the profiles: each with its preferences, how many shows use it and whether new TV or new anime shows get it. On that screen:
+Press `P` on any screen of the terminal interface to see the profiles: each with its preferences, how many shows use it and whether new TV or new anime shows get it.
+
+To get new shows in another language, press `a` and start from a shipped profile, such as German or English. Then press `u` to make it the profile for new shows.
+
+On the profiles screen:
 
 - `a` creates a profile: empty, or from one of yours or a shipped one, which then needs a name of its own.
 - `e` or `enter` opens a profile in the editor. `enter` there saves; the shows that use the profile follow the new settings.
 - `i` imports a profile: paste its text, or type an https link to it. The terminal interface fetches the link itself; the server never does. Before saving, garner shows the profile and, when one of that name exists, what would change.
 - `x` exports a profile to a file in a folder you choose. garner does not overwrite a file without asking.
 - `u` makes a profile the one that new TV shows, new anime shows or both get.
-- `d` deletes a profile. garner keeps a profile that shows use or that new shows get, and names them.
+- `d` deletes a profile. garner refuses to delete a profile that shows use or that new shows get, and names those shows.
 
 To give a show another profile or type, press `p` on its details page.
 
@@ -98,9 +102,9 @@ To check a profile file without a server, run:
 garner profile check german.toml
 ```
 
-It lists the profile's preferences and settings, or every problem. `garner profile check -` reads the profile from standard input.
+It lists the profile's preferences and settings. If the profile has problems, it lists every one and exits with status 1. `garner profile check -` reads the profile from standard input.
 
-Editors check a profile while you type when they read its first line, `#:schema …`, as the TOML support in VS Code and other editors based on Taplo does. The schema is [`profile.schema.json`](profile.schema.json).
+Editors whose TOML support uses Taplo, as VS Code's Even Better TOML does, check a profile as you type. They read the schema, [`profile.schema.json`](profile.schema.json), from the profile's first line, `#:schema …`.
 
 ## Import a profile on the server
 
@@ -110,7 +114,7 @@ To import a profile file on the machine that runs garner, for example in a setup
 garnerd profile import < german.toml
 ```
 
-In a container, run it with `podman exec -i garner garnerd profile import < german.toml`, or `docker compose exec -T garner garnerd profile import < german.toml`. A profile with the same name stays as it is; to replace it, add `--replace`. The shows that use it then follow the new settings. garner stores every profile in the form `garner profile check` reads, without the comments of the imported file.
+In a container, run it with `podman exec -i garner garnerd profile import < german.toml`, or `docker compose exec -T garner garnerd profile import < german.toml`. If a profile of that name exists, the import fails and changes nothing. To replace that profile, add `--replace`; the shows that use it then follow the new settings.
 
 ## Profiles that come with garner
 

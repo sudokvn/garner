@@ -1,10 +1,10 @@
 # Run garner with Docker Compose
 
-This folder runs garner with Prowlarr and SABnzbd on one machine with Docker Compose, and Jellyfin too if you want it. garner works without Jellyfin, but then it does not wait for Jellyfin to confirm each import. To run garner as a single container next to services you already have, follow [docs/install.md](../../docs/install.md) instead.
+This folder runs garner with Prowlarr and SABnzbd on one machine with Docker Compose, and Jellyfin too if you want it. To run garner as a single container next to services you already have, follow [docs/install.md](../../docs/install.md) instead.
 
-You need an x86 Linux machine with Docker and its Compose plugin, a Usenet provider and a Newznab indexer. garner's image brings its own TheTVDB key.
+You need an x86 Linux machine with Docker and its Compose plugin, a Usenet provider and a Newznab indexer.
 
-All services see the media at `/srv/media`, as one folder: SABnzbd downloads into `media/usenet`, and garner moves the files into `media/library` with a rename, which works only within one mount.
+SABnzbd, garner and Jellyfin see the media at `/srv/media`. SABnzbd downloads into `media/usenet`, and garner moves the files into `media/library` with a rename, which works only within one mount.
 
 ## Set it up
 
@@ -63,26 +63,28 @@ All services see the media at `/srv/media`, as one folder: SABnzbd downloads int
     ```
 
     Install `garner` on that device as the [README](../../README.md#get-started) describes, run it and paste the connection code. Press `?`, then `a`, to open the About screen: it shows whether Prowlarr, SABnzbd, Jellyfin and TheTVDB answer.
-12. Press `P` to see the profiles. garner starts with Original language, which wants each show in its original audio. To download in another language, press `a` to start a profile from a shipped one, such as German or English, then `u` to make it the profile for new shows. [Profiles](../../docs/profiles.md) says more.
+12. garner starts with the profile Original language, which wants each show in its original audio. For another language, set up a profile as [Manage profiles in garner](../../docs/profiles.md#manage-profiles-in-garner) describes.
 
 At start, garner warns that the services' API keys travel over plain HTTP. Between containers on one machine, they never leave it.
 
 ## Back up and upgrade
 
-`docker compose exec garner garnerd backup` writes a copy of the database to `garner/backups`. Run it daily, for example from a systemd timer.
+`docker compose exec garner garnerd backup` writes a copy of the database to `garner/backups`. Run it daily, for example from a systemd timer, and delete old copies.
 
-To upgrade, check that garner is idle, so the restart interrupts no import:
+To upgrade, read the release notes of the new version. Then check that garner is idle, so the restart interrupts no import:
 
 ```bash
 docker compose exec garner garnerd status --json
 ```
 
-When `work.idle` is `true`, pull the new images and restart. `compose.yaml` follows the stable channel, `ghcr.io/trucke/garner:latest`; for release candidates, use `:dev` (see [Versions and channels](../../docs/install.md#versions-and-channels)):
+When `work.idle` is `true`, pull the new images and restart:
 
 ```bash
 docker compose pull
 docker compose up -d
 ```
+
+`compose.yaml` follows the stable channel, `ghcr.io/trucke/garner:latest`. For release candidates, use `:dev`; see [Versions and channels](../../docs/install.md#versions-and-channels).
 
 ## Other setups
 

@@ -6,7 +6,7 @@ body:
     id: what
     attributes:
       label: What happened
-      description: What you did, what garner did, and what you expected instead.
+      description: What you did, what garner did and what you expected instead.
     validations:
       required: true
   - type: textarea
@@ -27,5 +27,5 @@ body:
     id: logs
     attributes:
       label: Server log
-      description: The lines around the problem, from `podman logs garner` or `docker logs garner`. Remove API keys, tokens and addresses you want to keep private.
+      description: The lines around the problem, from `podman logs garner`, `docker logs garner` or `docker compose logs garner`. Remove API keys, tokens and addresses you want to keep private.
       render: text

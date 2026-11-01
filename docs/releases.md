@@ -1,6 +1,6 @@
 # How garner chooses releases
 
-garner judges every release a search finds by the show's profile and by the rules on this page. The profile sets the preferences: the audio languages and resolutions the show accepts, best first. [Profiles](profiles.md) describes the profiles and their settings. The rules on this page apply under every profile. Apart from the preferences, `dual_audio` and `unnamed_audio`, no setting changes them.
+garner judges every release a search finds by the show's [profile](profiles.md) and by the rules on this page. The profile sets the preferences: the audio languages and resolutions the show accepts, best first. The rules apply under every profile. Apart from the preferences, `dual_audio` and `unnamed_audio`, no setting changes them.
 
 ## Verdicts
 
@@ -9,12 +9,12 @@ Every release gets one of three verdicts, with the reasons for it. The terminal 
 | Verdict | What garner does |
 | --- | --- |
 | Accepted | The monitor downloads the best accepted release on its own. |
-| Last resort | garner downloads it only when you choose it, when you ask for the best release of an episode and no accepted release is left to try, or to replace a failed last resort that garner chose. |
+| Last resort | garner downloads it only when you choose it, or when you ask for the best release of an episode and no accepted release is left to try. A last resort can also replace a failed last resort that garner chose. |
 | Rejected | garner downloads it only when you choose it. |
 
-Indexers often list a release more than once under the same name: separate uploads of it, which can differ in whether they still download completely. garner tells them apart by the indexer's ID for each upload. On its own, it never picks an upload that already failed or was cancelled for the episode, not even after a new search, but another upload of the same release stays in the running. You can still choose any of them.
+Indexers often list a release more than once under the same name, as separate uploads that can differ in whether they still download completely. garner tells uploads apart by the indexer's ID. On its own, it never picks an upload that failed or was cancelled for the episode, even after a new search. It can still pick another upload of the same release, and you can choose any upload by hand.
 
-In the terminal interface, the Tried column of the releases list shows what came of each upload garner tried, and WHY shows when the selected one was uploaded and links to its page at the indexer, where other users may have commented on it.
+In the terminal interface's releases list, the Tried column shows what came of each upload garner tried. The WHY panel shows when the selected upload was posted and links to its page at the indexer, where other users may have commented on it.
 
 ## Always rejected
 
@@ -29,6 +29,7 @@ garner rejects a release when:
 - the name states one resolution, and it is below 720p or 2160p or higher
 - its audio is in none of the profile's languages
 - no preference of the profile has its resolution in its audio language
+- the profile has only `original`, and TheTVDB names no original language for the show
 - in an episode search, the library has the episode in the same or a better preference already. A better source alone, such as Blu-ray instead of web, does not replace a file. A season search judges packs without this rule. When garner imports a pack, the pack's other episodes keep their file if it meets the same or a better preference.
 
 ## Only a last resort
@@ -36,7 +37,13 @@ garner rejects a release when:
 A release is only a last resort when:
 
 - the name states no resolution, or two different ones
-- the profile has `unnamed_audio = "fallback"`, neither the indexer nor the name names an audio language, the name marks the audio as dual, multi or dubbed, and the show's original language is unknown or not among the profile's languages. With `unnamed_audio = "reject"`, such a release is rejected.
+- all of these hold:
+  - the profile has `unnamed_audio = "fallback"`
+  - neither the indexer nor the name names an audio language
+  - the name marks the audio as dual, multi or dubbed
+  - the show's original language is unknown or not among the profile's languages
+
+  With `unnamed_audio = "reject"`, such a release is rejected.
 
 ## The audio of a release
 
@@ -46,7 +53,7 @@ garner takes a release's audio languages from the first of these that names any:
 2. the languages the release's name states
 3. the show's original language, because release names usually leave it out
 
-A release whose audio language garner assumed ranks behind one whose language is named. The file check before import confirms the language.
+When garner finds no language this way, it rejects the release unless it is a last resort as described above. A release whose audio language garner assumed ranks behind one whose language is named. The file check before import confirms the language.
 
 ## Order
 
@@ -65,7 +72,7 @@ garner ranks the releases of a search by these rules. Each rule decides only bet
 
 ## The file check before import
 
-garner imports the video files of a download. It leaves out samples and files far smaller than the largest one. When a download holds several videos, it also leaves out those it cannot assign to an episode, and those of other episodes whose file in the library meets the same or a better preference. FFprobe then reads each remaining video, and garner rejects the download when:
+garner imports the video files of a download. It leaves out samples and files less than a tenth of the size of the largest one. When a download holds several videos, it also leaves out those it cannot assign to an episode, and those of other episodes whose file in the library meets the same or a better preference. FFprobe then reads each remaining video, and garner rejects the download when:
 
 - the download holds no video file, or no video of the episode the release was downloaded for
 - FFprobe cannot read a video
@@ -79,9 +86,9 @@ When garner cannot read SABnzbd's folder or FFprobe does not run, the import sto
 
 ## After a failed download
 
-garner downloads another release when a download fails in a way another release may avoid: the file check rejected it, or SABnzbd reports a problem of the release itself, such as missing articles, a failed repair, a missing part of the archive, a password or encryption. A failure of the disk, of permissions or one garner does not recognize starts no other release.
+garner downloads another release when a download fails in a way another release may avoid: the file check rejected it, or SABnzbd reports a problem of the release itself, such as missing articles, a failed repair, a missing part of the archive, a password or encryption. A failure of the disk, of permissions or one garner does not recognise starts no other release.
 
-- garner deletes the rejected download's folder when it can tell that the folder belongs to that download.
+- When the file check rejected the download, garner deletes it from SABnzbd's folder, as [What garner changes](library.md#what-garner-changes) describes.
 - It takes the best release left in the latest results of the same search, the episode's or the season's, and skips uploads that failed or were cancelled before. Another upload of the failed release is not skipped.
 - It keeps what was asked for. A release you chose is replaced only by another upload of it, and the new download is still your choice. A release garner chose is replaced only by one with the same verdict and preference: German 1080p by German 1080p, a last resort by a last resort.
 - After the fourth failed download of the episode since that search, including downloads you chose by hand, garner stops.

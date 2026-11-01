@@ -17,7 +17,7 @@ The name is garner, all lowercase, as in the wordmark, also at the start of a se
 | `garner-mark-ink.svg` | The mark alone on light backgrounds |
 | `garner-mark-white.svg` | The mark alone on mint |
 | `garner-icon.svg`, `garner-icon.png` | Avatars and app icons: the mark on an ink square; the PNG is 1024 px |
-| `garner-social.png` | GitHub's social preview, 1280 × 640 px, set under the repository's Settings → General → Social preview |
+| `garner-social.png` | GitHub's social preview, 1280 × 640 px, set under the repository's **Settings › General › Social preview** |
 
 The SVG files are the masters. They hold paths only, so they need no font. Render PNGs from them at the size you need.
 
