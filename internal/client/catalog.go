@@ -16,10 +16,11 @@ func (c *Client) Library(ctx context.Context) ([]api.Show, error) {
 	return shows, c.do(ctx, http.MethodGet, "/api/v1/series", nil, &shows)
 }
 
-// Search finds shows on TVDB. q may also be a TVDB ID or a thetvdb.com link.
-func (c *Client) Search(ctx context.Context, q string) (api.SearchPage, error) {
-	var page api.SearchPage
-	return page, c.do(ctx, http.MethodGet, "/api/v1/search?"+url.Values{"q": {q}}.Encode(), nil, &page)
+// FindShows finds shows on TVDB. q may also be a TVDB ID or a thetvdb.com
+// link.
+func (c *Client) FindShows(ctx context.Context, q string) (api.FoundShows, error) {
+	var found api.FoundShows
+	return found, c.do(ctx, http.MethodGet, "/api/v1/search?"+url.Values{"q": {q}}.Encode(), nil, &found)
 }
 
 // Preview describes a show on TVDB before it is added.

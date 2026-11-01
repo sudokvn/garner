@@ -106,7 +106,7 @@ Name garner and its programs as the [ground rules](#ground-rules) say. Use Briti
 | `internal/server` | The HTTP API and the admin socket `garnerd` uses; it sets up the services below and runs their loops |
 | `internal/config` | Reading `garner.toml`, and secrets from the environment |
 | `internal/store` | The database: migrations, `sqlc` queries (generated into `internal/store/query`), tokens and backups; it also works out episode states and the monitor's schedule |
-| `internal/catalog` | Show data from TheTVDB and TheXEM with reviewed corrections in `corrections.toml`, and searching TheTVDB for shows to add |
+| `internal/catalog` | Show data from TheTVDB and TheXEM with reviewed corrections in `corrections.toml`, and finding shows on TheTVDB to add |
 | `internal/release` | Reading release names: episodes, resolution, source and languages |
 | `internal/match` | Matching a release to a show's episodes, including scene and absolute numbering |
 | `internal/selection` | Applying a profile to a show: verdicts with their reasons and the ranking of releases |

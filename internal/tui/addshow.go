@@ -24,17 +24,17 @@ import (
 	"github.com/trucke/garner/internal/client"
 )
 
-// Add show searches TVDB in the bottom line and opens a show's details
-// before adding it.
+// Add show finds shows on TVDB as the user types in the bottom line and
+// opens a show's details before adding it.
 
-// searchPause is how long typing must pause before garner asks TVDB.
-const searchPause = 350 * time.Millisecond
+// findPause is how long typing must pause before garner asks TVDB.
+const findPause = 350 * time.Millisecond
 
 type (
-	searchDueMsg struct{ seq int }
-	searchMsg    struct {
+	findDueMsg struct{ seq int }
+	foundMsg   struct {
 		query string
-		page  api.SearchPage
+		found api.FoundShows
 		err   error
 	}
 	// addedMsg returns to the library with the new show selected.
@@ -51,16 +51,16 @@ type addScreen struct {
 	sess      *session
 	back      screen
 	input     textinput.Model
-	seq       int    // counts edits, so only the last pause searches
-	running   string // the query being searched
+	seq       int    // counts edits, so only the last pause asks TVDB
+	running   string // the query TVDB is asked about
 	shown     string // the query the results belong to
-	page      api.SearchPage
+	found     api.FoundShows
 	err       error
 	selected  int64
 	offset    int
 	rowsShown int
-	adding    string            // the show being added
-	asking    *api.SearchResult // the show the monitor question is about
+	adding    string         // the show being added
+	asking    *api.FoundShow // the show the monitor question is about
 	choice    int
 	flash     flash
 }
@@ -81,42 +81,42 @@ func newAddShow(sess *session, back screen) *addScreen {
 
 func (s *addScreen) init() tea.Cmd { return s.input.Focus() }
 
-// searchable reports whether a query is worth asking TVDB about.
-func searchable(q string) bool {
+// findable reports whether a query is worth asking TVDB about.
+func findable(q string) bool {
 	return len([]rune(q)) >= 2 || q != "" && strings.IndexFunc(q, func(r rune) bool { return !unicode.IsDigit(r) }) < 0
 }
 
-func (s *addScreen) search(q string) tea.Cmd {
+func (s *addScreen) find(q string) tea.Cmd {
 	s.running = q
 	cl := s.sess.client
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
-		page, err := cl.Search(ctx, q)
-		return searchMsg{q, page, err}
+		found, err := cl.FindShows(ctx, q)
+		return foundMsg{q, found, err}
 	}
 }
 
 func (s *addScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 	switch msg := msg.(type) {
-	case searchDueMsg:
+	case findDueMsg:
 		q := strings.TrimSpace(s.input.Value())
-		if msg.seq == s.seq && searchable(q) && q != s.running && q != s.shown {
-			return s, s.search(q)
+		if msg.seq == s.seq && findable(q) && q != s.running && q != s.shown {
+			return s, s.find(q)
 		}
 		return s, nil
-	case searchMsg:
+	case foundMsg:
 		if msg.query != s.running {
-			return s, nil // an earlier search finished late
+			return s, nil // an earlier answer came late
 		}
 		s.running = ""
 		if errors.Is(msg.err, client.ErrUnauthorized) {
 			return s, func() tea.Msg { return disconnectedMsg{errRevoked} }
 		}
-		s.shown, s.page, s.err = msg.query, msg.page, msg.err
+		s.shown, s.found, s.err = msg.query, msg.found, msg.err
 		s.selected, s.offset = 0, 0
-		if len(s.page.Results) > 0 {
-			s.selected = s.page.Results[0].ID
+		if len(s.found.Results) > 0 {
+			s.selected = s.found.Results[0].ID
 		}
 		return s, nil
 	case addResultMsg:
@@ -135,7 +135,7 @@ func (s *addScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 			if mode == "" {
 				return s, nil
 			}
-			s.adding = resultName(*r)
+			s.adding = foundName(*r)
 			return s, addShow(s.sess.client, r.ID, s.adding, mode)
 		}
 		switch msg.String() {
@@ -149,21 +149,21 @@ func (s *addScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 			return s, nil
 		case "ctrl+a":
 			q := strings.TrimSpace(s.input.Value())
-			r, ok := s.cursorResult()
+			r, ok := s.cursorShow()
 			if !ok || q != s.shown {
 				return s, nil
 			}
 			if r.Added {
-				return s, func() tea.Msg { return addedMsg{id: r.ID, name: resultName(r), already: true} }
+				return s, func() tea.Msg { return addedMsg{id: r.ID, name: foundName(r), already: true} }
 			}
 			s.asking, s.choice = &r, 0
 			return s, nil
 		case "enter":
 			q := strings.TrimSpace(s.input.Value())
 			if s.err != nil && q == s.shown {
-				return s, s.search(q)
+				return s, s.find(q)
 			}
-			if r, ok := s.cursorResult(); ok && q == s.shown {
+			if r, ok := s.cursorShow(); ok && q == s.shown {
 				p := newPreview(s.sess, s, r)
 				return p, p.init()
 			}
@@ -191,23 +191,23 @@ func (s *addScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 	}
 	s.seq++
 	seq := s.seq
-	return s, tea.Batch(cmd, tea.Tick(searchPause, func(time.Time) tea.Msg { return searchDueMsg{seq} }))
+	return s, tea.Batch(cmd, tea.Tick(findPause, func(time.Time) tea.Msg { return findDueMsg{seq} }))
 }
 
-func (s *addScreen) cursorResult() (api.SearchResult, bool) {
-	i := slices.IndexFunc(s.page.Results, func(r api.SearchResult) bool { return r.ID == s.selected })
+func (s *addScreen) cursorShow() (api.FoundShow, bool) {
+	i := slices.IndexFunc(s.found.Results, func(r api.FoundShow) bool { return r.ID == s.selected })
 	if i < 0 {
-		return api.SearchResult{}, false
+		return api.FoundShow{}, false
 	}
-	return s.page.Results[i], true
+	return s.found.Results[i], true
 }
 
 func (s *addScreen) move(n int) {
-	rs := s.page.Results
+	rs := s.found.Results
 	if len(rs) == 0 {
 		return
 	}
-	i := max(0, slices.IndexFunc(rs, func(r api.SearchResult) bool { return r.ID == s.selected }))
+	i := max(0, slices.IndexFunc(rs, func(r api.FoundShow) bool { return r.ID == s.selected }))
 	s.selected = rs[min(len(rs)-1, max(0, i+n))].ID
 }
 
@@ -216,14 +216,14 @@ const addTop = 4 // rows above the results: header, blank, column names, rule
 func (s *addScreen) view(width, height int) string {
 	q := strings.TrimSpace(s.input.Value())
 	current := q == s.shown && s.shown != ""
-	cols := searchColumns(s.page.Results, width)
+	cols := foundColumns(s.found.Results, width)
 
 	var b strings.Builder
 	b.WriteString(header(width, s.sess, "garner", "Library", "Add show") + "\n\n")
 	b.WriteString(cols.head() + "\n")
 	b.WriteString("   " + sBorder.Render(strings.Repeat("─", max(0, width-6))) + "\n")
 
-	rs := s.page.Results
+	rs := s.found.Results
 	switch {
 	case q == "":
 		b.WriteString("   " + sMuted.Render("Type a show's name, a TVDB ID or a thetvdb.com link."))
@@ -242,22 +242,22 @@ func (s *addScreen) view(width, height int) string {
 		b.WriteString("   " + sMuted.Render("No show matches "+strconv.Quote(s.shown)+"."))
 	default:
 		more := 0
-		if s.page.Total > len(rs) {
+		if s.found.Total > len(rs) {
 			more = 2
 		}
 		s.rowsShown = max(1, height-addTop-1-more)
-		cursor := max(0, slices.IndexFunc(rs, func(r api.SearchResult) bool { return r.ID == s.selected }))
+		cursor := max(0, slices.IndexFunc(rs, func(r api.FoundShow) bool { return r.ID == s.selected }))
 		s.offset = min(max(s.offset, cursor-s.rowsShown+1), cursor)
 		for i := s.offset; i < min(len(rs), s.offset+s.rowsShown); i++ {
 			b.WriteString(cols.row(rs[i], current && i == cursor) + "\n")
 		}
 		if more > 0 {
-			b.WriteString("\n   " + sMuted.Render(fmt.Sprintf("TVDB found %d; these are the first %d. Search more precisely to narrow it down.", s.page.Total, len(rs))))
+			b.WriteString("\n   " + sMuted.Render(fmt.Sprintf("TVDB found %d; these are the first %d. Search more precisely to narrow it down.", s.found.Total, len(rs))))
 		}
 	}
 	page := screenLayout(width, height, b.String(), s.bottom(width, q))
 	if s.asking != nil {
-		return overlay(page, monitorQuestion("Add "+resultName(*s.asking), s.choice, "", "add"), width, height)
+		return overlay(page, monitorQuestion("Add "+foundName(*s.asking), s.choice, "", "add"), width, height)
 	}
 	return page
 }
@@ -268,10 +268,10 @@ func (s *addScreen) bottom(width int, q string) string {
 	case s.running != "":
 		count = "searching…"
 	case s.shown == "" || q != s.shown:
-	case s.err == nil && s.page.Total > len(s.page.Results):
-		count = fmt.Sprintf("%d of %d", len(s.page.Results), s.page.Total)
+	case s.err == nil && s.found.Total > len(s.found.Results):
+		count = fmt.Sprintf("%d of %d", len(s.found.Results), s.found.Total)
 	case s.err == nil:
-		count = strconv.Itoa(len(s.page.Results)) + " results"
+		count = strconv.Itoa(len(s.found.Results)) + " results"
 	}
 	switch {
 	case s.adding != "":
@@ -283,7 +283,7 @@ func (s *addScreen) bottom(width int, q string) string {
 	switch {
 	case s.err != nil && q == s.shown:
 		keys = keyBar("enter", "try again", "ctrl+u", "clear", "esc", "back")
-	case len(s.page.Results) > 0 && q == s.shown:
+	case len(s.found.Results) > 0 && q == s.shown:
 		keys = keyBar("↑↓", "move", "enter", "details", "ctrl+a", "add", "ctrl+u", "clear", "esc", "back")
 	}
 	right := keys
@@ -295,16 +295,16 @@ func (s *addScreen) bottom(width int, q string) string {
 	return left + strings.Repeat(" ", max(2, width-2-lipgloss.Width(left)-lipgloss.Width(right))) + right
 }
 
-type searchCols struct {
+type foundCols struct {
 	width, name, network int
 }
 
-// searchColumns sizes the result table: glyph, name, year, network,
+// foundColumns sizes the result table: glyph, name, year, network,
 // language, status.
-func searchColumns(rs []api.SearchResult, width int) searchCols {
-	c := searchCols{width: width, name: len("Name"), network: len("Network")}
+func foundColumns(rs []api.FoundShow, width int) foundCols {
+	c := foundCols{width: width, name: len("Name"), network: len("Network")}
 	for _, r := range rs {
-		c.name = max(c.name, ansi.StringWidth(resultName(r)))
+		c.name = max(c.name, ansi.StringWidth(foundName(r)))
 		c.network = max(c.network, ansi.StringWidth(clean(r.Network)))
 	}
 	c.network = min(c.network, 18)
@@ -315,12 +315,12 @@ func searchColumns(rs []api.SearchResult, width int) searchCols {
 	return c
 }
 
-func (c searchCols) head() string {
+func (c foundCols) head() string {
 	return "   " + " " + "   " + sSubtle.Render(fit("Name", c.name, false)) + "   " + sSubtle.Render("Year") + "   " +
 		sSubtle.Render(fit("Network", c.network, false)) + "   " + sSubtle.Render(fit("Lang", 4, false)) + "   " + sSubtle.Render("Status")
 }
 
-func (c searchCols) row(r api.SearchResult, selected bool) string {
+func (c foundCols) row(r api.FoundShow, selected bool) string {
 	bg := func(st lipgloss.Style) lipgloss.Style {
 		if selected {
 			return st.Background(cSelect)
@@ -336,7 +336,7 @@ func (c searchCols) row(r api.SearchResult, selected bool) string {
 	if r.Year > 0 {
 		year = strconv.Itoa(r.Year)
 	}
-	line := gap + glyph + gap + bg(sNormal).Render(fit(resultName(r), c.name, false)) + gap +
+	line := gap + glyph + gap + bg(sNormal).Render(fit(foundName(r), c.name, false)) + gap +
 		bg(sMuted).Render(fit(year, 4, false)) + gap + bg(sMuted).Render(fit(clean(r.Network), c.network, false)) + gap +
 		bg(sMuted).Render(fit(langCode(r.Language), 4, false)) + gap + bg(sMuted).Render(fit(status(r.Status), 10, false))
 	if w := lipgloss.Width(line); w < c.width {
@@ -345,7 +345,7 @@ func (c searchCols) row(r api.SearchResult, selected bool) string {
 	return line
 }
 
-func resultName(r api.SearchResult) string { return clean(cmp.Or(r.NameEng, r.Name)) }
+func foundName(r api.FoundShow) string { return clean(cmp.Or(r.NameEng, r.Name)) }
 
 // langCode turns TVDB's three-letter language codes into two letters: jpn
 // becomes JA.
@@ -360,7 +360,7 @@ func langCode(code string) string {
 type previewScreen struct {
 	sess    *session
 	back    screen
-	result  api.SearchResult
+	found   api.FoundShow
 	preview *api.Preview
 	err     error
 	adding  bool
@@ -388,13 +388,13 @@ type (
 	openedMsg struct{ err error }
 )
 
-func newPreview(sess *session, back screen, r api.SearchResult) *previewScreen {
-	return &previewScreen{sess: sess, back: back, result: r}
+func newPreview(sess *session, back screen, r api.FoundShow) *previewScreen {
+	return &previewScreen{sess: sess, back: back, found: r}
 }
 
 func (s *previewScreen) init() tea.Cmd {
 	s.err = nil
-	cl, id := s.sess.client, s.result.ID
+	cl, id := s.sess.client, s.found.ID
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -438,7 +438,7 @@ func (s *previewScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 				return s, nil
 			}
 			s.adding = true
-			return s, addShow(s.sess.client, s.result.ID, s.name(), mode)
+			return s, addShow(s.sess.client, s.found.ID, s.name(), mode)
 		}
 		if s.scroll.key(msg.String()) {
 			return s, nil
@@ -467,7 +467,7 @@ func (s *previewScreen) name() string {
 	if s.preview != nil {
 		return clean(cmp.Or(s.preview.NameEng, s.preview.Name))
 	}
-	return resultName(s.result)
+	return foundName(s.found)
 }
 
 // openLink opens a TVDB page in the browser. Only thetvdb.com links are

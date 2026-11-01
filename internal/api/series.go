@@ -305,8 +305,8 @@ type Issue struct {
 	Message string `json:"message"`
 }
 
-// SearchResult is a show TVDB found.
-type SearchResult struct {
+// FoundShow is a show found on TVDB.
+type FoundShow struct {
 	ID       int64  `json:"id"`
 	Slug     string `json:"slug,omitempty"`
 	Name     string `json:"name"`
@@ -319,16 +319,16 @@ type SearchResult struct {
 	Added    bool   `json:"added"`
 }
 
-// SearchPage is what a search found: up to 50 shows, best first, and how
-// many TVDB knows in all.
-type SearchPage struct {
-	Results []SearchResult `json:"results"`
-	Total   int            `json:"total"`
+// FoundShows is what finding shows on TVDB found: up to 50 shows, best
+// first, and how many TVDB knows in all.
+type FoundShows struct {
+	Results []FoundShow `json:"results"`
+	Total   int         `json:"total"`
 }
 
 // Preview is a show as TVDB describes it, for deciding whether to add it.
 type Preview struct {
-	SearchResult
+	FoundShow
 	// Type is the profile garner will give the show: anime for TVDB's
 	// Anime genre, otherwise tv. Rules describes that profile's tiers.
 	Type  string `json:"type"`

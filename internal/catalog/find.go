@@ -1,39 +1,34 @@
 package catalog
 
 import (
-	"cmp"
 	"context"
 	"errors"
-	"fmt"
 	"net/url"
 	"slices"
 	"strconv"
 	"strings"
 
-	"golang.org/x/text/language"
-
 	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/match"
-	"github.com/trucke/garner/internal/release"
 )
 
-// Search finds shows on TVDB and marks those already in the catalogue. The
-// text may also be a TVDB ID or a thetvdb.com link.
+// FindShows finds shows on TVDB and marks those already in the catalogue.
+// The text may also be a TVDB ID or a thetvdb.com link.
 //
 // TVDB ranks by the main name, which is Japanese for most anime, so a
 // search for an anime's English name could put it 19th, behind shows whose
 // main names only look alike. Results whose name in any language contains
 // every search word therefore come first; otherwise TVDB's order stays.
-func (c *Catalog) Search(ctx context.Context, q string) (api.SearchPage, error) {
+func (c *Catalog) FindShows(ctx context.Context, q string) (api.FoundShows, error) {
 	ids, err := c.store.SeriesIDs(ctx)
 	if err != nil {
-		return api.SearchPage{}, err
+		return api.FoundShows{}, err
 	}
 	added := make(map[int64]bool, len(ids))
 	for _, id := range ids {
 		added[id] = true
 	}
-	page := api.SearchPage{Results: []api.SearchResult{}}
+	page := api.FoundShows{Results: []api.FoundShow{}}
 
 	id, slug, link := tvdbRef(q)
 	if slug != "" {
@@ -50,7 +45,7 @@ func (c *Catalog) Search(ctx context.Context, q string) (api.SearchPage, error) 
 		switch {
 		case err == nil:
 			p.Added = added[id]
-			page.Results = append(page.Results, p.SearchResult)
+			page.Results = append(page.Results, p.FoundShow)
 		case errors.Is(err, ErrUnknownSeries):
 		case link:
 			return page, err
@@ -75,7 +70,7 @@ func (c *Catalog) Search(ctx context.Context, q string) (api.SearchPage, error) 
 		return page, err
 	}
 	words := match.Words(q)
-	var found []api.SearchResult
+	var found []api.FoundShow
 	var hits []bool
 	byID := len(page.Results) // the show the number named, if any
 	skipped := 0
@@ -86,7 +81,7 @@ func (c *Catalog) Search(ctx context.Context, q string) (api.SearchPage, error) 
 			continue
 		}
 		year, _ := strconv.Atoi(r.Year)
-		found = append(found, api.SearchResult{
+		found = append(found, api.FoundShow{
 			ID: rid, Slug: r.Slug, Name: r.Name, NameEng: r.Translations["eng"], NameDeu: r.Translations["deu"], Year: year,
 			Status: r.Status, Language: r.PrimaryLanguage, Network: r.Network, Added: added[rid],
 		})
@@ -166,120 +161,4 @@ func tvdbRef(q string) (id int64, slug string, link bool) {
 		return n, "", n > 0
 	}
 	return 0, "", false
-}
-
-// Preview describes a show on TVDB without adding it.
-func (c *Catalog) Preview(ctx context.Context, id int64) (api.Preview, error) {
-	p, err := c.describe(ctx, id)
-	if err != nil {
-		return api.Preview{}, err
-	}
-	p.Added, err = c.store.HasSeries(ctx, id)
-	if err != nil {
-		return api.Preview{}, err
-	}
-	list, _, err := c.tvdb.episodes(ctx, id, p.order, "")
-	if err != nil {
-		return api.Preview{}, err
-	}
-	seasons := map[int]bool{}
-	for _, e := range list {
-		if e.SeasonNumber > 0 {
-			p.Episodes++
-			seasons[e.SeasonNumber] = true
-		}
-	}
-	p.Seasons = len(seasons)
-	return p.Preview, nil
-}
-
-type described struct {
-	api.Preview
-	order string // the default episode order
-}
-
-// describe loads a show's TVDB record and its English and German names.
-func (c *Catalog) describe(ctx context.Context, id int64) (described, error) {
-	s, err := c.tvdb.series(ctx, id)
-	if errors.Is(err, errNotFound) {
-		return described{}, fmt.Errorf("series %d: %w", id, ErrUnknownSeries)
-	}
-	if err != nil {
-		return described{}, err
-	}
-	year, _ := strconv.Atoi(s.Year)
-	d := described{order: "official", Preview: api.Preview{
-		SearchResult: api.SearchResult{ID: s.ID, Slug: s.Slug, Name: s.Name, Year: year, Status: s.Status.Name, Language: s.OriginalLanguage},
-		Type:         typeFor(s), LanguageName: LanguageName(s.OriginalLanguage),
-		FirstAired: s.FirstAired, LastAired: s.LastAired, Runtime: s.AverageRuntime, Orders: []string{},
-		URL: SeriesURL(s.Slug, s.ID),
-	}}
-	if s.OriginalNetwork != nil {
-		d.Network = s.OriginalNetwork.Name
-	}
-	for _, st := range s.SeasonTypes {
-		name := st.Name
-		if st.AlternateName != nil && *st.AlternateName != "" {
-			name += " (" + *st.AlternateName + ")"
-		}
-		if st.ID == s.DefaultSeason {
-			d.order = st.Type
-			d.Orders = append([]string{name}, d.Orders...)
-		} else {
-			d.Orders = append(d.Orders, name)
-		}
-	}
-	overview, overviewLang := "", ""
-	for _, lang := range languages {
-		tr, ok, err := c.tvdb.translation(ctx, id, lang)
-		if err != nil {
-			return d, err
-		}
-		if !ok {
-			continue
-		}
-		if lang == "eng" {
-			d.NameEng = tr.Name
-		} else {
-			d.NameDeu = tr.Name
-		}
-		if overview == "" && tr.Overview != "" {
-			overview, overviewLang = tr.Overview, lang
-		}
-	}
-	d.Overview = cmp.Or(overview, s.Overview)
-	if d.Overview != "" {
-		d.OverviewLanguage = cmp.Or(overviewLang, s.OriginalLanguage)
-	}
-	return d, nil
-}
-
-// LanguageName names a TVDB language code in English, such as Japanese
-// for jpn. Languages garner has no name for keep a two-letter code.
-func LanguageName(code string) string {
-	if l, ok := release.LanguageNamed(code); ok {
-		return l.Name()
-	}
-	if b, err := language.ParseBase(code); err == nil {
-		return strings.ToUpper(b.String())
-	}
-	return code
-}
-
-// typeFor is the type a new show gets: anime for TVDB's Anime genre.
-func typeFor(s tvdbSeries) string {
-	for _, g := range s.Genres {
-		if g.Name == "Anime" {
-			return api.TypeAnime
-		}
-	}
-	return api.TypeTV
-}
-
-// SeriesURL is a show's page on thetvdb.com, by ID when TVDB has no slug.
-func SeriesURL(slug string, id int64) string {
-	if slug == "" {
-		return "https://thetvdb.com/dereferrer/series/" + strconv.FormatInt(id, 10)
-	}
-	return "https://thetvdb.com/series/" + url.PathEscape(slug)
 }

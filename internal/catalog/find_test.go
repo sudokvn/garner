@@ -13,10 +13,10 @@ import (
 	"github.com/trucke/garner/internal/store"
 )
 
-// TestSearchRanking checks that results whose name in any language holds
+// TestFindShowsRanking checks that shows whose name in any language holds
 // every search word come first, in TVDB's order, and that the rest keep
 // TVDB's order behind them. A number finds that TVDB ID first, counted once.
-func TestSearchRanking(t *testing.T) {
+func TestFindShowsRanking(t *testing.T) {
 	tvdb := http.NewServeMux()
 	tvdb.HandleFunc("POST /login", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"status":"success","data":{"token":"tok"}}`)
@@ -57,7 +57,7 @@ func TestSearchRanking(t *testing.T) {
 	}
 
 	for q, want := range map[string]string{"wanderer": "[3 4 1 2] of 52", "belnabel": "[6 5] of 52", "7": "[7 8] of 2"} {
-		page, err := c.Search(context.Background(), q)
+		page, err := c.FindShows(context.Background(), q)
 		if err != nil {
 			t.Fatal(err)
 		}

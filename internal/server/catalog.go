@@ -18,7 +18,7 @@ import (
 )
 
 func (s *Server) catalogRoutes(mux router) {
-	mux.Handle("GET /api/v1/search", s.needCatalog(s.handleSearch))
+	mux.Handle("GET /api/v1/search", s.needCatalog(s.handleFindShows))
 	mux.Handle("GET /api/v1/search/{tvdb_id}", s.needCatalog(s.handlePreview))
 	mux.Handle("GET /api/v1/series", s.needCatalog(s.handleListSeries))
 	mux.Handle("POST /api/v1/series", s.needCatalog(s.handleAddSeries))
@@ -37,18 +37,20 @@ func (s *Server) needCatalog(h http.HandlerFunc) http.Handler {
 	})
 }
 
-func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
+// handleFindShows finds shows on TVDB to add. Its path stays
+// /api/v1/search for the clients that use it.
+func (s *Server) handleFindShows(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if q == "" {
 		writeError(w, http.StatusBadRequest, "missing search text: ?q=")
 		return
 	}
-	results, err := s.catalog.Search(r.Context(), q)
+	found, err := s.catalog.FindShows(r.Context(), q)
 	if err != nil {
 		s.upstreamError(w, "search TVDB", err)
 		return
 	}
-	writeJSON(w, http.StatusOK, results)
+	writeJSON(w, http.StatusOK, found)
 }
 
 // handlePreview describes a show on TVDB before it is added, with the

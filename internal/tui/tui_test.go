@@ -18,9 +18,9 @@ import (
 // library from an ended session must not replace the current one.
 func TestLateAnswers(t *testing.T) {
 	sess := &session{}
-	left := newPreview(sess, nil, api.SearchResult{ID: 1, Name: "First"})
-	next := newPreview(sess, nil, api.SearchResult{ID: 2, Name: "Second"})
-	next.update(previewMsg{from: left, preview: api.Preview{SearchResult: api.SearchResult{ID: 1}}})
+	left := newPreview(sess, nil, api.FoundShow{ID: 1, Name: "First"})
+	next := newPreview(sess, nil, api.FoundShow{ID: 2, Name: "Second"})
+	next.update(previewMsg{from: left, preview: api.Preview{FoundShow: api.FoundShow{ID: 1}}})
 	if next.preview != nil {
 		t.Fatal("the details of a page that was left showed on the next one")
 	}
