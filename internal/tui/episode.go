@@ -521,9 +521,6 @@ type step struct {
 
 const stepNameWidth = len("Moving into the library")
 
-// designWidth is the width the screens are designed for, in cells.
-const designWidth = 120
-
 // render draws the step: glyph, name, detail, and its time at the right.
 func (st step) render(width int) string {
 	at := ""

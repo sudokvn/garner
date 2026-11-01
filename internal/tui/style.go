@@ -349,3 +349,91 @@ func (s *scroller) layout(width, height int, body, bottom string) string {
 	}
 	return screenLayout(width, height, strings.Join(lines, "\n"), bottom)
 }
+
+// designWidth is the width the screens are designed for, in cells.
+const designWidth = 120
+
+// pickItem is one row of a pickList: a choice, or a header the cursor
+// skips. An empty header is a blank line.
+type pickItem struct {
+	label, note string
+	header      bool
+	value       any
+}
+
+// pickList is an overlay's list of choices with section headers, such as
+// the new-profile picker and the language picker.
+type pickList struct {
+	items      []pickItem
+	choice     int // index into items, never a header
+	labelWidth int // the label column, gap included
+	width      int // of a row, borders excluded
+}
+
+// key moves the cursor or answers: done closes the list, chosen is the
+// index of the choice, or -1 when cancelled.
+func (p *pickList) key(key string) (done bool, chosen int) {
+	switch key {
+	case "esc":
+		return true, -1
+	case "k", "up", "shift+tab":
+		p.step(-1)
+	case "j", "down", "tab":
+		p.step(1)
+	case "G", "end":
+		p.choice = len(p.items)
+		p.step(-1)
+	case "enter":
+		if p.choice >= 0 && p.choice < len(p.items) && !p.items[p.choice].header {
+			return true, p.choice
+		}
+	}
+	return false, -1
+}
+
+// step moves the cursor past headers in direction dir.
+func (p *pickList) step(dir int) {
+	for i := p.choice + dir; i >= 0 && i < len(p.items); i += dir {
+		if !p.items[i].header {
+			p.choice = i
+			return
+		}
+	}
+}
+
+// lines draws the list for a screen height rows high. A list longer than
+// fits shows a window around the cursor, with ↑ and ↓ where rows are
+// hidden.
+func (p *pickList) lines(title string, height int) []string {
+	lines := []string{title, ""}
+	first, last := 0, len(p.items)
+	// The overlay's borders, the title, the key bar and their gaps take 6
+	// rows; a window also takes one row for each mark.
+	if rows := height - 6; len(p.items) > rows {
+		shown := max(1, rows-2)
+		first = min(max(0, p.choice-shown/2), len(p.items)-shown)
+		last = first + shown
+		lines = append(lines, sMuted.Render(mark(first > 0, " ↑")))
+	}
+	for i := first; i < last; i++ {
+		it := p.items[i]
+		switch {
+		case it.header && it.label == "":
+			lines = append(lines, "")
+		case it.header:
+			lines = append(lines, sSubtle.Render(it.label))
+		default:
+			label, note := sNormal, sMuted
+			if i == p.choice {
+				label, note = label.Background(cSelect), note.Background(cSelect)
+			}
+			noteWidth := max(0, p.width-1-p.labelWidth)
+			lines = append(lines, label.Render(ansi.Truncate(" "+pad(it.label, p.labelWidth), p.width, ""))+
+				note.Render(fit(it.note, noteWidth, false)))
+		}
+	}
+	if first > 0 || last < len(p.items) {
+		lines = append(lines, sMuted.Render(mark(last < len(p.items), " ↓")))
+	}
+	return append(lines, "", keyBar("j k", "choose", "enter", "ok", "esc", "cancel"))
+}

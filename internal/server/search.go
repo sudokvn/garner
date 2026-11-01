@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"slices"
 	"strconv"
 	"time"
 
@@ -52,7 +51,6 @@ func (s *Server) searchRoutes(mux router) {
 	mux.Handle("GET /api/v1/episodes/{id}/search", http.HandlerFunc(s.handleGetSearch))
 	mux.Handle("POST /api/v1/series/{id}/seasons/{season}/search", http.HandlerFunc(s.handleSearchSeason))
 	mux.Handle("POST /api/v1/series/{id}/search", http.HandlerFunc(s.handleSearchShow))
-	mux.Handle("PATCH /api/v1/series/{id}", http.HandlerFunc(s.handleUpdateSeries))
 }
 
 func (s *Server) handleSearchEpisode(w http.ResponseWriter, r *http.Request) {
@@ -198,53 +196,6 @@ func (s *Server) nextSearch(ctx context.Context, episodeID int64) *time.Time {
 		}
 	}
 	return nil
-}
-
-// handleUpdateSeries changes a show's profile, its monitor mode, or both.
-func (s *Server) handleUpdateSeries(w http.ResponseWriter, r *http.Request) {
-	id, ok := seriesID(w, r)
-	if !ok {
-		return
-	}
-	var req struct {
-		ProfileID int64  `json:"profile_id"`
-		Type      string `json:"type"`
-		Monitor   string `json:"monitor"`
-	}
-	err := readJSON(r, &req)
-	switch {
-	case err != nil || req.ProfileID == 0 && req.Type == "" && req.Monitor == "",
-		req.ProfileID < 0,
-		req.Type != "" && req.Type != store.TypeTV && req.Type != store.TypeAnime,
-		req.Monitor != "" && !slices.Contains(store.MonitorModes, req.Monitor):
-		writeError(w, http.StatusBadRequest, `expected any of {"profile_id": a profile's ID, "type": "tv" or "anime", "monitor": "new", "all" or "off"}`)
-		return
-	}
-	ctx := r.Context()
-	if req.ProfileID != 0 {
-		err = s.store.ChangeProfile(ctx, id, req.ProfileID)
-	}
-	if err == nil && req.Type != "" {
-		err = s.store.ChangeType(ctx, id, req.Type)
-	}
-	if err == nil && req.Monitor != "" {
-		err = s.store.SetMonitor(ctx, id, req.Monitor, s.now())
-	}
-	switch {
-	case errors.Is(err, store.ErrNotFound):
-		writeError(w, http.StatusNotFound, "series is not in the catalogue")
-		return
-	case errors.Is(err, store.ErrNoProfile):
-		writeError(w, http.StatusBadRequest, "no profile has that ID")
-		return
-	case err != nil:
-		s.internalError(w, "update series", err)
-		return
-	}
-	s.events.publish(Event{Type: api.EventSeriesUpdated, Data: api.SeriesChanged{ID: id}})
-	// Episodes may be due now: a new mode, or cleared searches.
-	s.wakeMonitor()
-	s.writeSeries(w, r, id, http.StatusOK)
 }
 
 func episodeID(w http.ResponseWriter, r *http.Request) (int64, bool) {

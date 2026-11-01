@@ -702,16 +702,6 @@ func shortAge(d time.Duration) string {
 	return fmt.Sprintf("%dy", int(d.Hours()/24/365))
 }
 
-func plural(n int, word string) string {
-	if n == 1 {
-		return "1 " + word
-	}
-	return strconv.Itoa(n) + " " + word + "s"
-}
-
-// fact is a labelled fact, as in "Aired  8 Jul 2003".
-func fact(label, value string) string { return sSubtle.Render(label) + "  " + sNormal.Render(value) }
-
 // episodeFacts are the episode's label, title and air date.
 func episodeFacts(e episodeRow) []string {
 	title := clean(cmp.Or(e.episode.NameEng, e.episode.Name))

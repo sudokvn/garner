@@ -4,7 +4,7 @@ These are the conventions of `internal/tui`, garner's terminal interface. Follow
 
 ## Size
 
-Screens are designed for 120 by 36 cells (`designWidth` in `episode.go`). A wider terminal keeps the layout at the left edge. Tables span the window, and their last column, usually State, takes the extra width. Framed panes and running text stay at 120 cells at most, so lines stay readable. On a narrower terminal, columns give way in a fixed order, and names keep at least `minName` cells.
+Screens are designed for 120 by 36 cells (`designWidth` in `style.go`). A wider terminal keeps the layout at the left edge. Tables span the window, and their last column, usually State, takes the extra width. Framed panes and running text stay at 120 cells at most, so lines stay readable. On a narrower terminal, columns give way in a fixed order, and names keep at least `minName` cells.
 
 ## Screen layout
 

@@ -23,6 +23,7 @@ func (s *Server) catalogRoutes(mux router) {
 	mux.Handle("GET /api/v1/series", s.needCatalog(s.handleListSeries))
 	mux.Handle("POST /api/v1/series", s.needCatalog(s.handleAddSeries))
 	mux.Handle("GET /api/v1/series/{id}", s.needCatalog(s.handleGetSeries))
+	mux.Handle("PATCH /api/v1/series/{id}", http.HandlerFunc(s.handleUpdateSeries))
 	mux.Handle("POST /api/v1/series/{id}/refresh", s.needCatalog(s.handleRefreshSeries))
 	mux.Handle("DELETE /api/v1/series/{id}", http.HandlerFunc(s.handleDeleteSeries))
 }
@@ -216,6 +217,53 @@ func (s *Server) seriesDetail(w http.ResponseWriter, r *http.Request, id int64) 
 		}
 	}
 	return detail, true
+}
+
+// handleUpdateSeries changes a show's profile, its monitor mode, or both.
+func (s *Server) handleUpdateSeries(w http.ResponseWriter, r *http.Request) {
+	id, ok := seriesID(w, r)
+	if !ok {
+		return
+	}
+	var req struct {
+		ProfileID int64  `json:"profile_id"`
+		Type      string `json:"type"`
+		Monitor   string `json:"monitor"`
+	}
+	err := readJSON(r, &req)
+	switch {
+	case err != nil || req.ProfileID == 0 && req.Type == "" && req.Monitor == "",
+		req.ProfileID < 0,
+		req.Type != "" && req.Type != store.TypeTV && req.Type != store.TypeAnime,
+		req.Monitor != "" && !slices.Contains(store.MonitorModes, req.Monitor):
+		writeError(w, http.StatusBadRequest, `expected any of {"profile_id": a profile's ID, "type": "tv" or "anime", "monitor": "new", "all" or "off"}`)
+		return
+	}
+	ctx := r.Context()
+	if req.ProfileID != 0 {
+		err = s.store.ChangeProfile(ctx, id, req.ProfileID)
+	}
+	if err == nil && req.Type != "" {
+		err = s.store.ChangeType(ctx, id, req.Type)
+	}
+	if err == nil && req.Monitor != "" {
+		err = s.store.SetMonitor(ctx, id, req.Monitor, s.now())
+	}
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		writeError(w, http.StatusNotFound, "series is not in the catalogue")
+		return
+	case errors.Is(err, store.ErrNoProfile):
+		writeError(w, http.StatusBadRequest, "no profile has that ID")
+		return
+	case err != nil:
+		s.internalError(w, "update series", err)
+		return
+	}
+	s.events.publish(Event{Type: api.EventSeriesUpdated, Data: api.SeriesChanged{ID: id}})
+	// Episodes may be due now: a new mode, or cleared searches.
+	s.wakeMonitor()
+	s.writeSeries(w, r, id, http.StatusOK)
 }
 
 // handleDeleteSeries removes a show and cancels its running downloads.

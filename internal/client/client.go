@@ -199,6 +199,13 @@ func (c *Client) Status(ctx context.Context) (api.Status, error) {
 	return s, c.do(ctx, http.MethodGet, "/api/v1/status", nil, &s)
 }
 
+// Services asks the server how the services it uses are doing, and for the
+// library's totals. The server checks each service live.
+func (c *Client) Services(ctx context.Context) (api.Services, error) {
+	var s api.Services
+	return s, c.do(ctx, http.MethodGet, "/api/v1/status/services", nil, &s)
+}
+
 const maxResponse = 16 << 20
 
 func (c *Client) do(ctx context.Context, method, path string, body, out any) error {

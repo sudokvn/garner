@@ -577,51 +577,9 @@ func seriesFacts(d *api.SeriesDetail) tvdbFacts {
 	return f
 }
 
-func ago(t time.Time) string {
-	d := time.Since(t)
-	switch {
-	case d < time.Minute:
-		return "just now"
-	case d < 2*time.Minute:
-		return "a minute ago"
-	case d < time.Hour:
-		return fmt.Sprintf("%d minutes ago", int(d.Minutes()))
-	case d < 2*time.Hour:
-		return "an hour ago"
-	case d < 24*time.Hour:
-		return fmt.Sprintf("%d hours ago", int(d.Hours()))
-	case d < 48*time.Hour:
-		return "yesterday"
-	}
-	return "on " + t.Local().Format("2 Jan 2006")
-}
-
 // wrapPath breaks a path after its slashes, so no line ends inside a
 // folder name; paths are never cut. A single name longer than the line
 // breaks where it must.
 func wrapPath(path string, width int) []string { return wrapAfter(path, "/", width) }
-
-// wrapAfter breaks s after each sep where the line is full, such as a file
-// name after its dots.
-func wrapAfter(s, sep string, width int) []string {
-	width = max(10, width)
-	var lines []string
-	line := ""
-	for _, part := range strings.SplitAfter(s, sep) {
-		if line != "" && ansi.StringWidth(line+part) > width {
-			lines = append(lines, line)
-			line = ""
-		}
-		line += part
-		for ansi.StringWidth(line) > width {
-			lines = append(lines, ansi.Truncate(line, width, ""))
-			line = ansi.TruncateLeft(line, width, "")
-		}
-	}
-	if line != "" {
-		lines = append(lines, line)
-	}
-	return lines
-}
 
 func (s *showDetailsScreen) flashed() *flash { return &s.flash }
