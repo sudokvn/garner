@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -149,6 +150,40 @@ func TestUpgradeFromThePreviousMigration(t *testing.T) {
 	}
 	if f, found, err := st.EpisodeFile(ctx, 101); err != nil || !found || f.Path != showFile {
 		t.Errorf("file = %+v, %v, %v", f, found, err)
+	}
+}
+
+// TestRefuseNewerDatabase opens a database a newer garner migrated: it
+// refuses, names both versions and the backups folder, and leaves the
+// database as it was.
+func TestRefuseNewerDatabase(t *testing.T) {
+	newest := newestMigration(t)
+	dir := t.TempDir()
+	db := openAt(t, dir, newest)
+	exec(t, db, "INSERT INTO goose_db_version (version_id, is_applied) VALUES (?, 1)", newest+1)
+	db.Close()
+
+	st, err := Open(context.Background(), dir, slog.New(slog.DiscardHandler))
+	if err == nil {
+		st.Close()
+		t.Fatal("opened a database a newer garner migrated")
+	}
+	for _, want := range []string{fmt.Sprintf("version %d", newest+1), fmt.Sprintf("up to %d", newest), filepath.Join(dir, "backups")} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not say %q", err, want)
+		}
+	}
+	if backups, _ := filepath.Glob(filepath.Join(dir, "backups", "*")); len(backups) > 0 {
+		t.Errorf("refusing wrote backups %q", backups)
+	}
+	db, _, err = connect(context.Background(), dir, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var version int64
+	if err := db.QueryRow("SELECT max(version_id) FROM goose_db_version").Scan(&version); err != nil || version != newest+1 {
+		t.Errorf("the database is at version %d after refusing, %v; want %d", version, err, newest+1)
 	}
 }
 

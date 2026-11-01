@@ -185,12 +185,20 @@ func (s *Store) migrate(ctx context.Context, dataDir string) error {
 	if err != nil {
 		return err
 	}
-	pending, err := p.HasPending(ctx)
-	if err != nil || !pending {
-		return err
-	}
 	current, err := p.GetDBVersion(ctx)
 	if err != nil {
+		return err
+	}
+	// goose sees no pending migrations in a database a newer garner
+	// migrated, but this garner does not know its tables.
+	sources := p.ListSources()
+	if newest := sources[len(sources)-1].Version; current > newest {
+		return fmt.Errorf("the database is at version %d, but this garner knows versions up to %d: a newer garner migrated it. "+
+			"Run that newer garner, or restore the backup it made before migrating, pre-migration-v*.db in %s",
+			current, newest, filepath.Join(dataDir, "backups"))
+	}
+	pending, err := p.HasPending(ctx)
+	if err != nil || !pending {
 		return err
 	}
 	var before *Backup
