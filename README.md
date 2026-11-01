@@ -7,7 +7,7 @@
 
 garner downloads TV shows and anime from Usenet and checks every file before it reaches your library.
 
-https://github.com/user-attachments/assets/65eb8875-e5ec-480c-8d53-c99b65668694
+https://github.com/user-attachments/assets/a7a9075a-8e3d-48ea-ac9f-43af65058ade
 
 - **Checks every file.** FFprobe confirms the audio language, resolution and runtime. If a file fails, garner downloads another release. With Jellyfin, garner also waits until Jellyfin identifies the episode.
 - **Explains every decision.** Every release in a search shows its verdict and the reasons for it.
