@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/httpx"
 	"github.com/trucke/garner/internal/store/query"
 )
 
@@ -71,7 +70,7 @@ func (s *Store) UpdateDownload(ctx context.Context, d Download, now time.Time) e
 	stages, _ := json.Marshal(d.Stages)
 	n, err := s.q.UpdateDownload(ctx, query.UpdateDownloadParams{
 		State: string(d.State), Detail: d.Detail, JobID: nullString(d.JobID), Progress: d.Progress, TimeLeft: d.TimeLeft,
-		Storage: d.Storage, Failure: d.Failure, Retryable: boolInt(d.Retryable), Stages: string(stages),
+		Storage: d.Storage, Failure: d.Failure, FailureSummary: d.FailureSummary, Retryable: boolInt(d.Retryable), Stages: string(stages),
 		UpdatedAt: now.Unix(), ID: d.ID,
 	})
 	if err == nil && n == 0 {
@@ -272,7 +271,8 @@ func downloadFromRow(r query.Download) (Download, error) {
 		ID: r.ID, EpisodeID: r.EpisodeID, SearchSeason: int(r.SearchSeason), Title: r.Title, Indexer: r.Indexer, Link: r.Link,
 		Posting: r.Posting, Size: r.Size,
 		Verdict: api.Verdict(r.Verdict), Tier: r.Tier, Decisive: int(r.Decisive), Manual: r.Manual != 0, Replaces: r.Replaces, State: api.DownloadState(r.State), Detail: r.Detail, JobID: r.JobID.String,
-		Progress: r.Progress, TimeLeft: r.TimeLeft, Storage: r.Storage, Failure: r.Failure, Retryable: r.Retryable != 0, Stopped: r.Stopped,
+		Progress: r.Progress, TimeLeft: r.TimeLeft, Storage: r.Storage, Failure: r.Failure, FailureSummary: r.FailureSummary,
+		Retryable: r.Retryable != 0, Stopped: r.Stopped,
 		Created: time.Unix(r.CreatedAt, 0), Updated: time.Unix(r.UpdatedAt, 0),
 	}
 	if r.AcknowledgedAt.Valid {
@@ -284,15 +284,6 @@ func downloadFromRow(r query.Download) (Download, error) {
 	if d.Stages == nil {
 		d.Stages = []Stage{}
 	}
-	// Existing downloads still hold SABnzbd's HTML. Decode before redacting:
-	// an HTML-escaped query separator must not hide a credential parameter.
-	for i, stage := range d.Stages {
-		actions := stage.Lines()
-		for j, action := range actions {
-			actions[j] = httpx.RedactText(action)
-		}
-		d.Stages[i].Actions = actions
-	}
 	if err := json.Unmarshal([]byte(r.Reasons), &d.Reasons); err != nil {
 		return d, fmt.Errorf("download %d reasons: %w", r.ID, err)
 	}
@@ -300,7 +291,6 @@ func downloadFromRow(r query.Download) (Download, error) {
 	if r.ImportUpdatedAt > 0 {
 		d.Import.Updated = time.Unix(r.ImportUpdatedAt, 0)
 	}
-	d.FailureSummary = d.SummarizeFailure()
 	if err := json.Unmarshal([]byte(r.ImportFiles), &d.Import.Files); err != nil {
 		return d, fmt.Errorf("download %d import files: %w", r.ID, err)
 	}

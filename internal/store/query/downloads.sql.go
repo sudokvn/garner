@@ -134,7 +134,7 @@ func (q *Queries) GetCandidateLink(ctx context.Context, id int64) (GetCandidateL
 }
 
 const getDownload = `-- name: GetDownload :one
-SELECT id, episode_id, title, indexer, link, size, verdict, tier, manual, state, detail, job_id, progress, time_left, storage, failure, retryable, stages, created_at, updated_at, import_state, import_detail, import_recovery, import_files, import_updated_at, import_notes, reasons, decisive, replaces, acknowledged_at, search_season, posting, stopped FROM downloads WHERE id = ?
+SELECT id, episode_id, title, indexer, link, size, verdict, tier, manual, state, detail, job_id, progress, time_left, storage, failure, retryable, stages, created_at, updated_at, import_state, import_detail, import_recovery, import_files, import_updated_at, import_notes, reasons, decisive, replaces, acknowledged_at, search_season, posting, stopped, failure_summary FROM downloads WHERE id = ?
 `
 
 func (q *Queries) GetDownload(ctx context.Context, id int64) (Download, error) {
@@ -174,6 +174,7 @@ func (q *Queries) GetDownload(ctx context.Context, id int64) (Download, error) {
 		&i.SearchSeason,
 		&i.Posting,
 		&i.Stopped,
+		&i.FailureSummary,
 	)
 	return i, err
 }
@@ -238,7 +239,7 @@ func (q *Queries) InsertDownload(ctx context.Context, arg InsertDownloadParams) 
 }
 
 const listActiveDownloads = `-- name: ListActiveDownloads :many
-SELECT id, episode_id, title, indexer, link, size, verdict, tier, manual, state, detail, job_id, progress, time_left, storage, failure, retryable, stages, created_at, updated_at, import_state, import_detail, import_recovery, import_files, import_updated_at, import_notes, reasons, decisive, replaces, acknowledged_at, search_season, posting, stopped FROM downloads WHERE state IN ('submitting', 'queued', 'downloading', 'processing') ORDER BY id
+SELECT id, episode_id, title, indexer, link, size, verdict, tier, manual, state, detail, job_id, progress, time_left, storage, failure, retryable, stages, created_at, updated_at, import_state, import_detail, import_recovery, import_files, import_updated_at, import_notes, reasons, decisive, replaces, acknowledged_at, search_season, posting, stopped, failure_summary FROM downloads WHERE state IN ('submitting', 'queued', 'downloading', 'processing') ORDER BY id
 `
 
 func (q *Queries) ListActiveDownloads(ctx context.Context) ([]Download, error) {
@@ -284,6 +285,7 @@ func (q *Queries) ListActiveDownloads(ctx context.Context) ([]Download, error) {
 			&i.SearchSeason,
 			&i.Posting,
 			&i.Stopped,
+			&i.FailureSummary,
 		); err != nil {
 			return nil, err
 		}
@@ -299,7 +301,7 @@ func (q *Queries) ListActiveDownloads(ctx context.Context) ([]Download, error) {
 }
 
 const listActivity = `-- name: ListActivity :many
-SELECT d.id, d.episode_id, d.title, d.indexer, d.link, d.size, d.verdict, d.tier, d.manual, d.state, d.detail, d.job_id, d.progress, d.time_left, d.storage, d.failure, d.retryable, d.stages, d.created_at, d.updated_at, d.import_state, d.import_detail, d.import_recovery, d.import_files, d.import_updated_at, d.import_notes, d.reasons, d.decisive, d.replaces, d.acknowledged_at, d.search_season, d.posting, d.stopped, e.series_id, s.name AS series_name, s.name_eng AS series_name_eng,
+SELECT d.id, d.episode_id, d.title, d.indexer, d.link, d.size, d.verdict, d.tier, d.manual, d.state, d.detail, d.job_id, d.progress, d.time_left, d.storage, d.failure, d.retryable, d.stages, d.created_at, d.updated_at, d.import_state, d.import_detail, d.import_recovery, d.import_files, d.import_updated_at, d.import_notes, d.reasons, d.decisive, d.replaces, d.acknowledged_at, d.search_season, d.posting, d.stopped, d.failure_summary, e.series_id, s.name AS series_name, s.name_eng AS series_name_eng,
     n.season AS season, n.number AS number
 FROM downloads d
 JOIN episodes e ON e.id = d.episode_id
@@ -367,6 +369,7 @@ func (q *Queries) ListActivity(ctx context.Context, since int64) ([]ListActivity
 			&i.Download.SearchSeason,
 			&i.Download.Posting,
 			&i.Download.Stopped,
+			&i.Download.FailureSummary,
 			&i.SeriesID,
 			&i.SeriesName,
 			&i.SeriesNameEng,
@@ -443,7 +446,7 @@ func (q *Queries) ListCandidateLinks(ctx context.Context, episodeID int64) ([]Li
 }
 
 const listDownloads = `-- name: ListDownloads :many
-SELECT id, episode_id, title, indexer, link, size, verdict, tier, manual, state, detail, job_id, progress, time_left, storage, failure, retryable, stages, created_at, updated_at, import_state, import_detail, import_recovery, import_files, import_updated_at, import_notes, reasons, decisive, replaces, acknowledged_at, search_season, posting, stopped FROM downloads
+SELECT id, episode_id, title, indexer, link, size, verdict, tier, manual, state, detail, job_id, progress, time_left, storage, failure, retryable, stages, created_at, updated_at, import_state, import_detail, import_recovery, import_files, import_updated_at, import_notes, reasons, decisive, replaces, acknowledged_at, search_season, posting, stopped, failure_summary FROM downloads
 ORDER BY state IN ('submitting', 'queued', 'downloading', 'processing') DESC, id DESC
 LIMIT ?
 `
@@ -492,6 +495,7 @@ func (q *Queries) ListDownloads(ctx context.Context, limit int64) ([]Download, e
 			&i.SearchSeason,
 			&i.Posting,
 			&i.Stopped,
+			&i.FailureSummary,
 		); err != nil {
 			return nil, err
 		}
@@ -507,7 +511,7 @@ func (q *Queries) ListDownloads(ctx context.Context, limit int64) ([]Download, e
 }
 
 const listEpisodeDownloads = `-- name: ListEpisodeDownloads :many
-SELECT id, episode_id, title, indexer, link, size, verdict, tier, manual, state, detail, job_id, progress, time_left, storage, failure, retryable, stages, created_at, updated_at, import_state, import_detail, import_recovery, import_files, import_updated_at, import_notes, reasons, decisive, replaces, acknowledged_at, search_season, posting, stopped FROM downloads WHERE episode_id = ? ORDER BY id DESC
+SELECT id, episode_id, title, indexer, link, size, verdict, tier, manual, state, detail, job_id, progress, time_left, storage, failure, retryable, stages, created_at, updated_at, import_state, import_detail, import_recovery, import_files, import_updated_at, import_notes, reasons, decisive, replaces, acknowledged_at, search_season, posting, stopped, failure_summary FROM downloads WHERE episode_id = ? ORDER BY id DESC
 `
 
 func (q *Queries) ListEpisodeDownloads(ctx context.Context, episodeID int64) ([]Download, error) {
@@ -553,6 +557,7 @@ func (q *Queries) ListEpisodeDownloads(ctx context.Context, episodeID int64) ([]
 			&i.SearchSeason,
 			&i.Posting,
 			&i.Stopped,
+			&i.FailureSummary,
 		); err != nil {
 			return nil, err
 		}
@@ -583,22 +588,23 @@ func (q *Queries) SetDownloadStopped(ctx context.Context, arg SetDownloadStopped
 
 const updateDownload = `-- name: UpdateDownload :execrows
 UPDATE downloads SET state = ?, detail = ?, job_id = ?, progress = ?, time_left = ?, storage = ?, failure = ?,
-    retryable = ?, stages = ?, updated_at = ?
+    failure_summary = ?, retryable = ?, stages = ?, updated_at = ?
 WHERE id = ? AND state != 'cancelled'
 `
 
 type UpdateDownloadParams struct {
-	State     string
-	Detail    string
-	JobID     sql.NullString
-	Progress  float64
-	TimeLeft  string
-	Storage   string
-	Failure   string
-	Retryable int64
-	Stages    string
-	UpdatedAt int64
-	ID        int64
+	State          string
+	Detail         string
+	JobID          sql.NullString
+	Progress       float64
+	TimeLeft       string
+	Storage        string
+	Failure        string
+	FailureSummary string
+	Retryable      int64
+	Stages         string
+	UpdatedAt      int64
+	ID             int64
 }
 
 // A cancelled download stays cancelled, whatever a poll that started
@@ -612,6 +618,7 @@ func (q *Queries) UpdateDownload(ctx context.Context, arg UpdateDownloadParams) 
 		arg.TimeLeft,
 		arg.Storage,
 		arg.Failure,
+		arg.FailureSummary,
 		arg.Retryable,
 		arg.Stages,
 		arg.UpdatedAt,

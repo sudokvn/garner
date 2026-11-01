@@ -79,6 +79,7 @@ type Download struct {
 	SearchSeason    int64
 	Posting         string
 	Stopped         string
+	FailureSummary  string
 }
 
 type Episode struct {

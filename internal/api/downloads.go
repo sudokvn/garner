@@ -55,7 +55,8 @@ type Download struct {
 	Storage string `json:"storage,omitempty"`
 	Failure string `json:"failure,omitempty"`
 	// FailureSummary gives the concrete cause when the processing log says
-	// more than Failure. Failure keeps SABnzbd's original report.
+	// more than Failure; empty for downloads from before garner kept it.
+	// Failure keeps SABnzbd's original report.
 	FailureSummary string `json:"failure_summary,omitempty"`
 	// Retryable means another release may succeed where this one failed.
 	Retryable bool `json:"retryable,omitempty"`

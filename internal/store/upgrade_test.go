@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -228,6 +229,55 @@ func TestMigrationFileTier(t *testing.T) {
 		var tier string
 		if err := db.QueryRow("SELECT tier FROM episode_files WHERE episode_id = ?", episode).Scan(&tier); err != nil || tier != want {
 			t.Errorf("episode %d: tier %q, %v; want %q", episode, tier, err, want)
+		}
+	}
+}
+
+// TestMigrationDownloadLogs checks migration 24: the logs of downloads from
+// before the first public release, which may still hold SABnzbd's HTML and
+// with it a credential the redaction missed, go, whatever they hold. Their
+// failure stays, and later logs stay.
+func TestMigrationDownloadLogs(t *testing.T) {
+	ctx := context.Background()
+	db := openAt(t, t.TempDir(), 23)
+	seedShow(t, db, 23)
+	const before, after = 1792713600, 1793059200 // 23 and 27 October 2026
+	log := func(actions ...string) string {
+		t.Helper()
+		b, err := json.Marshal([]Stage{{Name: "Download", Actions: actions}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	const failure = "Aborted, cannot be completed - https://sabnzbd.org/not-complete"
+	logs := map[int64]string{
+		8:  log("https://indexer.invalid/download?file=1&amp;apikey=SECRET"),
+		9:  log("Downloaded in 12 seconds<br/>27 articles were missing"),
+		10: log("Downloaded in 12 seconds", "27 articles were missing"),
+		11: log("https://indexer.invalid/download?apikey=SECRET"),
+		12: log("https://indexer.invalid/download?apikey=REDACTED&file=1"),
+	}
+	for id, created := range map[int64]int64{8: before, 9: before, 10: before, 11: before, 12: after} {
+		exec(t, db, `INSERT INTO downloads (id, episode_id, title, indexer, link, size, verdict, tier, manual, state, detail, progress,
+			time_left, storage, failure, retryable, stages, created_at, updated_at)
+			VALUES (?, 101, 'Harbor.Precinct.S01E01.German.DL.720p.WEB-GRP', 'One', 'x', 1, 'accept', '', 0, 'failed', 'Failed', 40,
+			'', '', ?, 1, ?, ?, ?)`, id, failure, logs[id], created, created)
+	}
+	p, err := migrator(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.UpTo(ctx, 24); err != nil {
+		t.Fatal(err)
+	}
+	for id, want := range map[int64]string{8: "[]", 9: "[]", 10: "[]", 11: "[]", 12: logs[12]} {
+		var stages, gotFailure, summary string
+		if err := db.QueryRow("SELECT stages, failure, failure_summary FROM downloads WHERE id = ?", id).Scan(&stages, &gotFailure, &summary); err != nil {
+			t.Fatal(err)
+		}
+		if stages != want || gotFailure != failure || summary != "" {
+			t.Errorf("download %d: log %s, failure %q, summary %q; want log %s and the failure", id, stages, gotFailure, summary, want)
 		}
 	}
 }

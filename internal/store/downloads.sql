@@ -15,7 +15,7 @@ SELECT tier FROM episode_files WHERE episode_id = ?;
 -- before the cancel saves.
 -- name: UpdateDownload :execrows
 UPDATE downloads SET state = ?, detail = ?, job_id = ?, progress = ?, time_left = ?, storage = ?, failure = ?,
-    retryable = ?, stages = ?, updated_at = ?
+    failure_summary = ?, retryable = ?, stages = ?, updated_at = ?
 WHERE id = ? AND state != 'cancelled';
 
 -- name: SetDownloadStopped :exec
