@@ -2,6 +2,22 @@ package api
 
 import "time"
 
+// Status is what the server reports about itself and the token in use.
+type Status struct {
+	Version string `json:"version"`
+	Token   string `json:"token"`
+	// TokenCreated is unset when the token's record was not found.
+	TokenCreated time.Time `json:"token_created,omitzero"`
+	Started      time.Time `json:"started"`
+}
+
+// ErrorBody is the body of every error answer.
+type ErrorBody struct {
+	Error string `json:"error"`
+	// Problems lists what is wrong with a profile, one problem each.
+	Problems []string `json:"problems,omitempty"`
+}
+
 // Services is how the services the server uses are doing, and what the
 // library holds.
 type Services struct {

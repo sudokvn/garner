@@ -13,6 +13,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/client"
 	"github.com/trucke/garner/internal/connect"
 )
@@ -57,13 +58,13 @@ type connectScreen struct {
 	retry  bool // the failure may pass on its own, so enter tries again
 	checks []check
 	client *client.Client
-	status client.Status
+	status api.Status
 }
 
 type (
 	checkedMsg struct{ err error }
 	statusMsg  struct {
-		status client.Status
+		status api.Status
 		err    error
 	}
 	savedMsg struct{ err error }

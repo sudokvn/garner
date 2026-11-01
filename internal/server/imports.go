@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/importer"
 	"github.com/trucke/garner/internal/inspect"
 	"github.com/trucke/garner/internal/jellyfin"
@@ -56,7 +57,7 @@ func (s *Server) setupImports() error {
 		Rename: s.deps.Rename, Before: s.deps.Before,
 	}, s.log)
 	imp.Now = s.now
-	imp.OnChange = func(d store.Download) { s.events.publish(Event{Type: "download.updated", Data: d}) }
+	imp.OnChange = func(d store.Download) { s.events.publish(Event{Type: api.EventDownloadUpdated, Data: d}) }
 	if s.downloads != nil {
 		imp.OnRejected = s.downloads.Reject
 		s.downloads.OnCompleted = func(store.Download) { imp.Wake() }

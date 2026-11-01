@@ -8,6 +8,8 @@ import (
 	"slices"
 	"testing"
 	"time"
+
+	"github.com/trucke/garner/internal/api"
 )
 
 // TestWanted checks which missing episodes and upgrades the monitor gets
@@ -35,13 +37,13 @@ func TestWanted(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	search := func(episode int64, at time.Time, outcome string) {
+	search := func(episode int64, at time.Time, outcome api.SearchOutcome) {
 		t.Helper()
-		if err := st.SaveSearch(ctx, Search{EpisodeID: episode, Searched: at, Outcome: outcome, Summary: outcome}); err != nil {
+		if err := st.SaveSearch(ctx, Search{EpisodeID: episode, Searched: at, Outcome: outcome, Summary: string(outcome)}); err != nil {
 			t.Fatal(err)
 		}
 	}
-	monitored := func(episode int64, at time.Time, outcome string) {
+	monitored := func(episode int64, at time.Time, outcome api.SearchOutcome) {
 		t.Helper()
 		if err := st.SaveMonitorSearch(ctx, episode, at, outcome); err != nil {
 			t.Fatal(err)
@@ -70,7 +72,7 @@ func TestWanted(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	download := func(episode int64, at time.Time, state string) {
+	download := func(episode int64, at time.Time, state api.DownloadState) {
 		t.Helper()
 		d, err := st.StartDownload(ctx, Download{EpisodeID: episode, Title: "Show.S01E01.German.1080p.WEB-EXAMPLE", Indexer: "nzb-one", Link: "x"}, at)
 		if err != nil {
@@ -244,7 +246,7 @@ func TestWantedLeavesFailedImportsToYou(t *testing.T) {
 		t.Fatal(err)
 	}
 	// completed downloads a release of episode and ends its import in state.
-	completed := func(episode int64, at time.Time, state string) {
+	completed := func(episode int64, at time.Time, state api.ImportState) {
 		t.Helper()
 		d, err := st.StartDownload(ctx, Download{EpisodeID: episode, Title: fmt.Sprintf("Harbor.Precinct.S01E%02d.German.DL.1080p.WEB-GRP", episode-100), Indexer: "One", Link: "x"}, at)
 		if err != nil {

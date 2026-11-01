@@ -100,7 +100,7 @@ Name garner and its programs as the [ground rules](#ground-rules) say. Use Briti
 | `cmd/garner` | The terminal interface's entry point and `garner profile check`; its test keeps server packages out |
 | `internal/tui` | The terminal interface, one file per screen; [its README](internal/tui/README.md) describes its conventions |
 | `internal/client` | The HTTP client the terminal interface uses: it sends the token only to a verified server and follows the event stream |
-| `internal/api` | The types the server and its clients share: shows, episodes, downloads, searches, progress and their states |
+| `internal/api` | The types the server and its clients share: shows, episodes, downloads, searches, progress, events and their states |
 | `internal/connect`, `internal/token`, `internal/tlsident` | The connection code, API tokens and the server's own certificate with its pin, shared by server and client |
 | `internal/profile` | The profile format: reading, checking and writing profiles, and the shipped ones in `shipped/`; no server code, so the terminal interface uses it too |
 | `internal/server` | The HTTP API and the admin socket `garnerd` uses; it sets up the services below and runs their loops |

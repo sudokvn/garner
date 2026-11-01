@@ -152,9 +152,9 @@ func (s *libraryScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		return s, redrawWhenSlow(waiting...)
 	case eventMsg:
 		switch msg.Type {
-		case client.EventConnected, "series.updated", "series.deleted", "search.finished":
+		case client.EventConnected, api.EventSeriesUpdated, api.EventSeriesDeleted, api.EventSearchFinished:
 			return s, s.reload()
-		case "download.updated":
+		case api.EventDownloadUpdated:
 			var d api.Download
 			if json.Unmarshal(msg.Data, &d) != nil || !s.patch(d) {
 				return s, s.reload()
@@ -384,7 +384,7 @@ func fuzzy(needle []rune, s string) bool {
 	return i == len(needle)
 }
 
-var stateRank = map[string]int{
+var stateRank = map[api.EpisodeState]int{
 	api.EpisodeFailed: 0, api.EpisodeAttention: 1, api.EpisodeDownloading: 2, api.EpisodeProcessing: 3,
 	api.EpisodeImporting: 4, api.EpisodeWaiting: 5, api.EpisodeNotSearched: 5, api.EpisodeUpcoming: 6,
 }
@@ -708,7 +708,7 @@ func redrawWhenSlow(downloads ...*api.Download) tea.Cmd {
 // A download that replaces a file in the library names the file's tier
 // first, so a narrow State column keeps it; its percentage stands in for
 // the progress bar.
-func statusParts(state string, d *api.Download, summary string, nextRetry *time.Time, attempts int, now time.Time) []part {
+func statusParts(state api.EpisodeState, d *api.Download, summary string, nextRetry *time.Time, attempts int, now time.Time) []part {
 	if d == nil || d.Replaces == "" {
 		return pipelineParts(state, d, summary, nextRetry, attempts, now)
 	}
@@ -728,7 +728,7 @@ func statusParts(state string, d *api.Download, summary string, nextRetry *time.
 
 // pipelineParts is statusParts without the file a download replaces, as
 // the Episode screen's steps show it.
-func pipelineParts(state string, d *api.Download, summary string, nextRetry *time.Time, attempts int, now time.Time) []part {
+func pipelineParts(state api.EpisodeState, d *api.Download, summary string, nextRetry *time.Time, attempts int, now time.Time) []part {
 	sep := part{" · ", sMuted}
 	switch state {
 	case api.EpisodeFailed:

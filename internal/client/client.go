@@ -21,6 +21,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/connect"
 	"github.com/trucke/garner/internal/tlsident"
 )
@@ -191,18 +192,10 @@ func (c *Client) classify(err error) error {
 	return &UnreachableError{Addr: c.addr, Err: err}
 }
 
-// Status is what the server reports about itself and the token in use.
-type Status struct {
-	Version      string    `json:"version"`
-	Token        string    `json:"token"`
-	TokenCreated time.Time `json:"token_created"`
-	Started      time.Time `json:"started"`
-}
-
 // Status asks the server for its version and the token's name. It is the
 // first request that sends the token.
-func (c *Client) Status(ctx context.Context) (Status, error) {
-	var s Status
+func (c *Client) Status(ctx context.Context) (api.Status, error) {
+	var s api.Status
 	return s, c.do(ctx, http.MethodGet, "/api/v1/status", nil, &s)
 }
 
@@ -245,10 +238,7 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) err
 	case resp.StatusCode >= 300 && resp.StatusCode < 400:
 		return &ServerError{Status: resp.StatusCode, Message: "the server answered with a redirect, which garner does not follow"}
 	case resp.StatusCode >= 400:
-		var e struct {
-			Error    string   `json:"error"`
-			Problems []string `json:"problems"`
-		}
+		var e api.ErrorBody
 		if json.Unmarshal(data, &e) != nil || e.Error == "" {
 			e.Error = fmt.Sprintf("the server answered %s", resp.Status)
 		}

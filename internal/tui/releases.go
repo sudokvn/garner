@@ -121,7 +121,7 @@ func (s *releasesScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		}
 		if fresh {
 			glyph := gWaiting
-			if msg.search.Outcome == "found" {
+			if msg.search.Outcome == api.SearchFound {
 				glyph = gDone
 			}
 			s.flash.info(glyph + " " + sNormal.Render(clean(msg.search.Summary)))
@@ -140,7 +140,7 @@ func (s *releasesScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		next := newEpisode(s.sess, s.back, msg.download.EpisodeID)
 		return s, func() tea.Msg { return switchMsg{next} }
 	case eventMsg:
-		if msg.Type == "search.progress" {
+		if msg.Type == api.EventSearchProgress {
 			var p api.SearchProgress
 			if json.Unmarshal(msg.Data, &p) != nil || !s.searching {
 				break
@@ -202,7 +202,7 @@ func (s *releasesScreen) download() tea.Cmd {
 		// While an error shows, the list underneath is not on screen.
 		return nil
 	}
-	if c.Verdict == "reject" && s.confirm != c.ID {
+	if c.Verdict == api.Reject && s.confirm != c.ID {
 		// A rejected release is downloaded only when asked twice.
 		s.confirm = c.ID
 		why := "it was rejected"
@@ -233,7 +233,7 @@ func (s *releasesScreen) candidates() []api.Candidate {
 	if s.search == nil {
 		return nil
 	}
-	order := map[string]int{"accept": 0, "fallback": 1, "reject": 2}
+	order := map[api.Verdict]int{api.Accept: 0, api.Fallback: 1, api.Reject: 2}
 	c := slices.Clone(s.search.Candidates)
 	slices.SortStableFunc(c, func(a, b api.Candidate) int {
 		return cmp.Or(cmp.Compare(order[a.Verdict], order[b.Verdict]), cmp.Compare(a.Rank, b.Rank))
@@ -384,7 +384,7 @@ func (s *releasesScreen) table(width, height int) string {
 	b.WriteString("   " + sBorder.Render(strings.Repeat("─", max(0, tableWidth))) + "\n")
 
 	// Without an accepted release, the summary says what is missing.
-	usable := slices.ContainsFunc(all, func(c api.Candidate) bool { return c.Verdict == "accept" })
+	usable := slices.ContainsFunc(all, func(c api.Candidate) bool { return c.Verdict == api.Accept })
 	var lines []string // rows and gaps, for scrolling
 	var keys []int64   // the candidate on each line, 0 for text
 	if !usable {
@@ -398,7 +398,7 @@ func (s *releasesScreen) table(width, height int) string {
 		}
 	}
 	for i, c := range all {
-		if i > 0 && c.Verdict == "reject" && all[i-1].Verdict != "reject" {
+		if i > 0 && c.Verdict == api.Reject && all[i-1].Verdict != api.Reject {
 			lines, keys = append(lines, ""), append(keys, 0)
 		}
 		lines = append(lines, cols.row(c, width, c.ID == s.selected))
@@ -467,9 +467,9 @@ func (cols releaseCols) row(c api.Candidate, width int, selected bool) string {
 	glyph, glyphStyle := "✓", sMint
 	text := sNormal
 	switch c.Verdict {
-	case "fallback":
+	case api.Fallback:
 		glyph, glyphStyle = "~", sAmber
-	case "reject":
+	case api.Reject:
 		glyph, glyphStyle = "✗", sRed
 		text = sSubtle
 	}
@@ -507,9 +507,9 @@ func (cols releaseCols) row(c api.Candidate, width int, selected bool) string {
 // preference it meets, or that it is only a last resort.
 func tierLabel(c api.Candidate) (string, lipgloss.Style) {
 	switch c.Verdict {
-	case "fallback":
+	case api.Fallback:
 		return "last resort", sAmber
-	case "reject":
+	case api.Reject:
 		return "", sSubtle
 	}
 	return clean(c.Tier), sNormal
@@ -555,7 +555,7 @@ func attemptLabel(d *api.Download) (string, lipgloss.Style) {
 		return "", sNormal
 	}
 	switch state := downloadState(*d); state {
-	case api.Cancelled:
+	case activityCancelled:
 		return "cancelled", sSubtle
 	case api.EpisodeDownloading, api.EpisodeProcessing:
 		return "downloading", sAmber
@@ -618,17 +618,17 @@ func attemptLines(d api.Download, w int, now time.Time) []string {
 
 // reasonLines marks the reasons that decided a verdict with its glyph and
 // the remaining facts with ·, wrapped to w cells.
-func reasonLines(verdict string, reasons []string, decisive, w int) []string {
+func reasonLines(verdict api.Verdict, reasons []string, decisive, w int) []string {
 	mark, style := "✓", sMint
 	switch verdict {
-	case "reject":
+	case api.Reject:
 		mark, style = "✗", sRed
-	case "fallback":
+	case api.Fallback:
 		mark, style = "~", sAmber
 	}
 	switch {
 	case decisive > 0:
-	case verdict == "accept":
+	case verdict == api.Accept:
 		// Stored before accepted releases had the count: all of them.
 		decisive = len(reasons)
 	default:

@@ -43,7 +43,7 @@ func TestLateAnswers(t *testing.T) {
 // most urgent episode, the newest when nothing needs anything, and a
 // single season always.
 func TestInitialFolding(t *testing.T) {
-	detail := func(states map[int64]string, positions map[int64][2]int) api.SeriesDetail {
+	detail := func(states map[int64]api.EpisodeState, positions map[int64][2]int) api.SeriesDetail {
 		d := api.SeriesDetail{SeriesData: api.SeriesData{Series: api.Series{ID: 1, DefaultOrder: "official"}}}
 		for id, pos := range positions {
 			d.Episodes = append(d.Episodes, api.Episode{ID: id, Numbers: map[string]api.Position{"official": {Season: pos[0], Number: pos[1]}}})
@@ -54,12 +54,12 @@ func TestInitialFolding(t *testing.T) {
 	positions := map[int64][2]int{31: {3, 1}, 21: {2, 1}, 22: {2, 2}, 11: {1, 1}}
 	cases := []struct {
 		name   string
-		states map[int64]string
+		states map[int64]api.EpisodeState
 		open   int
 		cursor rowKey
 	}{
-		{"most urgent", map[int64]string{31: api.EpisodeImported, 21: api.EpisodeImported, 22: api.EpisodeFailed, 11: api.EpisodeNotSearched}, 2, rowKey{2, 22}},
-		{"nothing needed", map[int64]string{31: api.EpisodeUpcoming, 21: api.EpisodeImported, 22: api.EpisodeImported, 11: api.EpisodeImported}, 3, rowKey{season: 3}},
+		{"most urgent", map[int64]api.EpisodeState{31: api.EpisodeImported, 21: api.EpisodeImported, 22: api.EpisodeFailed, 11: api.EpisodeNotSearched}, 2, rowKey{2, 22}},
+		{"nothing needed", map[int64]api.EpisodeState{31: api.EpisodeUpcoming, 21: api.EpisodeImported, 22: api.EpisodeImported, 11: api.EpisodeImported}, 3, rowKey{season: 3}},
 	}
 	for _, c := range cases {
 		s := newShow(&session{}, nil, 1, "Show", "")
@@ -70,7 +70,7 @@ func TestInitialFolding(t *testing.T) {
 		}
 	}
 	single := newShow(&session{}, nil, 1, "Show", "")
-	single.setDetail(detail(map[int64]string{11: api.EpisodeImported}, map[int64][2]int{11: {1, 1}}))
+	single.setDetail(detail(map[int64]api.EpisodeState{11: api.EpisodeImported}, map[int64][2]int{11: {1, 1}}))
 	if single.sess.folded[1][1] {
 		t.Error("a show's only season started folded")
 	}
@@ -105,8 +105,8 @@ func TestFlash(t *testing.T) {
 // TestPipelineFailures checks that each kind of failure marks the step it
 // happened in, and the steps after it stay pending.
 func TestPipelineFailures(t *testing.T) {
-	checked := []api.ImportFile{{Source: "a.mkv", Check: []byte(`{"audio":["German"]}`)}}
-	planned := []api.ImportFile{{Source: "a.mkv", Target: "/lib/A.mkv", Check: []byte(`{"audio":["German"]}`)}}
+	checked := []api.ImportFile{{Source: "a.mkv", Check: &api.FileCheck{Audio: []string{"German"}}}}
+	planned := []api.ImportFile{{Source: "a.mkv", Target: "/lib/A.mkv", Check: &api.FileCheck{Audio: []string{"German"}}}}
 	for _, tc := range []struct {
 		name string
 		d    api.Download

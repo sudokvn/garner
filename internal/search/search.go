@@ -310,7 +310,7 @@ type hit struct {
 func (h hit) candidate() store.Candidate {
 	c := store.Candidate{
 		Indexer: h.indexer, Title: h.result.Title, Link: h.result.Link, Posting: h.result.Posting, Page: h.result.Page, Size: h.result.Size, Grabs: h.result.Grabs,
-		Verdict: string(h.eval.Verdict), Tier: h.eval.Tier, Reasons: h.eval.Reasons, Decisive: h.eval.Decisive,
+		Verdict: h.eval.Verdict, Tier: h.eval.Tier, Reasons: h.eval.Reasons, Decisive: h.eval.Decisive,
 		Episodes: h.episodes,
 	}
 	if !h.result.Published.IsZero() {
@@ -330,7 +330,7 @@ func (h hit) candidate() store.Candidate {
 // when only last resorts are left, failed when every indexer failed
 // without returning anything. An indexer that failed on a later page still
 // delivered the results before it.
-func outcome(summary string, evals []selection.Evaluation, indexers []store.SearchIndexer) (string, string) {
+func outcome(summary string, evals []selection.Evaluation, indexers []store.SearchIndexer) (api.SearchOutcome, string) {
 	var failed []string
 	for _, ix := range indexers {
 		if ix.Error != "" {
@@ -339,20 +339,20 @@ func outcome(summary string, evals []selection.Evaluation, indexers []store.Sear
 	}
 	if len(failed) == len(indexers) && len(evals) == 0 {
 		if len(indexers) == 0 {
-			return "failed", "Search failed: Prowlarr has no enabled Usenet indexers"
+			return api.SearchFailed, "Search failed: Prowlarr has no enabled Usenet indexers"
 		}
-		return "failed", "Search failed: " + indexers[0].Error
+		return api.SearchFailed, "Search failed: " + indexers[0].Error
 	}
 	if len(failed) > 0 {
 		summary += fmt.Sprintf(" (%s failed)", strings.Join(failed, ", "))
 	}
-	result := "nothing"
+	result := api.SearchNothing
 	for _, e := range evals {
 		switch {
-		case e.Verdict == selection.Accept:
-			return "found", summary
-		case e.Verdict == selection.Fallback:
-			result = "fallback"
+		case e.Verdict == api.Accept:
+			return api.SearchFound, summary
+		case e.Verdict == api.Fallback:
+			result = api.SearchFallback
 		}
 	}
 	return result, summary

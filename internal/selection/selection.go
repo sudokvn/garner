@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/match"
 	"github.com/trucke/garner/internal/profile"
 	"github.com/trucke/garner/internal/release"
@@ -145,17 +146,6 @@ func (p Profile) Wanted() string {
 	return strings.Join(names, " or ")
 }
 
-// Verdict is what garner does with a release.
-type Verdict string
-
-const (
-	Accept Verdict = "accept"
-	// Fallback releases are used only when nothing is accepted; the file
-	// check confirms them after download.
-	Fallback Verdict = "fallback"
-	Reject   Verdict = "reject"
-)
-
 // Context is what judging needs about the show.
 type Context struct {
 	Profile Profile
@@ -197,7 +187,7 @@ var largeAt = map[release.Resolution]int64{1080: 150, 720: 75}
 
 // Evaluation is the verdict on a release and why.
 type Evaluation struct {
-	Verdict Verdict
+	Verdict api.Verdict
 	// Tier is the name of the profile tier the release meets, such as
 	// "German 1080p"; empty when it meets none.
 	Tier string
@@ -245,7 +235,7 @@ func degrade(ctx Context, r Release, build func() Evaluation) (e Evaluation) {
 			slog.Default().Error("selection: rejecting the release after a broken invariant",
 				"invariant", rec, "name", r.Claims.Name)
 			e = Evaluation{
-				Verdict: Reject,
+				Verdict: api.Reject,
 				Reasons: []string{"garner could not judge the release: an internal check failed"},
 				rank:    rankKey{verdict: 2, tier: len(ctx.Profile.Tiers) + 2, published: r.Published},
 			}
@@ -373,11 +363,11 @@ func judge(ctx Context, r Release) Evaluation {
 
 	switch {
 	case len(rejects) > 0:
-		e.Verdict, e.rank.verdict, e.Reasons, e.Decisive = Reject, 2, slices.Concat(rejects, info, notes), len(rejects)
+		e.Verdict, e.rank.verdict, e.Reasons, e.Decisive = api.Reject, 2, slices.Concat(rejects, info, notes), len(rejects)
 	case len(fallbacks) > 0:
-		e.Verdict, e.rank.verdict, e.Reasons, e.Decisive = Fallback, 1, slices.Concat(fallbacks, info, notes), len(fallbacks)
+		e.Verdict, e.rank.verdict, e.Reasons, e.Decisive = api.Fallback, 1, slices.Concat(fallbacks, info, notes), len(fallbacks)
 	default:
-		e.Verdict, e.Reasons, e.Decisive = Accept, slices.Concat(info, notes), len(info)
+		e.Verdict, e.Reasons, e.Decisive = api.Accept, slices.Concat(info, notes), len(info)
 	}
 	for _, f := range r.Claims.Flags {
 		if f.Value == release.Proper || f.Value == release.Repack {
@@ -402,7 +392,7 @@ func (e *Evaluation) verify(ctx Context) {
 	if e.Decisive <= 0 || e.Decisive > len(e.Reasons) {
 		panic(fmt.Sprintf("invariant broken: Decisive ends the decisive reasons, but %d lies outside 1 to %d", e.Decisive, len(e.Reasons)))
 	}
-	if e.Verdict == Accept && (e.Tier == "" || TierRank(ctx.Profile, e.Tier) >= len(ctx.Profile.Tiers)) {
+	if e.Verdict == api.Accept && (e.Tier == "" || TierRank(ctx.Profile, e.Tier) >= len(ctx.Profile.Tiers)) {
 		panic(fmt.Sprintf("invariant broken: an accepted release meets a tier of the profile, but %q meets none", e.Tier))
 	}
 }
@@ -525,9 +515,9 @@ func summary(p Profile, have string, evals []Evaluation, noun string) string {
 	accepted, fallback := 0, 0
 	for _, e := range evals {
 		switch e.Verdict {
-		case Accept:
+		case api.Accept:
 			accepted++
-		case Fallback:
+		case api.Fallback:
 			fallback++
 		}
 	}

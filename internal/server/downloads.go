@@ -25,7 +25,7 @@ func (s *Server) setupDownloads() error {
 	s.sabnzbd = sabnzbd.New(c.URL, c.APIKey.Value(), client)
 	svc := download.New(s.store, s.sabnzbd, c.Category, s.log)
 	svc.Now = s.now
-	svc.OnChange = func(d store.Download) { s.events.publish(Event{Type: "download.updated", Data: d}) }
+	svc.OnChange = func(d store.Download) { s.events.publish(Event{Type: api.EventDownloadUpdated, Data: d}) }
 	s.downloads = svc
 	return nil
 }
@@ -130,7 +130,7 @@ func (s *Server) handleAcknowledgeDownload(w http.ResponseWriter, r *http.Reques
 	case err != nil:
 		s.internalError(w, "clear download failure", err)
 	default:
-		s.events.publish(Event{Type: "download.updated", Data: d})
+		s.events.publish(Event{Type: api.EventDownloadUpdated, Data: d})
 		writeJSON(w, http.StatusOK, d)
 	}
 }

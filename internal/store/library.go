@@ -7,17 +7,18 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/store/query"
 )
 
-var urgency = map[string]int{
+var urgency = map[api.EpisodeState]int{
 	EpisodeFailed: 0, EpisodeAttention: 1, EpisodeDownloading: 2, EpisodeProcessing: 3, EpisodeImporting: 4,
 	EpisodeWaiting: 5, EpisodeNotSearched: 5, EpisodeUpcoming: 6, EpisodeImported: 7,
 }
 
 type searchOutcome struct {
 	searched time.Time
-	outcome  string
+	outcome  api.SearchOutcome
 	summary  string
 }
 
@@ -54,7 +55,7 @@ func (s *Store) summarise(ctx context.Context, now time.Time, only int64, sc *Sc
 	index := make(map[int64]int, len(f.series))
 	paths := make([]map[string]bool, len(f.series))
 	for i, sr := range f.series {
-		shows[i] = Show{Series: sr, Counts: map[string]int{}}
+		shows[i] = Show{Series: sr, Counts: map[api.EpisodeState]int{}}
 		index[sr.ID] = i
 		paths[i] = map[string]bool{}
 	}
@@ -140,7 +141,7 @@ func (s *Store) summarise(ctx context.Context, now time.Time, only int64, sc *Sc
 // explains reports whether an episode's latest download explains its
 // state; one that waits for the user, cancelled or with a failed import,
 // explains why the monitor leaves a missing episode alone.
-func explains(state string, d *Download) bool {
+func explains(state api.EpisodeState, d *Download) bool {
 	switch state {
 	case EpisodeDownloading, EpisodeProcessing, EpisodeImporting, EpisodeFailed, EpisodeAttention:
 		return true
@@ -152,7 +153,7 @@ func explains(state string, d *Download) bool {
 
 // episodeState decides an episode's state from its file, latest download
 // and latest search.
-func episodeState(hasFile bool, d *Download, s searchOutcome, searched, aired bool) string {
+func episodeState(hasFile bool, d *Download, s searchOutcome, searched, aired bool) api.EpisodeState {
 	if d != nil {
 		switch {
 		case d.State == Processing:

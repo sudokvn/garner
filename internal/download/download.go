@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/httpx"
 	"github.com/trucke/garner/internal/sabnzbd"
 	"github.com/trucke/garner/internal/store"
@@ -84,7 +85,7 @@ func (s *Service) SeasonCandidate(ctx context.Context, candidateID int64) (store
 // Best downloads the best release of the episode's latest search that has
 // not failed before.
 func (s *Service) Best(ctx context.Context, episodeID int64) (store.Download, error) {
-	c, err := s.pick(ctx, episodeID, "accept", "fallback")
+	c, err := s.pick(ctx, episodeID, api.Accept, api.Fallback)
 	if err != nil {
 		return store.Download{}, err
 	}
@@ -94,7 +95,7 @@ func (s *Service) Best(ctx context.Context, episodeID int64) (store.Download, er
 // Accepted is Best without last resorts: what the monitor downloads on its
 // own. A last resort waits for someone to choose it.
 func (s *Service) Accepted(ctx context.Context, episodeID int64) (store.Download, error) {
-	c, err := s.pick(ctx, episodeID, "accept")
+	c, err := s.pick(ctx, episodeID, api.Accept)
 	if err != nil {
 		return store.Download{}, err
 	}
@@ -103,7 +104,7 @@ func (s *Service) Accepted(ctx context.Context, episodeID int64) (store.Download
 
 // pick returns the best candidate with one of the verdicts, in their order,
 // that has not failed or been cancelled.
-func (s *Service) pick(ctx context.Context, episodeID int64, verdicts ...string) (store.Candidate, error) {
+func (s *Service) pick(ctx context.Context, episodeID int64, verdicts ...api.Verdict) (store.Candidate, error) {
 	candidates, err := s.store.CandidateLinks(ctx, episodeID)
 	if err != nil {
 		return store.Candidate{}, err
@@ -111,7 +112,7 @@ func (s *Service) pick(ctx context.Context, episodeID int64, verdicts ...string)
 	return s.pickFrom(ctx, episodeID, candidates, verdicts...)
 }
 
-func (s *Service) pickFrom(ctx context.Context, episodeID int64, candidates []store.Candidate, verdicts ...string) (store.Candidate, error) {
+func (s *Service) pickFrom(ctx context.Context, episodeID int64, candidates []store.Candidate, verdicts ...api.Verdict) (store.Candidate, error) {
 	downloads, err := s.store.EpisodeDownloads(ctx, episodeID)
 	if err != nil {
 		return store.Candidate{}, err
@@ -367,10 +368,10 @@ func (s *Service) replace(ctx context.Context, failed store.Download) {
 		return
 	}
 	like := func(c store.Candidate) bool { return c.Verdict == failed.Verdict && c.Tier == failed.Tier }
-	verdicts := []string{failed.Verdict}
+	verdicts := []api.Verdict{failed.Verdict}
 	if failed.Manual {
 		like = func(c store.Candidate) bool { return strings.EqualFold(c.Title, failed.Title) }
-		verdicts = []string{"accept", "fallback", "reject"}
+		verdicts = []api.Verdict{api.Accept, api.Fallback, api.Reject}
 	}
 	c, err := s.pickFrom(ctx, failed.EpisodeID, slices.DeleteFunc(slices.Clone(sr.Candidates), func(c store.Candidate) bool { return !like(c) }), verdicts...)
 	if errors.Is(err, ErrNoCandidate) {
@@ -392,9 +393,9 @@ func noneLike(failed store.Download) string {
 	switch {
 	case failed.Manual:
 		return "No other upload of this release is left, and garner does not swap a release you chose for another."
-	case failed.Verdict == "accept" && failed.Tier != "":
+	case failed.Verdict == api.Accept && failed.Tier != "":
 		return fmt.Sprintf("No other release meets %s, and garner does not switch to another preference on its own.", failed.Tier)
-	case failed.Verdict == "fallback":
+	case failed.Verdict == api.Fallback:
 		return "No other last resort is left to try."
 	}
 	return "No other release like it is left to try."

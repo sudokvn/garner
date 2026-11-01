@@ -7,7 +7,6 @@ package importer
 import (
 	"cmp"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -303,7 +302,7 @@ func (s *Service) check(ctx context.Context, d *store.Download) {
 			return
 		}
 		res := inspect.Check(p, c.expect(d, f.Episodes))
-		f.Check, _ = json.Marshal(res)
+		f.Check = &res
 		for _, pr := range res.Problems {
 			if len(files) > 1 {
 				pr = filepath.Base(f.Source) + ": " + pr

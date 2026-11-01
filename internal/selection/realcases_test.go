@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/match"
 	"github.com/trucke/garner/internal/release"
 	"github.com/trucke/garner/internal/store"
@@ -36,7 +37,7 @@ func TestRealSelectCases(t *testing.T) {
 		Want      string                     `json:"want"`
 		Languages []string                   `json:"languages"`
 		Published string                     `json:"published"`
-		Verdict   Verdict                    `json:"verdict"`
+		Verdict   api.Verdict                `json:"verdict"`
 		Tier      string                     `json:"tier"`
 		Reason    string                     `json:"reason"`
 	}

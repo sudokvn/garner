@@ -39,9 +39,9 @@ func (s *Server) setupSearch() error {
 	}
 	svc := search.New(s.store, s.prowlarr, rules, s.profileFor, s.log)
 	svc.Now = s.now
-	svc.OnProgress = func(p api.SearchProgress) { s.events.publish(Event{Type: "search.progress", Data: p}) }
+	svc.OnProgress = func(p api.SearchProgress) { s.events.publish(Event{Type: api.EventSearchProgress, Data: p}) }
 	svc.OnDone = func(sr store.Search) {
-		s.events.publish(Event{Type: "search.finished", Data: map[string]any{"episode_id": sr.EpisodeID, "outcome": sr.Outcome}})
+		s.events.publish(Event{Type: api.EventSearchFinished, Data: api.SearchFinished{EpisodeID: sr.EpisodeID, Outcome: sr.Outcome}})
 	}
 	s.search = svc
 	return nil
@@ -135,14 +135,14 @@ func (s *Server) handleSearchShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(missing) == 0 {
-		writeJSON(w, http.StatusOK, map[string]int{"episodes": 0})
+		writeJSON(w, http.StatusOK, api.ShowSearch{})
 		return
 	}
 	if err := s.monitor.SearchShow(id); errors.Is(err, monitor.ErrSearching) {
 		writeError(w, http.StatusConflict, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusAccepted, map[string]int{"episodes": len(missing)})
+	writeJSON(w, http.StatusAccepted, api.ShowSearch{Episodes: len(missing)})
 }
 
 func (s *Server) handleGetSearch(w http.ResponseWriter, r *http.Request) {
@@ -241,7 +241,7 @@ func (s *Server) handleUpdateSeries(w http.ResponseWriter, r *http.Request) {
 		s.internalError(w, "update series", err)
 		return
 	}
-	s.events.publish(Event{Type: "series.updated", Data: map[string]int64{"id": id}})
+	s.events.publish(Event{Type: api.EventSeriesUpdated, Data: api.SeriesChanged{ID: id}})
 	// Episodes may be due now: a new mode, or cleared searches.
 	s.wakeMonitor()
 	s.writeSeries(w, r, id, http.StatusOK)

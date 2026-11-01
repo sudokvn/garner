@@ -242,7 +242,7 @@ func (s *Server) setupCatalog() error {
 		return err
 	}
 	c.OnChange = func(id int64) {
-		s.events.publish(Event{Type: "series.updated", Data: map[string]int64{"id": id}})
+		s.events.publish(Event{Type: api.EventSeriesUpdated, Data: api.SeriesChanged{ID: id}})
 		// New air dates may make episodes due.
 		s.wakeMonitor()
 	}
@@ -293,7 +293,7 @@ func (s *Server) setupMonitor() {
 	}
 	s.monitor = monitor.New(s.store, s.search, s.downloads, s.schedule(), rules, s.log)
 	s.monitor.Now = s.now
-	s.monitor.OnShowProgress = func(p api.ShowProgress) { s.events.publish(Event{Type: "series.search", Data: p}) }
+	s.monitor.OnShowProgress = func(p api.ShowProgress) { s.events.publish(Event{Type: api.EventSeriesSearch, Data: p}) }
 }
 
 // wakeMonitor has the monitor look now, when it runs.

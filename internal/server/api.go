@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/store"
 )
 
@@ -65,11 +66,11 @@ func (s *Server) auth(next http.Handler) http.Handler {
 
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	tok := r.Context().Value(tokenKey{}).(store.Token)
-	out := map[string]any{"version": s.version, "token": tok.Name, "started": s.started}
+	out := api.Status{Version: s.version, Token: tok.Name, Started: s.started}
 	if tokens, err := s.store.Tokens(r.Context()); err == nil {
 		for _, t := range tokens {
 			if t.Name == tok.Name {
-				out["token_created"] = t.Created
+				out.TokenCreated = t.Created
 			}
 		}
 	}
@@ -101,7 +102,7 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 		}
 		return rc.Flush()
 	}
-	if write("retry: 3000\n\n"+sse(Event{Type: "hello", Data: map[string]string{"version": s.version}})) != nil {
+	if write("retry: 3000\n\n"+sse(Event{Type: api.EventHello, Data: api.Hello{Version: s.version}})) != nil {
 		return
 	}
 	ping := time.NewTicker(25 * time.Second)
@@ -132,12 +133,6 @@ func sse(e Event) string {
 	return "event: " + e.Type + "\ndata: " + string(data) + "\n\n"
 }
 
-type apiError struct {
-	Error string `json:"error"`
-	// Problems lists what is wrong with a profile, one problem each.
-	Problems []string `json:"problems,omitempty"`
-}
-
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -145,7 +140,7 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 }
 
 func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, apiError{Error: msg})
+	writeJSON(w, status, api.ErrorBody{Error: msg})
 }
 
 func readJSON(r *http.Request, v any) error {

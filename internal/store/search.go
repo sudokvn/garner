@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/store/query"
 )
 
@@ -37,7 +38,7 @@ func (s *Store) SaveSearch(ctx context.Context, sr Search) error {
 		retry = sql.NullInt64{Int64: sr.NextRetry.Unix(), Valid: true}
 	}
 	id, err := q.InsertSearch(ctx, query.InsertSearchParams{
-		EpisodeID: sr.EpisodeID, SearchedAt: sr.Searched.Unix(), Outcome: sr.Outcome, Summary: sr.Summary, NextRetryAt: retry,
+		EpisodeID: sr.EpisodeID, SearchedAt: sr.Searched.Unix(), Outcome: string(sr.Outcome), Summary: sr.Summary, NextRetryAt: retry,
 	})
 	if err != nil {
 		return fmt.Errorf("save search: %w", err)
@@ -58,7 +59,7 @@ func (s *Store) SaveSearch(ctx context.Context, sr Search) error {
 		}
 		if err := q.InsertCandidate(ctx, query.InsertCandidateParams{
 			SearchID: id, Rank: int64(i + 1), Indexer: c.Indexer, Title: c.Title, Link: c.Link, Posting: c.Posting, Page: c.Page, Size: c.Size,
-			Published: published, Grabs: int64(c.Grabs), Verdict: c.Verdict, Tier: c.Tier,
+			Published: published, Grabs: int64(c.Grabs), Verdict: string(c.Verdict), Tier: c.Tier,
 			Audio: strings.Join(c.Audio, ","), Reasons: string(reasons), Episodes: string(episodes),
 			Decisive: int64(c.Decisive),
 		}); err != nil {
@@ -79,7 +80,7 @@ func (s *Store) LoadSearch(ctx context.Context, episodeID int64) (Search, error)
 		return Search{}, err
 	}
 	sr := Search{
-		EpisodeID: row.EpisodeID, Searched: time.Unix(row.SearchedAt, 0), Outcome: row.Outcome, Summary: row.Summary,
+		EpisodeID: row.EpisodeID, Searched: time.Unix(row.SearchedAt, 0), Outcome: api.SearchOutcome(row.Outcome), Summary: row.Summary,
 		Indexers: []SearchIndexer{}, Candidates: []Candidate{},
 	}
 	if row.NextRetryAt.Valid {
@@ -100,7 +101,7 @@ func (s *Store) LoadSearch(ctx context.Context, episodeID int64) (Search, error)
 	for _, c := range candidates {
 		cand := Candidate{
 			ID: c.ID, Rank: int(c.Rank), Indexer: c.Indexer, Title: c.Title, Posting: c.Posting, Page: c.Page, Size: c.Size, Grabs: int(c.Grabs),
-			Verdict: c.Verdict, Tier: c.Tier, Audio: []string{}, Reasons: []string{}, Episodes: []int64{},
+			Verdict: api.Verdict(c.Verdict), Tier: c.Tier, Audio: []string{}, Reasons: []string{}, Episodes: []int64{},
 			Decisive: int(c.Decisive),
 		}
 		if c.Published.Valid {

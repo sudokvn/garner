@@ -160,7 +160,7 @@ func (s *profilesScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		return s, s.reload()
 	case eventMsg:
 		switch msg.Type {
-		case client.EventConnected, "profiles.updated", "series.updated", "series.deleted":
+		case client.EventConnected, api.EventProfilesUpdated, api.EventSeriesUpdated, api.EventSeriesDeleted:
 			return s, s.reload()
 		}
 	case tea.PasteMsg:

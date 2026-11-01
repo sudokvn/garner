@@ -7,7 +7,9 @@ import (
 
 func TestFailureSummary(t *testing.T) {
 	for _, tc := range []struct {
-		name, failure, evidence, imported, want string
+		name, failure, evidence string
+		imported                ImportState
+		want                    string
 	}{
 		{"missing articles", "Aborted, cannot be completed", "Downloaded in 12 seconds<br/>27 articles were missing", "", "27 articles missing"},
 		{"one missing article", "Aborted, cannot be completed", "1 article was missing", "", "1 article missing"},

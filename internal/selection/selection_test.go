@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/match"
 	"github.com/trucke/garner/internal/release"
 	"github.com/trucke/garner/internal/store"
@@ -43,42 +44,42 @@ var evaluateTests = []struct {
 	original  release.Language
 	name      string
 	languages []string
-	verdict   Verdict
+	verdict   api.Verdict
 	tier      string
 	reason    string
 }{
 	// Regular TV
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.1080p.BluRay.x264-GRP", nil, Accept, "German 1080p", "also has the show's original English audio, which the profile prefers"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.720p.WEB-GRP", nil, Accept, "German 720p", "German 1080p would be better"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.WEB.x264-GRP", nil, Fallback, "", "resolution not named"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DVDRip.x264-GRP", nil, Reject, "", "DVD source"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.1080p.BluRay.REMUX-GRP", nil, Reject, "", "remux"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.1080p.WEB-DL-GRP", nil, Reject, "", "no German audio named"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.Subbed.1080p.WEB-GRP", nil, Reject, "", "no German audio named"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.iTALiAN.MULTi.1080p.WEB-GRP", nil, Reject, "", "audio is Italian, not German"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.2160p.WEB-GRP", nil, Reject, "", "garner does not take 2160p yet"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.480p.WEB-GRP", nil, Reject, "", "below 720p"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E02.German.1080p.WEB-GRP", nil, Reject, "", "holds S01E02, not S01E01"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.1080p.WEB-DL-GRP", []string{"German", "en-US"}, Accept, "German 1080p", "as the indexer reports"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.1080p.BluRay.x264-GRP", nil, api.Accept, "German 1080p", "also has the show's original English audio, which the profile prefers"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.720p.WEB-GRP", nil, api.Accept, "German 720p", "German 1080p would be better"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.WEB.x264-GRP", nil, api.Fallback, "", "resolution not named"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DVDRip.x264-GRP", nil, api.Reject, "", "DVD source"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.1080p.BluRay.REMUX-GRP", nil, api.Reject, "", "remux"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.1080p.WEB-DL-GRP", nil, api.Reject, "", "no German audio named"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.Subbed.1080p.WEB-GRP", nil, api.Reject, "", "no German audio named"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.iTALiAN.MULTi.1080p.WEB-GRP", nil, api.Reject, "", "audio is Italian, not German"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.2160p.WEB-GRP", nil, api.Reject, "", "garner does not take 2160p yet"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.480p.WEB-GRP", nil, api.Reject, "", "below 720p"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E02.German.1080p.WEB-GRP", nil, api.Reject, "", "holds S01E02, not S01E01"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.1080p.WEB-DL-GRP", []string{"German", "en-US"}, api.Accept, "German 1080p", "as the indexer reports"},
 	// The indexer decides when it reports languages; the name only fills in.
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.1080p.WEB-GRP", []string{"English"}, Reject, "", "audio is English, not German"},
-	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.1080p.WEB-GRP", []string{"German"}, Accept, "German 1080p", "German audio, as the indexer reports"},
-	{TV, "Hafenwache", "de", "Hafenwache.S01E01.1080p.BluRay.x264-GRP", nil, Accept, "German 1080p", "German audio assumed"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.1080p.WEB-GRP", []string{"English"}, api.Reject, "", "audio is English, not German"},
+	{TV, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.1080p.WEB-GRP", []string{"German"}, api.Accept, "German 1080p", "German audio, as the indexer reports"},
+	{TV, "Hafenwache", "de", "Hafenwache.S01E01.1080p.BluRay.x264-GRP", nil, api.Accept, "German 1080p", "German audio assumed"},
 
 	// A name without languages is in the show's original language.
-	{english, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.1080p.WEB-DL-GRP", nil, Accept, "English 1080p", "English audio assumed"},
-	{english, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.1080p.WEB-DL-GRP", nil, Reject, "", "no English audio named"},
-	{german1080, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.720p.WEB-GRP", nil, Reject, "", "720p is not among the profile's preferences: German 1080p"},
-	{english, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.1080p.WEB-DL-GRP", []string{"English", "Japanese"}, Accept, "English 1080p", "also has the show's original Japanese audio"},
+	{english, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.1080p.WEB-DL-GRP", nil, api.Accept, "English 1080p", "English audio assumed"},
+	{english, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.1080p.WEB-DL-GRP", nil, api.Reject, "", "no English audio named"},
+	{german1080, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.720p.WEB-GRP", nil, api.Reject, "", "720p is not among the profile's preferences: German 1080p"},
+	{english, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.1080p.WEB-DL-GRP", []string{"English", "Japanese"}, api.Accept, "English 1080p", "also has the show's original Japanese audio"},
 
 	// Anime
-	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.German.720p.WEB-GRP", nil, Accept, "German 720p", ""},
-	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.DUBBED.1080p.WEB-GRP", []string{"English"}, Accept, "English 1080p", ""},
-	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.1080p.WEB-DL.MULTi-GRP", nil, Fallback, "", "audio languages not named"},
-	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.JPN.1080p.WEB-GRP", []string{"English"}, Accept, "English 1080p", "English audio, as the indexer reports"},
-	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.1080p.BluRay-GRP", nil, Reject, "", "no German or English audio named"},
-	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01.German.1080p.BluRay-GRP", nil, Accept, "German 1080p", "season pack"},
-	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01.NCOP.German.1080p.BluRay-GRP", nil, Reject, "", "extra content"},
+	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.German.720p.WEB-GRP", nil, api.Accept, "German 720p", ""},
+	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.DUBBED.1080p.WEB-GRP", []string{"English"}, api.Accept, "English 1080p", ""},
+	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.1080p.WEB-DL.MULTi-GRP", nil, api.Fallback, "", "audio languages not named"},
+	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.JPN.1080p.WEB-GRP", []string{"English"}, api.Accept, "English 1080p", "English audio, as the indexer reports"},
+	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01E01.1080p.BluRay-GRP", nil, api.Reject, "", "no German or English audio named"},
+	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01.German.1080p.BluRay-GRP", nil, api.Accept, "German 1080p", "season pack"},
+	{Anime, "Lantern Harbor", "ja", "Lantern.Harbor.S01.NCOP.German.1080p.BluRay-GRP", nil, api.Reject, "", "extra content"},
 }
 
 func TestEvaluate(t *testing.T) {
@@ -104,7 +105,7 @@ func TestDualAudioReason(t *testing.T) {
 resolution = ["1080p"]
 dual_audio = "`+tc.dual+`"`, "en")
 		e := evaluate(p, "Harbor Precinct", "en", "Harbor.Precinct.S01E01.German.DL.1080p.WEB-GRP")
-		if n := strings.Count(strings.Join(e.Reasons, "\n"), "English"); e.Verdict != Accept || n != tc.want {
+		if n := strings.Count(strings.Join(e.Reasons, "\n"), "English"); e.Verdict != api.Accept || n != tc.want {
 			t.Errorf("dual_audio %s: %s, English named %d times in %q, want %d", tc.dual, e.Verdict, n, e.Reasons, tc.want)
 		}
 	}
@@ -127,7 +128,7 @@ func TestEvaluateDegrades(t *testing.T) {
 	got := degrade(ctx, r, func() Evaluation {
 		panic("invariant broken: a test panic")
 	})
-	if got.Verdict != Reject || len(got.Reasons) != 1 || !strings.Contains(got.Reasons[0], "could not judge") || got.Decisive != 0 {
+	if got.Verdict != api.Reject || len(got.Reasons) != 1 || !strings.Contains(got.Reasons[0], "could not judge") || got.Decisive != 0 {
 		t.Errorf("degrade yielded %s %q decisive %d, want a rejection that says garner could not judge", got.Verdict, got.Reasons, got.Decisive)
 	}
 	if got.rank.verdict != 2 {
@@ -178,7 +179,7 @@ func TestRank(t *testing.T) {
 		t.Errorf("order = %s, want %s", strings.Join(got, " "), want)
 	}
 	large := evals[len(evals)-1]
-	if large.Verdict != Accept || !slices.ContainsFunc(large.Reasons, func(r string) bool { return strings.HasPrefix(r, "large for 1080p: 316 MB per minute") }) {
+	if large.Verdict != api.Accept || !slices.ContainsFunc(large.Reasons, func(r string) bool { return strings.HasPrefix(r, "large for 1080p: 316 MB per minute") }) {
 		t.Errorf("large release: %s %q", large.Verdict, large.Reasons)
 	}
 
@@ -226,20 +227,20 @@ func TestUpgrade(t *testing.T) {
 	}
 	for _, tc := range []struct {
 		have, name string
-		verdict    Verdict
+		verdict    api.Verdict
 	}{
-		{"German 720p", "Harbor.Precinct.S01E01.German.DL.1080p.WEB-DL-A", Accept},
-		{"German 720p", "Harbor.Precinct.S01E01.German.DL.720p.BluRay-B", Reject},
-		{"German 1080p", "Harbor.Precinct.S01E01.German.DL.1080p.WEB-DL-C", Reject},
-		{"German 720p", "Harbor.Precinct.S01E01.German.DL.WEB-D", Fallback}, // resolution unknown: it may be 1080p
-		{"German 1080p", "Harbor.Precinct.S01E01.German.DL.WEB-D", Reject},  // nothing beats the best tier
-		{"", "Harbor.Precinct.S01E01.German.DL.720p.BluRay-E", Accept},      // no file, or one of unknown tier
+		{"German 720p", "Harbor.Precinct.S01E01.German.DL.1080p.WEB-DL-A", api.Accept},
+		{"German 720p", "Harbor.Precinct.S01E01.German.DL.720p.BluRay-B", api.Reject},
+		{"German 1080p", "Harbor.Precinct.S01E01.German.DL.1080p.WEB-DL-C", api.Reject},
+		{"German 720p", "Harbor.Precinct.S01E01.German.DL.WEB-D", api.Fallback}, // resolution unknown: it may be 1080p
+		{"German 1080p", "Harbor.Precinct.S01E01.German.DL.WEB-D", api.Reject},  // nothing beats the best tier
+		{"", "Harbor.Precinct.S01E01.German.DL.720p.BluRay-E", api.Accept},      // no file, or one of unknown tier
 	} {
 		e := judge(tc.have, tc.name)
 		if e.Verdict != tc.verdict {
 			t.Errorf("%s over %q: %s %q, want %s", tc.name, tc.have, e.Verdict, e.Reasons, tc.verdict)
 		}
-		if e.Verdict == Reject && e.Reasons[0] != "the library has "+tc.have+" already; only a release that meets a better preference replaces it" {
+		if e.Verdict == api.Reject && e.Reasons[0] != "the library has "+tc.have+" already; only a release that meets a better preference replaces it" {
 			t.Errorf("%s: reasons %q", tc.name, e.Reasons)
 		}
 	}
@@ -324,7 +325,7 @@ func TestNothingAccepted(t *testing.T) {
 	p := fromText(`audio = ["original"]
 resolution = ["1080p"]`, "")
 	e := evaluate(p, "Harbor Precinct", "", "Harbor.Precinct.S01E01.1080p.WEB-DL-GRP")
-	if e.Verdict != Reject || !slices.ContainsFunc(e.Reasons, func(r string) bool { return strings.Contains(r, "TVDB does not name") }) {
+	if e.Verdict != api.Reject || !slices.ContainsFunc(e.Reasons, func(r string) bool { return strings.Contains(r, "TVDB does not name") }) {
 		t.Errorf("%s %q", e.Verdict, e.Reasons)
 	}
 }

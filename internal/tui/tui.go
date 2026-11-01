@@ -29,7 +29,7 @@ type screen interface {
 // session is one connection to the server, shared by all screens.
 type session struct {
 	client  *client.Client
-	status  client.Status
+	status  api.Status
 	events  <-chan client.Event
 	stop    context.CancelFunc
 	offline bool
@@ -46,7 +46,7 @@ type session struct {
 // connectedMsg opens the library once Connect has stored a working code.
 type connectedMsg struct {
 	client *client.Client
-	status client.Status
+	status api.Status
 }
 
 // disconnectedMsg sends the user back to Connect, for example after the
@@ -106,13 +106,13 @@ func Run(ctx context.Context, path, version string) error {
 
 func (a *app) Init() tea.Cmd {
 	if a.stored != nil {
-		return a.open(a.stored, client.Status{})
+		return a.open(a.stored, api.Status{})
 	}
 	return a.screen.init()
 }
 
 // open starts a session and shows the library.
-func (a *app) open(cl *client.Client, st client.Status) tea.Cmd {
+func (a *app) open(cl *client.Client, st api.Status) tea.Cmd {
 	if a.sess != nil {
 		a.sess.stop()
 	}
@@ -318,7 +318,7 @@ func activity(sess *session) string {
 	if sess.offline {
 		return sRed.Render("✗ offline · reconnecting")
 	}
-	counts := map[string]int{}
+	counts := map[api.EpisodeState]int{}
 	for _, sh := range sess.shows {
 		for state, n := range sh.Counts {
 			counts[state] += n

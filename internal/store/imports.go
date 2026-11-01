@@ -31,7 +31,7 @@ func (s *Store) UpdateImport(ctx context.Context, downloadID int64, im Import, n
 		return err
 	}
 	return s.q.UpdateImport(ctx, query.UpdateImportParams{
-		ImportState: im.State, ImportDetail: im.Detail, ImportRecovery: im.Recovery, ImportFiles: string(files),
+		ImportState: string(im.State), ImportDetail: im.Detail, ImportRecovery: im.Recovery, ImportFiles: string(files),
 		ImportNotes: string(notes), ImportUpdatedAt: now.Unix(), ID: downloadID,
 	})
 }

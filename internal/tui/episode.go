@@ -142,7 +142,7 @@ func (s *episodeScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		switch msg.Type {
 		case client.EventConnected:
 			cmd = s.reload()
-		case "download.updated":
+		case api.EventDownloadUpdated:
 			var d api.Download
 			if json.Unmarshal(msg.Data, &d) == nil && d.EpisodeID == s.id {
 				cmd = s.apply(d)
@@ -368,11 +368,11 @@ func (s *episodeScreen) view(width, height int) string {
 func (s *episodeScreen) releaseFacts(d api.Download, w int) string {
 	meta := []string{}
 	switch d.Verdict {
-	case "accept":
+	case api.Accept:
 		meta = append(meta, sMuted.Render(clean(d.Tier)))
-	case "fallback":
+	case api.Fallback:
 		meta = append(meta, sAmber.Render("last resort"))
-	case "reject":
+	case api.Reject:
 		meta = append(meta, sRed.Render("rejected"))
 	}
 	if d.Replaces != "" {
@@ -670,13 +670,10 @@ func stageNames(stages []api.Stage) string {
 // checkParts sums up the file check: "German, Japanese audio · 1080p · 24
 // min".
 func checkParts(files []api.ImportFile) []part {
-	if len(files) == 0 || len(files[0].Check) == 0 {
+	if len(files) == 0 || files[0].Check == nil {
 		return nil
 	}
-	var res api.FileCheck
-	if json.Unmarshal(files[0].Check, &res) != nil {
-		return nil
-	}
+	res := files[0].Check
 	var facts []string
 	var audio []string
 	for _, a := range res.Audio {

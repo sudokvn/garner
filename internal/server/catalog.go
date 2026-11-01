@@ -321,8 +321,8 @@ func (s *Server) handleDeleteSeries(w http.ResponseWriter, r *http.Request) {
 	}
 	if keep {
 		s.log.Info("deleted a show, kept its files", "series", id, "files", len(paths))
-		s.events.publish(Event{Type: "series.deleted", Data: map[string]int64{"id": id}})
-		writeJSON(w, http.StatusOK, map[string]any{"files": 0, "kept": len(paths), "bytes": size, "problems": []string{}})
+		s.events.publish(Event{Type: api.EventSeriesDeleted, Data: api.SeriesChanged{ID: id}})
+		writeJSON(w, http.StatusOK, api.Deleted{Kept: len(paths), Bytes: size, Problems: []string{}})
 		return
 	}
 	var removed, problems []string
@@ -334,11 +334,11 @@ func (s *Server) handleDeleteSeries(w http.ResponseWriter, r *http.Request) {
 		s.imports.Removed(ctx, removed)
 	}
 	s.log.Info("deleted a show", "series", id, "files", len(removed))
-	s.events.publish(Event{Type: "series.deleted", Data: map[string]int64{"id": id}})
+	s.events.publish(Event{Type: api.EventSeriesDeleted, Data: api.SeriesChanged{ID: id}})
 	if problems == nil {
 		problems = []string{}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"files": len(removed), "kept": 0, "bytes": size, "problems": problems})
+	writeJSON(w, http.StatusOK, api.Deleted{Files: len(removed), Bytes: size, Problems: problems})
 }
 
 func seriesID(w http.ResponseWriter, r *http.Request) (int64, bool) {

@@ -131,18 +131,22 @@ type SeriesData struct {
 	Scene    []SceneNumber `json:"scene_numbers"`
 }
 
+// EpisodeState is what garner has of an episode, from its file, latest
+// download and latest search.
+type EpisodeState string
+
 // Episode states, most urgent first. Shows take the state of their most
 // urgent episode.
 const (
-	EpisodeFailed      = "failed"       // the latest download or import failed and nothing replaced it
-	EpisodeAttention   = "attention"    // in the library, but Jellyfin did not confirm it
-	EpisodeDownloading = "downloading"  // with SABnzbd, waiting or downloading
-	EpisodeProcessing  = "processing"   // SABnzbd repairs or unpacks it
-	EpisodeImporting   = "importing"    // file check, move or waiting for Jellyfin
-	EpisodeWaiting     = "waiting"      // aired and missing; searched without a usable result
-	EpisodeNotSearched = "not_searched" // aired and missing; never searched
-	EpisodeUpcoming    = "upcoming"     // not aired yet
-	EpisodeImported    = "imported"     // in the library
+	EpisodeFailed      EpisodeState = "failed"       // the latest download or import failed and nothing replaced it
+	EpisodeAttention   EpisodeState = "attention"    // in the library, but Jellyfin did not confirm it
+	EpisodeDownloading EpisodeState = "downloading"  // with SABnzbd, waiting or downloading
+	EpisodeProcessing  EpisodeState = "processing"   // SABnzbd repairs or unpacks it
+	EpisodeImporting   EpisodeState = "importing"    // file check, move or waiting for Jellyfin
+	EpisodeWaiting     EpisodeState = "waiting"      // aired and missing; searched without a usable result
+	EpisodeNotSearched EpisodeState = "not_searched" // aired and missing; never searched
+	EpisodeUpcoming    EpisodeState = "upcoming"     // not aired yet
+	EpisodeImported    EpisodeState = "imported"     // in the library
 )
 
 // Show is a show with a summary of what garner has of it.
@@ -157,8 +161,8 @@ type Show struct {
 	// NextAired is the air date of the next episode, specials excluded.
 	NextAired string `json:"next_aired,omitempty"`
 	// Counts holds how many episodes are in each state other than imported
-	// and upcoming, by state name.
-	Counts map[string]int `json:"counts"`
+	// and upcoming.
+	Counts map[EpisodeState]int `json:"counts"`
 	// Focus is the most urgent episode; nil when every aired episode is in
 	// the library and none is upcoming.
 	Focus *Focus `json:"focus,omitempty"`
@@ -166,11 +170,11 @@ type Show struct {
 
 // Focus is the episode a show's state comes from.
 type Focus struct {
-	EpisodeID int64  `json:"episode_id"`
-	Season    int    `json:"season"`
-	Number    int    `json:"number"`
-	State     string `json:"state"`
-	Aired     string `json:"aired,omitempty"`
+	EpisodeID int64        `json:"episode_id"`
+	Season    int          `json:"season"`
+	Number    int          `json:"number"`
+	State     EpisodeState `json:"state"`
+	Aired     string       `json:"aired,omitempty"`
 	// Download is the episode's latest download, when it has one.
 	Download *Download `json:"download,omitempty"`
 	// Summary comes from the episode's latest search; NextRetry is when
@@ -184,7 +188,7 @@ type EpisodeStatus struct {
 	EpisodeID int64 `json:"episode_id"`
 	// State is one of the episode states, or empty for a special nobody
 	// asked for.
-	State string `json:"state"`
+	State EpisodeState `json:"state"`
 	// Size and Tier describe the imported file: its size and the tier of
 	// the release it came from, such as "German 1080p".
 	Size int64  `json:"size,omitempty"`
@@ -260,6 +264,22 @@ type TakeOver struct {
 type SkippedFile struct {
 	Path   string `json:"path"`
 	Reason string `json:"reason"`
+}
+
+// Deleted is what deleting a show removed, or kept.
+type Deleted struct {
+	Files int   `json:"files"` // deleted
+	Kept  int   `json:"kept"`  // left in the library
+	Bytes int64 `json:"bytes"`
+	// Problems lists files that could not be removed; the show is gone
+	// regardless.
+	Problems []string `json:"problems"`
+}
+
+// ShowSearch answers a request to search every missing episode of a show:
+// Episodes counts them. series.search events follow the search.
+type ShowSearch struct {
+	Episodes int `json:"episodes"`
 }
 
 // Renamed is what renaming a show's taken-over files did.

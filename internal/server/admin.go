@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/connect"
 	"github.com/trucke/garner/internal/profile"
 	"github.com/trucke/garner/internal/store"
@@ -102,7 +103,7 @@ func (s *Server) handleImportProfile(w http.ResponseWriter, r *http.Request) {
 	p, warnings, err := profile.Parse(req.Text)
 	var pe *profile.Error
 	if errors.As(err, &pe) {
-		writeJSON(w, http.StatusBadRequest, apiError{Error: "the profile has problems; nothing was imported", Problems: pe.Problems})
+		writeJSON(w, http.StatusBadRequest, api.ErrorBody{Error: "the profile has problems; nothing was imported", Problems: pe.Problems})
 		return
 	}
 	if err != nil {
@@ -342,7 +343,7 @@ func (a *Admin) do(ctx context.Context, method, path string, body, out any) erro
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
-		var e apiError
+		var e api.ErrorBody
 		if json.NewDecoder(resp.Body).Decode(&e) != nil || e.Error == "" {
 			return fmt.Errorf("server answered %s", resp.Status)
 		}

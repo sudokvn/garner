@@ -1,19 +1,19 @@
 package api
 
-import (
-	"encoding/json"
-	"time"
-)
+import "time"
+
+// DownloadState is where a download is with SABnzbd.
+type DownloadState string
 
 // Download states.
 const (
-	Submitting  = "submitting" // recorded, SABnzbd not yet confirmed
-	Queued      = "queued"
-	Downloading = "downloading"
-	Processing  = "processing" // SABnzbd repairs, unpacks or moves the files
-	Completed   = "completed"
-	Failed      = "failed"
-	Cancelled   = "cancelled" // stopped on request; not a failure of the release
+	Submitting  DownloadState = "submitting" // recorded, SABnzbd not yet confirmed
+	Queued      DownloadState = "queued"
+	Downloading DownloadState = "downloading"
+	Processing  DownloadState = "processing" // SABnzbd repairs, unpacks or moves the files
+	Completed   DownloadState = "completed"
+	Failed      DownloadState = "failed"
+	Cancelled   DownloadState = "cancelled" // stopped on request; not a failure of the release
 )
 
 // Download is a release handed to SABnzbd.
@@ -29,10 +29,10 @@ type Download struct {
 	// Link holds Prowlarr's API key; it is never sent to clients.
 	Link string `json:"-"`
 	// Posting is the candidate's Posting; internal, like Link.
-	Posting string `json:"-"`
-	Size    int64  `json:"size"`
-	Verdict string `json:"verdict"`
-	Tier    string `json:"tier,omitempty"`
+	Posting string  `json:"-"`
+	Size    int64   `json:"size"`
+	Verdict Verdict `json:"verdict"`
+	Tier    string  `json:"tier,omitempty"`
 	// Reasons and Decisive are the release's search result: why it was
 	// chosen, the first Decisive of them deciding.
 	Reasons  []string `json:"reasons"`
@@ -41,8 +41,8 @@ type Download struct {
 	// Replaces is the tier of the file in the library the download
 	// replaces, such as "German 720p"; empty when the episode had no file
 	// when it started, or the file's tier is unknown.
-	Replaces string `json:"replaces,omitempty"`
-	State    string `json:"state"`
+	Replaces string        `json:"replaces,omitempty"`
+	State    DownloadState `json:"state"`
 	// Detail is SABnzbd's own status or running step, such as "Repairing".
 	Detail   string  `json:"detail,omitempty"`
 	JobID    string  `json:"job_id,omitempty"`
@@ -101,21 +101,25 @@ type ActivityItem struct {
 	Number        int      `json:"number"`
 }
 
+// ImportState is where the import of a finished download is; empty
+// before it starts.
+type ImportState string
+
 // Import states.
 const (
-	ImportPending    = "pending"    // waiting for the file check
-	ImportMoving     = "moving"     // checked; files are being moved
-	ImportScanning   = "scanning"   // moved; waiting for Jellyfin to list them
-	ImportDone       = "imported"   // Jellyfin identified every file as intended
-	ImportUnverified = "unverified" // moved, but Jellyfin did not confirm the episodes
-	ImportRejected   = "rejected"   // the file check found the release bad
-	ImportFailed     = "failed"     // a path or permission problem; see the recovery step
+	ImportPending    ImportState = "pending"    // waiting for the file check
+	ImportMoving     ImportState = "moving"     // checked; files are being moved
+	ImportScanning   ImportState = "scanning"   // moved; waiting for Jellyfin to list them
+	ImportDone       ImportState = "imported"   // Jellyfin identified every file as intended
+	ImportUnverified ImportState = "unverified" // moved, but Jellyfin did not confirm the episodes
+	ImportRejected   ImportState = "rejected"   // the file check found the release bad
+	ImportFailed     ImportState = "failed"     // a path or permission problem; see the recovery step
 )
 
 // Import is the move of a finished download into the library.
 type Import struct {
-	State  string `json:"state,omitempty"`
-	Detail string `json:"detail,omitempty"`
+	State  ImportState `json:"state,omitempty"`
+	Detail string      `json:"detail,omitempty"`
 	// Recovery says what to do when the import failed.
 	Recovery string       `json:"recovery,omitempty"`
 	Files    []ImportFile `json:"files"`
@@ -132,8 +136,8 @@ type ImportFile struct {
 	Target   string  `json:"target,omitempty"`
 	Episodes []int64 `json:"episodes"`
 	Size     int64   `json:"size"`
-	// Check is the file check's outcome, a FileCheck.
-	Check json.RawMessage `json:"check,omitempty"`
+	// Check is the file check's outcome; nil before the check.
+	Check *FileCheck `json:"check,omitempty"`
 	// Jellyfin is how Jellyfin identified the file.
 	Jellyfin string `json:"jellyfin,omitempty"`
 	Verified bool   `json:"verified,omitempty"`

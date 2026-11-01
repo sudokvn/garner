@@ -36,13 +36,13 @@ type (
 		success string
 	}
 	deleteResultMsg struct {
-		deleted client.Deleted
+		deleted api.Deleted
 		err     error
 	}
 	// deletedMsg returns to the library after a show was deleted.
 	deletedMsg struct {
 		name    string
-		deleted client.Deleted
+		deleted api.Deleted
 	}
 )
 
@@ -95,7 +95,7 @@ func (s *showDetailsScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		name, deleted := s.name(), msg.deleted
 		return s, func() tea.Msg { return deletedMsg{name, deleted} }
 	case eventMsg:
-		if msg.Type == "series.deleted" && s.busy != "" {
+		if msg.Type == api.EventSeriesDeleted && s.busy != "" {
 			// Our own delete: its result returns to the library and reports it.
 			return s, nil
 		}

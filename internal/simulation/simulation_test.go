@@ -57,6 +57,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/config"
 	"github.com/trucke/garner/internal/importer/guard"
 	"github.com/trucke/garner/internal/profile"
@@ -1389,7 +1390,7 @@ func (s *sim) worse(before, after snapshot, e int64) string {
 	if rank(now) <= rank(old) {
 		return ""
 	}
-	moved := []string{store.ImportScanning, store.ImportDone, store.ImportUnverified}
+	moved := []api.ImportState{store.ImportScanning, store.ImportDone, store.ImportUnverified}
 	for _, id := range sortedKeys64(after.downloads) {
 		d := after.downloads[id]
 		if d.EpisodeID != e || d.SearchSeason > 0 || d.Replaces == "" || rank(old) < rank(d.Replaces) {
@@ -1441,7 +1442,7 @@ func (s *sim) outsideStays(before, after snapshot) (string, string) {
 	// when garner is done with its download (imported or rejected), when
 	// garner cancelled the download and SABnzbd deleted its files, or with
 	// its show or episode.
-	done := []string{store.ImportScanning, store.ImportDone, store.ImportUnverified, store.ImportRejected}
+	done := []api.ImportState{store.ImportScanning, store.ImportDone, store.ImportUnverified, store.ImportRejected}
 	for _, j := range s.w.sab.jobs {
 		if !before.jobs[j.id] || after.jobs[j.id] {
 			continue
@@ -1471,21 +1472,21 @@ func downloadOfJob(sn snapshot, jobID string) (store.Download, bool) {
 
 // The transitions downloads and imports may take in a step, step by step.
 var (
-	downloadNext = map[string][]string{
+	downloadNext = map[api.DownloadState][]api.DownloadState{
 		store.Submitting:  {store.Queued, store.Downloading, store.Processing, store.Completed, store.Failed, store.Cancelled},
 		store.Queued:      {store.Downloading, store.Processing, store.Completed, store.Failed, store.Cancelled},
 		store.Downloading: {store.Queued, store.Processing, store.Completed, store.Failed, store.Cancelled},
 		store.Processing:  {store.Completed, store.Failed, store.Cancelled},
 		store.Completed:   {store.Failed}, // the file check rejected the release
 	}
-	importNext = map[string][]string{
+	importNext = map[api.ImportState][]api.ImportState{
 		"":                   {store.ImportPending},
 		store.ImportPending:  {store.ImportMoving, store.ImportRejected, store.ImportFailed},
 		store.ImportMoving:   {store.ImportScanning, store.ImportDone, store.ImportUnverified, store.ImportFailed},
 		store.ImportScanning: {store.ImportDone, store.ImportUnverified},
 	}
 	// retryNext are the transitions only Retry makes.
-	retryNext = map[string][]string{
+	retryNext = map[api.ImportState][]api.ImportState{
 		store.ImportFailed:     {store.ImportPending, store.ImportMoving},
 		store.ImportUnverified: {store.ImportScanning},
 	}
@@ -1534,9 +1535,9 @@ func sameDownload(a, b store.Download) bool {
 	return a.Created.Equal(b.Created) && a.EpisodeID == b.EpisodeID && a.Title == b.Title
 }
 
-func reachable(graph map[string][]string, from, to string) bool {
-	seen := map[string]bool{from: true}
-	for queue := []string{from}; len(queue) > 0; queue = queue[1:] {
+func reachable[S comparable](graph map[S][]S, from, to S) bool {
+	seen := map[S]bool{from: true}
+	for queue := []S{from}; len(queue) > 0; queue = queue[1:] {
 		if queue[0] == to {
 			return true
 		}
@@ -1550,8 +1551,8 @@ func reachable(graph map[string][]string, from, to string) bool {
 	return false
 }
 
-func merge(a, b map[string][]string) map[string][]string {
-	out := map[string][]string{}
+func merge[S comparable](a, b map[S][]S) map[S][]S {
+	out := map[S][]S{}
 	for k, v := range a {
 		out[k] = slices.Clone(v)
 	}
@@ -1646,7 +1647,7 @@ func (s *sim) calm() {
 		switch {
 		case d.Active():
 			s.fail("L1", fmt.Sprintf("download %d is still %s after the calm period", d.ID, d.State))
-		case d.State == store.Completed && !slices.Contains([]string{store.ImportDone, store.ImportUnverified, store.ImportRejected, store.ImportFailed}, d.Import.State):
+		case d.State == store.Completed && !slices.Contains([]api.ImportState{store.ImportDone, store.ImportUnverified, store.ImportRejected, store.ImportFailed}, d.Import.State):
 			s.fail("L2", fmt.Sprintf("the import of download %d is still %q after the calm period", d.ID, d.Import.State))
 		case d.Import.State == store.ImportFailed && d.Import.Recovery == "":
 			s.fail("L2", fmt.Sprintf("the import of download %d failed without a recovery step: %s", d.ID, d.Import.Detail))

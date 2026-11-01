@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/store/query"
 )
 
@@ -47,8 +48,8 @@ const retryFailed = time.Hour
 // an episode that airs on aired: an hour after a failed search, otherwise
 // the wait for a recent or an older episode. An episode that has not aired
 // yet waits for its air date.
-func (sc Schedule) delay(outcome, aired string, upgrade bool, now time.Time) time.Duration {
-	if outcome == "failed" {
+func (sc Schedule) delay(outcome api.SearchOutcome, aired string, upgrade bool, now time.Time) time.Duration {
+	if outcome == api.SearchFailed {
 		return retryFailed
 	}
 	recent, older := sc.MissingRecent, sc.MissingOlder
@@ -69,8 +70,8 @@ func (sc Schedule) delay(outcome, aired string, upgrade bool, now time.Time) tim
 
 // SaveMonitorSearch records the monitor's own search of an episode, which
 // its schedule counts from.
-func (s *Store) SaveMonitorSearch(ctx context.Context, episodeID int64, searched time.Time, outcome string) error {
-	return s.q.SaveMonitorSearch(ctx, query.SaveMonitorSearchParams{EpisodeID: episodeID, SearchedAt: searched.Unix(), Outcome: outcome})
+func (s *Store) SaveMonitorSearch(ctx context.Context, episodeID int64, searched time.Time, outcome api.SearchOutcome) error {
+	return s.q.SaveMonitorSearch(ctx, query.SaveMonitorSearchParams{EpisodeID: episodeID, SearchedAt: searched.Unix(), Outcome: string(outcome)})
 }
 
 // next is when the monitor searches an episode again. A missing episode
@@ -86,7 +87,7 @@ func (sc Schedule) next(upgrade bool, aired string, own searchOutcome, searched 
 		return time.Time{}
 	}
 	var from time.Time
-	outcome := ""
+	var outcome api.SearchOutcome
 	if searched {
 		from, outcome = own.searched, own.outcome
 	}
@@ -133,13 +134,13 @@ func ended(d Download) time.Time {
 
 // missingState reports whether an aired episode in this state is missing:
 // never searched, waiting, or failed. A running download or import is not.
-func missingState(state string) bool {
+func missingState(state api.EpisodeState) bool {
 	return state == EpisodeNotSearched || state == EpisodeWaiting || state == EpisodeFailed
 }
 
 // wants reports whether the monitor gets an episode in this state with this
 // latest download: missing, and not left to the user.
-func wants(state string, d *Download) bool { return missingState(state) && !leftToYou(d) }
+func wants(state api.EpisodeState, d *Download) bool { return missingState(state) && !leftToYou(d) }
 
 // Wanted is an episode the monitor searches: a missing one, or one whose
 // file it upgrades.
@@ -270,7 +271,7 @@ func (s *Store) loadFacts(ctx context.Context, only int64) (facts, error) {
 	}
 	f.searches = make(map[int64]searchOutcome, len(searchRows))
 	for _, r := range searchRows {
-		f.searches[r.EpisodeID] = searchOutcome{searched: time.Unix(r.SearchedAt, 0), outcome: r.Outcome, summary: r.Summary}
+		f.searches[r.EpisodeID] = searchOutcome{searched: time.Unix(r.SearchedAt, 0), outcome: api.SearchOutcome(r.Outcome), summary: r.Summary}
 	}
 	monitorRows, err := s.q.ListMonitorSearches(ctx)
 	if err != nil {
@@ -278,7 +279,7 @@ func (s *Store) loadFacts(ctx context.Context, only int64) (facts, error) {
 	}
 	f.monitored = make(map[int64]searchOutcome, len(monitorRows))
 	for _, r := range monitorRows {
-		f.monitored[r.EpisodeID] = searchOutcome{searched: time.Unix(r.SearchedAt, 0), outcome: r.Outcome}
+		f.monitored[r.EpisodeID] = searchOutcome{searched: time.Unix(r.SearchedAt, 0), outcome: api.SearchOutcome(r.Outcome)}
 	}
 	return f, nil
 }

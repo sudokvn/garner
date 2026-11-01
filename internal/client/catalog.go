@@ -82,9 +82,7 @@ func (c *Client) SetMonitor(ctx context.Context, id int64, mode string) (api.Ser
 // and download the best release of each that meets its rules. It returns
 // how many episodes are missing; series.search events follow the search.
 func (c *Client) SearchShow(ctx context.Context, id int64) (int, error) {
-	var out struct {
-		Episodes int `json:"episodes"`
-	}
+	var out api.ShowSearch
 	err := c.do(ctx, http.MethodPost, "/api/v1/series/"+strconv.FormatInt(id, 10)+"/search", nil, &out)
 	return out.Episodes, err
 }
@@ -95,24 +93,14 @@ func (c *Client) Refresh(ctx context.Context, id int64) (api.SeriesDetail, error
 	return d, c.do(ctx, http.MethodPost, "/api/v1/series/"+strconv.FormatInt(id, 10)+"/refresh", nil, &d)
 }
 
-// Deleted is what deleting a show removed, or kept.
-type Deleted struct {
-	Files int   `json:"files"` // deleted
-	Kept  int   `json:"kept"`  // left in the library
-	Bytes int64 `json:"bytes"`
-	// Problems lists files that could not be removed; the show is gone
-	// regardless.
-	Problems []string `json:"problems"`
-}
-
 // DeleteSeries removes a show and cancels its downloads. Its files are
 // deleted unless keepFiles is set.
-func (c *Client) DeleteSeries(ctx context.Context, id int64, keepFiles bool) (Deleted, error) {
+func (c *Client) DeleteSeries(ctx context.Context, id int64, keepFiles bool) (api.Deleted, error) {
 	files := "delete"
 	if keepFiles {
 		files = "keep"
 	}
-	var d Deleted
+	var d api.Deleted
 	return d, c.do(ctx, http.MethodDelete, "/api/v1/series/"+strconv.FormatInt(id, 10)+"?files="+files, nil, &d)
 }
 

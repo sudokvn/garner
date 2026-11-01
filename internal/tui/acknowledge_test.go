@@ -42,7 +42,7 @@ func TestClearFailure(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			sess := &session{client: cl, shows: []api.Show{{Counts: map[string]int{api.EpisodeFailed: 1},
+			sess := &session{client: cl, shows: []api.Show{{Counts: map[api.EpisodeState]int{api.EpisodeFailed: 1},
 				Focus: &api.Focus{EpisodeID: 101, State: api.EpisodeFailed, Download: &d}}}}
 			library := newLibrary(sess)
 			var current screen
@@ -73,7 +73,7 @@ func TestClearFailure(t *testing.T) {
 			if library.patch(acknowledged) {
 				t.Fatal("a same-state acknowledgment was mistaken for progress; other clients would keep the red badge")
 			}
-			sess.shows = []api.Show{{Counts: map[string]int{api.EpisodeWaiting: 1}}}
+			sess.shows = []api.Show{{Counts: map[api.EpisodeState]int{api.EpisodeWaiting: 1}}}
 			view := ansi.Strip(current.view(120, 36))
 			if !strings.Contains(view, "cleared") || strings.Contains(view, "c clear failure") || current.(capturer).captures() {
 				t.Error("clearing was not reflected or the action remained available")

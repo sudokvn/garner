@@ -114,9 +114,9 @@ func (s *activityScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		return s, s.apply(msg.download)
 	case eventMsg:
 		switch msg.Type {
-		case client.EventConnected, "series.deleted":
+		case client.EventConnected, api.EventSeriesDeleted:
 			return s, s.reload()
-		case "download.updated":
+		case api.EventDownloadUpdated:
 			var d api.Download
 			if json.Unmarshal(msg.Data, &d) != nil {
 				return s, s.reload()
@@ -223,18 +223,23 @@ func cancellable(d api.Download) bool {
 	return d.State == api.Queued || d.State == api.Downloading
 }
 
-const activityCleared = "cleared"
+// The states of ended rows that are no episode state: a cancelled download
+// and a failure the user cleared.
+const (
+	activityCancelled api.EpisodeState = "cancelled"
+	activityCleared   api.EpisodeState = "cleared"
+)
 
 // activityRank orders the rows: what needs the user first, then what runs,
 // furthest along first, then what ended.
-var activityRank = map[string]int{
+var activityRank = map[api.EpisodeState]int{
 	api.EpisodeFailed: 0, api.EpisodeAttention: 1, api.EpisodeImporting: 2, api.EpisodeProcessing: 3,
-	api.EpisodeDownloading: 4, api.EpisodeImported: 5, api.Cancelled: 5, activityCleared: 5,
+	api.EpisodeDownloading: 4, api.EpisodeImported: 5, activityCancelled: 5, activityCleared: 5,
 }
 
 // Cleared failures are ended activity, not a new download state. Their
 // original failure remains available on the episode screen.
-func activityState(d api.Download) string {
+func activityState(d api.Download) api.EpisodeState {
 	state := downloadState(d)
 	if state == api.EpisodeFailed && !d.Acknowledged.IsZero() {
 		return activityCleared
@@ -271,11 +276,11 @@ func (s *activityScreen) move(n int) {
 }
 
 // downloadState is the state a download puts its episode in, as the
-// library names them; a cancelled one is "cancelled".
-func downloadState(d api.Download) string {
+// library names them; a cancelled one is activityCancelled.
+func downloadState(d api.Download) api.EpisodeState {
 	switch {
 	case d.State == api.Cancelled:
-		return api.Cancelled
+		return activityCancelled
 	case d.State == api.Processing:
 		return api.EpisodeProcessing
 	case d.Active():
@@ -379,7 +384,7 @@ func activityRow(it api.ActivityItem, selected bool, showWidth, stateWidth, widt
 	case activityCleared:
 		glyph, glyphStyle, text = "✗", sSubtle, sSubtle
 		parts = []part{{"cleared · " + clean(cmp.Or(d.FailureSummary, d.Failure)), sSubtle}}
-	case api.Cancelled:
+	case activityCancelled:
 		glyph, glyphStyle, text = "✗", sSubtle, sSubtle
 		parts = []part{{"cancelled", sSubtle}}
 	default:

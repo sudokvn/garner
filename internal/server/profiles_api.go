@@ -97,7 +97,7 @@ func profileText(w http.ResponseWriter, r *http.Request) (profile.Profile, bool)
 	p, _, err := profile.Parse(req.Text)
 	var pe *profile.Error
 	if errors.As(err, &pe) {
-		writeJSON(w, http.StatusBadRequest, apiError{Error: "the profile has problems", Problems: pe.Problems})
+		writeJSON(w, http.StatusBadRequest, api.ErrorBody{Error: "the profile has problems", Problems: pe.Problems})
 		return profile.Profile{}, false
 	}
 	if err != nil {
@@ -160,7 +160,7 @@ func (s *Server) profilesChanged(ctx context.Context) {
 	if err := s.loadProfiles(ctx); err != nil {
 		s.log.Error("reload profiles", "err", err)
 	}
-	s.events.publish(Event{Type: "profiles.updated"})
+	s.events.publish(Event{Type: api.EventProfilesUpdated})
 	s.wakeMonitor()
 }
 

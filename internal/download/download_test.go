@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/sabnzbd"
 	"github.com/trucke/garner/internal/store"
 )
@@ -117,7 +118,10 @@ func setup(t *testing.T) (*store.Store, *Service, *fakeSAB) {
 		t.Fatal(err)
 	}
 	var candidates []store.Candidate
-	for _, c := range []struct{ name, verdict string }{
+	for _, c := range []struct {
+		name    string
+		verdict api.Verdict
+	}{
 		{"German.DL.1080p.BluRay-A", "accept"}, {"German.DL.1080p.WEB-B", "accept"},
 		{"German.DL.WEB-C", "fallback"}, {"1080p.WEB-D", "reject"},
 	} {
@@ -298,15 +302,15 @@ func TestSameTitlePostings(t *testing.T) {
 	if sr.Candidates[1].Page != "https://indexer.invalid/details/p2" {
 		t.Errorf("page = %q after saving the search", sr.Candidates[1].Page)
 	}
-	var states []string
+	var states []api.DownloadState
 	for _, c := range sr.Candidates {
-		state := "untried"
+		state := api.DownloadState("untried")
 		if c.Attempt != nil {
 			state = c.Attempt.State
 		}
 		states = append(states, state)
 	}
-	if want := []string{store.Failed, store.Queued, "untried"}; !slices.Equal(states, want) {
+	if want := []api.DownloadState{store.Failed, store.Queued, "untried"}; !slices.Equal(states, want) {
 		t.Errorf("attempts by posting = %q, want %q", states, want)
 	}
 

@@ -2,14 +2,37 @@ package api
 
 import "time"
 
+// SearchOutcome is what a search came to.
+type SearchOutcome string
+
+// Search outcomes.
+const (
+	SearchFound    SearchOutcome = "found"    // a release was accepted
+	SearchFallback SearchOutcome = "fallback" // only last resorts are left
+	SearchNothing  SearchOutcome = "nothing"  // no release is usable
+	SearchFailed   SearchOutcome = "failed"   // every indexer failed without returning anything
+)
+
+// Verdict is what garner does with a release.
+type Verdict string
+
+// Verdicts.
+const (
+	Accept Verdict = "accept"
+	// Fallback releases are used only when nothing is accepted; the file
+	// check confirms them after download.
+	Fallback Verdict = "fallback"
+	Reject   Verdict = "reject"
+)
+
 // Search is the latest search for an episode.
 type Search struct {
 	EpisodeID int64 `json:"episode_id"`
 	// Season is set instead for a season search, which keeps only packs.
-	Season   int       `json:"season,omitempty"`
-	Searched time.Time `json:"searched"`
-	Outcome  string    `json:"outcome"` // found, fallback, nothing or failed
-	Summary  string    `json:"summary"`
+	Season   int           `json:"season,omitempty"`
+	Searched time.Time     `json:"searched"`
+	Outcome  SearchOutcome `json:"outcome"`
+	Summary  string        `json:"summary"`
 	// NextRetry is when the monitor searches the episode again, as the
 	// server answers; unset when the monitor does not get the episode.
 	NextRetry  *time.Time      `json:"next_retry,omitempty"`
@@ -50,7 +73,7 @@ type Candidate struct {
 	Size      int64      `json:"size"`
 	Published *time.Time `json:"published,omitempty"`
 	Grabs     int        `json:"grabs"`
-	Verdict   string     `json:"verdict"`
+	Verdict   Verdict    `json:"verdict"`
 	Tier      string     `json:"tier,omitempty"`
 	Audio     []string   `json:"audio"`
 	Reasons   []string   `json:"reasons"`

@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"testing"
 	"time"
+
+	"github.com/trucke/garner/internal/api"
 )
 
 // TestLibrary checks each show's summary: episodes counted without specials,
@@ -30,7 +32,7 @@ func TestLibrary(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	download := func(episode int64, state, importState string) {
+	download := func(episode int64, state api.DownloadState, importState api.ImportState) {
 		t.Helper()
 		d, err := st.StartDownload(ctx, Download{EpisodeID: episode, Title: "Show.S01E01.1080p.WEB-EXAMPLE", Indexer: "nzb-one", Link: "x"}, now)
 		if err != nil {

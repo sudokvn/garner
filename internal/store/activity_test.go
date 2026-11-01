@@ -6,6 +6,8 @@ import (
 	"slices"
 	"testing"
 	"time"
+
+	"github.com/trucke/garner/internal/api"
 )
 
 // TestActivity lists each episode's latest download: running ones and
@@ -27,7 +29,7 @@ func TestActivity(t *testing.T) {
 	}
 	now := time.Now()
 	old, recent := now.Add(-72*time.Hour), now.Add(-time.Hour)
-	download := func(episode int64, title string, at time.Time, state, imported string) {
+	download := func(episode int64, title string, at time.Time, state api.DownloadState, imported api.ImportState) {
 		t.Helper()
 		d, err := st.StartDownload(ctx, Download{EpisodeID: episode, Title: title, Link: "x", Verdict: "accept"}, at)
 		if err != nil {

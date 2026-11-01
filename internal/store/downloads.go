@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/httpx"
 	"github.com/trucke/garner/internal/store/query"
 )
@@ -50,7 +51,7 @@ func (s *Store) StartDownload(ctx context.Context, d Download, now time.Time) (D
 	}
 	reasons, _ := json.Marshal(d.Reasons)
 	id, err := q.InsertDownload(ctx, query.InsertDownloadParams{
-		EpisodeID: d.EpisodeID, Title: d.Title, Indexer: d.Indexer, Link: d.Link, Posting: d.Posting, Size: d.Size, Verdict: d.Verdict,
+		EpisodeID: d.EpisodeID, Title: d.Title, Indexer: d.Indexer, Link: d.Link, Posting: d.Posting, Size: d.Size, Verdict: string(d.Verdict),
 		Tier: d.Tier, Reasons: string(reasons), Decisive: int64(d.Decisive), Manual: boolInt(d.Manual),
 		Replaces: d.Replaces, SearchSeason: int64(d.SearchSeason), CreatedAt: now.Unix(), UpdatedAt: now.Unix(),
 	})
@@ -69,7 +70,7 @@ func (s *Store) StartDownload(ctx context.Context, d Download, now time.Time) (D
 func (s *Store) UpdateDownload(ctx context.Context, d Download, now time.Time) error {
 	stages, _ := json.Marshal(d.Stages)
 	n, err := s.q.UpdateDownload(ctx, query.UpdateDownloadParams{
-		State: d.State, Detail: d.Detail, JobID: nullString(d.JobID), Progress: d.Progress, TimeLeft: d.TimeLeft,
+		State: string(d.State), Detail: d.Detail, JobID: nullString(d.JobID), Progress: d.Progress, TimeLeft: d.TimeLeft,
 		Storage: d.Storage, Failure: d.Failure, Retryable: boolInt(d.Retryable), Stages: string(stages),
 		UpdatedAt: now.Unix(), ID: d.ID,
 	})
@@ -186,7 +187,7 @@ func (s *Store) CandidateLinks(ctx context.Context, episodeID int64) ([]Candidat
 	}
 	out := make([]Candidate, len(rows))
 	for i, r := range rows {
-		out[i] = Candidate{ID: r.ID, Title: r.Title, Indexer: r.Indexer, Link: r.Link, Posting: r.Posting, Size: r.Size, Verdict: r.Verdict,
+		out[i] = Candidate{ID: r.ID, Title: r.Title, Indexer: r.Indexer, Link: r.Link, Posting: r.Posting, Size: r.Size, Verdict: api.Verdict(r.Verdict),
 			Tier: r.Tier, Decisive: int(r.Decisive)}
 		if err := json.Unmarshal([]byte(r.Reasons), &out[i].Reasons); err != nil {
 			return nil, fmt.Errorf("candidate %d reasons: %w", r.ID, err)
@@ -226,7 +227,7 @@ func (s *Store) DownloadSearch(ctx context.Context, d Download) (Search, error) 
 	}
 	sr := Search{Season: d.SearchSeason, Searched: time.Unix(row.SearchedAt, 0), Candidates: make([]Candidate, 0, len(rows))}
 	for _, r := range rows {
-		c := Candidate{ID: r.ID, Title: r.Title, Indexer: r.Indexer, Link: r.Link, Posting: r.Posting, Size: r.Size, Verdict: r.Verdict,
+		c := Candidate{ID: r.ID, Title: r.Title, Indexer: r.Indexer, Link: r.Link, Posting: r.Posting, Size: r.Size, Verdict: api.Verdict(r.Verdict),
 			Tier: r.Tier, SearchSeason: d.SearchSeason, Decisive: int(r.Decisive)}
 		if err := json.Unmarshal([]byte(r.Reasons), &c.Reasons); err != nil {
 			return Search{}, fmt.Errorf("season candidate %d reasons: %w", r.ID, err)
@@ -246,7 +247,7 @@ func (s *Store) CandidateLink(ctx context.Context, id int64) (Candidate, int64, 
 	if err != nil {
 		return Candidate{}, 0, err
 	}
-	c := Candidate{ID: r.ID, Title: r.Title, Indexer: r.Indexer, Link: r.Link, Posting: r.Posting, Size: r.Size, Verdict: r.Verdict,
+	c := Candidate{ID: r.ID, Title: r.Title, Indexer: r.Indexer, Link: r.Link, Posting: r.Posting, Size: r.Size, Verdict: api.Verdict(r.Verdict),
 		Tier: r.Tier, Decisive: int(r.Decisive)}
 	if err := json.Unmarshal([]byte(r.Reasons), &c.Reasons); err != nil {
 		return Candidate{}, 0, fmt.Errorf("candidate %d reasons: %w", r.ID, err)
@@ -270,7 +271,7 @@ func downloadFromRow(r query.Download) (Download, error) {
 	d := Download{
 		ID: r.ID, EpisodeID: r.EpisodeID, SearchSeason: int(r.SearchSeason), Title: r.Title, Indexer: r.Indexer, Link: r.Link,
 		Posting: r.Posting, Size: r.Size,
-		Verdict: r.Verdict, Tier: r.Tier, Decisive: int(r.Decisive), Manual: r.Manual != 0, Replaces: r.Replaces, State: r.State, Detail: r.Detail, JobID: r.JobID.String,
+		Verdict: api.Verdict(r.Verdict), Tier: r.Tier, Decisive: int(r.Decisive), Manual: r.Manual != 0, Replaces: r.Replaces, State: api.DownloadState(r.State), Detail: r.Detail, JobID: r.JobID.String,
 		Progress: r.Progress, TimeLeft: r.TimeLeft, Storage: r.Storage, Failure: r.Failure, Retryable: r.Retryable != 0, Stopped: r.Stopped,
 		Created: time.Unix(r.CreatedAt, 0), Updated: time.Unix(r.UpdatedAt, 0),
 	}
@@ -295,7 +296,7 @@ func downloadFromRow(r query.Download) (Download, error) {
 	if err := json.Unmarshal([]byte(r.Reasons), &d.Reasons); err != nil {
 		return d, fmt.Errorf("download %d reasons: %w", r.ID, err)
 	}
-	d.Import = Import{State: r.ImportState, Detail: r.ImportDetail, Recovery: r.ImportRecovery, Files: []ImportFile{}, Notes: []string{}}
+	d.Import = Import{State: api.ImportState(r.ImportState), Detail: r.ImportDetail, Recovery: r.ImportRecovery, Files: []ImportFile{}, Notes: []string{}}
 	if r.ImportUpdatedAt > 0 {
 		d.Import.Updated = time.Unix(r.ImportUpdatedAt, 0)
 	}

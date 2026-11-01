@@ -126,20 +126,20 @@ func (s *showScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		}
 	case eventMsg:
 		switch msg.Type {
-		case client.EventConnected, "search.finished", "series.updated", "profiles.updated":
+		case client.EventConnected, api.EventSearchFinished, api.EventSeriesUpdated, api.EventProfilesUpdated:
 			// A changed profile changes the show's rules and its details page.
 			return s, s.reload()
-		case "download.updated":
+		case api.EventDownloadUpdated:
 			var d api.Download
 			if json.Unmarshal(msg.Data, &d) != nil || s.holds(d.EpisodeID) {
 				return s, s.reload()
 			}
-		case "series.deleted":
-			var deleted struct{ ID int64 }
+		case api.EventSeriesDeleted:
+			var deleted api.SeriesChanged
 			if json.Unmarshal(msg.Data, &deleted) == nil && deleted.ID == s.id {
 				return s, func() tea.Msg { return switchMsg{s.back} }
 			}
-		case "series.search":
+		case api.EventSeriesSearch:
 			var p api.ShowProgress
 			if json.Unmarshal(msg.Data, &p) == nil {
 				return s, s.progressed(p)
@@ -670,7 +670,7 @@ func episodeParts(e episodeRow, d *api.SeriesDetail, now time.Time) []part {
 	return statusParts(st.State, st.Download, st.Summary, st.NextRetry, st.Attempts, now)
 }
 
-func episodeGlyph(state string) (string, lipgloss.Style) {
+func episodeGlyph(state api.EpisodeState) (string, lipgloss.Style) {
 	switch state {
 	case api.EpisodeImported:
 		return "✓", sMint
@@ -693,7 +693,8 @@ func episodeGlyph(state string) (string, lipgloss.Style) {
 // seasonGlyph is the glyph of the season's most urgent episode, or ✓ when
 // every episode that counts is in the library.
 func seasonGlyph(se season) (string, lipgloss.Style) {
-	best, rank := "", 99
+	var best api.EpisodeState
+	rank := 99
 	for _, e := range se.episodes {
 		if r, ok := stateRank[e.status.State]; ok && r < rank {
 			best, rank = e.status.State, r

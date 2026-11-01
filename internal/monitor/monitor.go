@@ -189,7 +189,7 @@ func (m *Service) get(ctx context.Context, w store.Wanted) bool {
 		m.log.Error("monitor: record search", "episode", w.EpisodeID, "err", err)
 		m.paused[w.EpisodeID] = m.Now().Add(pause)
 	}
-	if sr.Outcome != "found" {
+	if sr.Outcome != api.SearchFound {
 		return false
 	}
 	_, err = m.downloads.Accepted(ctx, w.EpisodeID)

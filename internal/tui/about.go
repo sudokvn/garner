@@ -24,7 +24,7 @@ const sourceURL = "https://github.com/trucke/garner"
 type (
 	aboutStatusMsg struct {
 		from   *aboutScreen
-		status client.Status
+		status api.Status
 		err    error
 	}
 	aboutServicesMsg struct {
@@ -39,7 +39,7 @@ type aboutScreen struct {
 	back     screen
 	path     string // the connection file
 	version  string // of this program
-	status   *client.Status
+	status   *api.Status
 	services *api.Services
 	err      error // of the services check
 	flash    flash

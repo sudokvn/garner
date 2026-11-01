@@ -51,7 +51,7 @@ func TestAcknowledgeDownload(t *testing.T) {
 	if err := st.SaveMonitorSearch(ctx, 101, searched, "found"); err != nil {
 		t.Fatal(err)
 	}
-	makeDownload := func(episode int64, title, state, imported string, at time.Time) api.Download {
+	makeDownload := func(episode int64, title string, state api.DownloadState, imported api.ImportState, at time.Time) api.Download {
 		t.Helper()
 		d, err := st.StartDownload(ctx, api.Download{EpisodeID: episode, Title: title, Link: "unused", Verdict: "accept"}, at.Add(-time.Minute))
 		if err != nil {
@@ -118,7 +118,7 @@ func TestAcknowledgeDownload(t *testing.T) {
 	}
 	select {
 	case event := <-sub.ch:
-		if event.Type != "download.updated" {
+		if event.Type != api.EventDownloadUpdated {
 			t.Errorf("clearing published %q, want download.updated for other clients", event.Type)
 		}
 		if changed, ok := event.Data.(api.Download); !ok || !changed.Acknowledged.Equal(acknowledged) {
@@ -184,7 +184,10 @@ func TestAcknowledgeDownload(t *testing.T) {
 	if newer.ID == d.ID {
 		t.Fatal("the replacement did not get its own attempt")
 	}
-	for i, tc := range []struct{ state, imported string }{
+	for i, tc := range []struct {
+		state    api.DownloadState
+		imported api.ImportState
+	}{
 		{api.Downloading, ""}, {api.Completed, api.ImportDone},
 		{api.Completed, api.ImportFailed}, {api.Completed, api.ImportUnverified},
 		{api.Failed, api.ImportFailed},
@@ -202,7 +205,7 @@ func TestAcknowledgeDownload(t *testing.T) {
 	// or an unsearched special, not make either one newly missing.
 	for _, tc := range []struct {
 		episode int64
-		state   string
+		state   api.EpisodeState
 	}{{108, api.EpisodeUpcoming}, {109, ""}} {
 		failed := makeDownload(tc.episode, "Harbor.Precinct.German.1080p.WEB-EXTRA", api.Failed, "", now)
 		if code, _ := call(failed.ID, true); code != http.StatusOK {
