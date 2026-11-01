@@ -32,6 +32,12 @@ before() {
 	} | sort_versions | uniq | awk -v v="$1" '$0 == v { print prev; exit } { prev = $0 }'
 }
 
+# same_minor reports whether two versions share their major and minor
+# version, such as v0.9.0 and v0.9.2-rc.1.
+same_minor() {
+	[ "$(printf '%s' "$1" | cut -d. -f1,2)" = "$(printf '%s' "$2" | cut -d. -f1,2)" ]
+}
+
 # is_candidate reports whether $1 is a candidate, such as v1.0.0-rc.2.
 is_candidate() {
 	[[ "$1" == *-rc.* ]]

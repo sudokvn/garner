@@ -74,11 +74,13 @@ candidate=$(printf '%s\n' "$candidates" | tail -1)
 if ! is_candidate "$version"; then
 	[ -n "$candidate" ] || fail "release a candidate first, then this one once it proved itself: mise run release $version-rc.1"
 	# A release goes out under its candidate's version. Only when that
-	# version's release failed, so its tag is taken, does the next patch
-	# version release the same candidate.
+	# version's release failed, so its tag is taken, does a later patch
+	# version of it release the same candidate; a new minor version needs
+	# a candidate of its own and its own waiting.
 	base=${candidate%-rc.*}
-	[ "$base" = "$version" ] || git rev-parse --verify --quiet "refs/tags/$base" >/dev/null ||
-		fail "the newest candidate, $candidate, is for $base; release it as $base, or a candidate for $version first"
+	[ "$base" = "$version" ] ||
+		{ git rev-parse --verify --quiet "refs/tags/$base" >/dev/null && same_minor "$base" "$version"; } ||
+		fail "the newest candidate, $candidate, is for $base; release it as $base, as a patch version of it if $base failed, or a candidate for $version first"
 	# What goes out is what the dev channel ran: the newest candidate.
 	[ ${#args[@]} -ge 2 ] || rev=$(git rev-list -n 1 "refs/tags/$candidate")
 fi

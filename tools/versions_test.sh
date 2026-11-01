@@ -25,5 +25,10 @@ expect "before the first" "$(printf '%s\n' v0.8.2 | before v0.1.0)" ""
 is_candidate v1.0.0-rc.3 || expect "candidate" "release" "candidate"
 ! is_candidate v1.0.0 || expect "release" "candidate" "release"
 
+same_minor v0.9.0 v0.9.2 || expect "same minor" "different" "same"
+same_minor v0.9.0 v0.9.1-rc.1 || expect "same minor, candidate" "different" "same"
+! same_minor v0.9.0 v0.10.0 || expect "next minor" "same" "different"
+! same_minor v0.9.0 v1.9.0 || expect "next major" "same" "different"
+
 [ "$failed" = 0 ] && printf '✓ version order\n'
 exit "$failed"
