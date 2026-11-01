@@ -10,7 +10,7 @@
 #
 # A candidate, vX.Y.Z-rc.N, goes to the dev channel. A stable release,
 # vX.Y.Z, releases the commit of the newest candidate once it proved
-# itself (CONTRIBUTING.md, Releases): the nightly passed on that commit,
+# itself (RELEASING.md): the nightly passed on that commit,
 # and the candidate ran for a day, or for a new minor version for a week,
 # the newest candidate for three days. --hotfix skips the waiting, for
 # data loss, a security problem or imports broken for everyone.

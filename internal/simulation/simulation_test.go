@@ -1,8 +1,40 @@
 // Package simulation runs Garner's server against a simulated world:
-// SABnzbd, Prowlarr, Jellyfin, FFprobe, the share and the clock. A seed
-// drives every choice; after every step the test checks the promises
-// Garner makes about the user's files. CONTRIBUTING.md explains how to
-// read and replay a failure.
+// SABnzbd, Prowlarr, Jellyfin, FFprobe, the share and the clock. The share
+// holds a library with files from before Garner, the user's own files and
+// an older Jellyfin library; the downloads or the older library may sit on
+// another disk. A seed drives every choice, and after every step the test
+// checks the promises Garner makes about the user's files:
+//
+//   - S1: files no one gave Garner, such as the user's own files and
+//     Jellyfin's metadata, stay as they are.
+//   - S2: a video leaves the library only when a file as good or better
+//     replaced it, or a worse one the user chose over it, or when the user
+//     deleted its show with its files. S3: no video is in it twice.
+//   - S4: every file Garner records exists.
+//   - S5: Garner changes nothing outside the library and SABnzbd's
+//     folders, and removes a download's folder only when it is done with
+//     the download.
+//   - S6: downloads and imports change state only along the allowed
+//     transitions.
+//
+// Before every rule, the test compares its own notes of what it told
+// Garner with Garner's database; a difference is the simulation's mistake,
+// not Garner's. The calm period at the end adds the rules L1 to L4 (see
+// calm).
+//
+// go test runs the fixed seeds (fixedSeeds), each twice: the second run
+// must tell the same story. A failure ends with the command that replays
+// it; -v prints every step. To look for new bugs, run fresh seeds, which
+// stop at the first that fails:
+//
+//	go test ./internal/simulation -run 'TestSimulation$' -seeds 1000
+//	go test ./internal/simulation -run 'TestSimulation$' -seeds-for 10m -timeout 25m
+//
+// The Nightly workflow runs fresh seeds for 50 minutes every night and
+// opens an issue labelled nightly when one fails, or comments on the one
+// still open; close it with the fix. A change to the simulated world sends
+// every seed down another path; the comment on fixedSeeds says how to
+// choose them again when one no longer covers an event or a crash point.
 package simulation
 
 import (

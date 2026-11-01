@@ -35,7 +35,7 @@ range=$commit
 # see none of it in garner.
 own() {
 	case $1 in
-	README.md | CONTRIBUTING.md | SECURITY.md | AGENTS.md | .gitignore | mise.toml) return 0 ;;
+	README.md | CONTRIBUTING.md | RELEASING.md | SECURITY.md | AGENTS.md | .gitignore | mise.toml) return 0 ;;
 	docs/* | .github/* | tools/* | */testdata/* | *_test.go) return 0 ;;
 	esac
 	return 1

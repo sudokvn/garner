@@ -11,7 +11,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// The palette; docs/tui.md lists the colours' uses.
+// The palette; internal/tui/README.md lists the colours' uses.
 var (
 	cFg     = lipgloss.Color("#EDF1F2")
 	cMuted  = lipgloss.Color("#9199A3")
@@ -37,7 +37,7 @@ var (
 	sCommand = sBold.Background(cSelect)
 )
 
-// Glyphs, one set everywhere (see docs/tui.md).
+// Glyphs, one set everywhere (see internal/tui/README.md).
 var (
 	gDone    = sMint.Render("✓")
 	gWorking = sAmber.Render("●")

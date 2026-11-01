@@ -1,5 +1,5 @@
-// Package tui is Garner's terminal interface. docs/tui.md describes its
-// conventions.
+// Package tui is garner's terminal interface. Its conventions are in
+// README.md.
 package tui
 
 import (
