@@ -15,7 +15,6 @@ import (
 	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/match"
 	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/selection"
 )
 
 // Search finds shows on TVDB and marks those already in the catalogue. The
@@ -209,15 +208,12 @@ func (c *Catalog) describe(ctx context.Context, id int64) (described, error) {
 		return described{}, err
 	}
 	year, _ := strconv.Atoi(s.Year)
-	original := selection.OriginalLanguage(s.OriginalLanguage)
 	d := described{order: "official", Preview: api.Preview{
 		SearchResult: api.SearchResult{ID: s.ID, Slug: s.Slug, Name: s.Name, Year: year, Status: s.Status.Name, Language: s.OriginalLanguage},
 		Type:         typeFor(s), LanguageName: LanguageName(s.OriginalLanguage),
 		FirstAired: s.FirstAired, LastAired: s.LastAired, Runtime: s.AverageRuntime, Orders: []string{},
 		URL: SeriesURL(s.Slug, s.ID),
 	}}
-	profile := c.defaultProfile(d.Type, original)
-	d.Rules, d.LanguageNote = profile.Describe(), selection.OriginalNote(profile, original)
 	if s.OriginalNetwork != nil {
 		d.Network = s.OriginalNetwork.Name
 	}

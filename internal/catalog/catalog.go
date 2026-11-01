@@ -17,7 +17,6 @@ import (
 	"github.com/BurntSushi/toml"
 
 	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/selection"
 	"github.com/trucke/garner/internal/store"
 )
 
@@ -38,9 +37,6 @@ type Catalog struct {
 	xem         *XEM
 	log         *slog.Logger
 	corrections corrections
-	// defaultProfile applies the profile new shows of a type get to a show
-	// whose original language is original, for the preview.
-	defaultProfile func(typ string, original release.Language) selection.Profile
 	// OnChange is called after a show was added or refreshed.
 	OnChange func(seriesID int64)
 }
@@ -71,8 +67,7 @@ type titleCorrection struct {
 }
 
 // New returns a catalogue. xem may be nil to skip TheXEM.
-func New(st *store.Store, tvdb *TVDB, xem *XEM, defaultProfile func(typ string, original release.Language) selection.Profile,
-	log *slog.Logger) (*Catalog, error) {
+func New(st *store.Store, tvdb *TVDB, xem *XEM, log *slog.Logger) (*Catalog, error) {
 	var c corrections
 	meta, err := toml.Decode(correctionsFile, &c)
 	if err != nil {
@@ -97,7 +92,7 @@ func New(st *store.Store, tvdb *TVDB, xem *XEM, defaultProfile func(typ string, 
 		}
 		seen[key] = true
 	}
-	return &Catalog{store: st, tvdb: tvdb, xem: xem, defaultProfile: defaultProfile, log: log, corrections: c}, nil
+	return &Catalog{store: st, tvdb: tvdb, xem: xem, log: log, corrections: c}, nil
 }
 
 // Add loads a show into the catalogue with the monitor mode, such as

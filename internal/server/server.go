@@ -237,7 +237,7 @@ func (s *Server) setupCatalog() error {
 	if s.deps.Sleep != nil {
 		tvdb.Sleep = s.deps.Sleep
 	}
-	c, err := catalog.New(s.store, tvdb, catalog.NewXEM(catalog.XEMBaseURL, client), s.defaultProfileFor, s.log)
+	c, err := catalog.New(s.store, tvdb, catalog.NewXEM(catalog.XEMBaseURL, client), s.log)
 	if err != nil {
 		return err
 	}

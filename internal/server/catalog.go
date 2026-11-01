@@ -52,7 +52,8 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, results)
 }
 
-// handlePreview describes a show on TVDB before it is added.
+// handlePreview describes a show on TVDB before it is added, with the
+// rules of the profile it would get.
 func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("tvdb_id"), 10, 64)
 	if err != nil || id <= 0 {
@@ -66,6 +67,9 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		s.upstreamError(w, "describe a TVDB series", err)
 	default:
+		original := selection.OriginalLanguage(p.Language)
+		profile := s.defaultProfileFor(p.Type, original)
+		p.Rules, p.LanguageNote = profile.Describe(), selection.OriginalNote(profile, original)
 		writeJSON(w, http.StatusOK, p)
 	}
 }
