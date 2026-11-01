@@ -51,7 +51,7 @@ func Install(t testing.TB, st *store.Store) (tv, anime int64) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := st.SetDefaultProfile(ctx, p.typ, id); err != nil {
+		if err := st.SetDefaultProfile(ctx, id, p.typ); err != nil {
 			t.Fatal(err)
 		}
 		*p.id = id

@@ -1188,7 +1188,7 @@ func (s *sim) installProfiles(st *store.Store) error {
 		if errors.Is(err, store.ErrNoProfile) {
 			stored.ID, err = st.CreateProfile(s.ctx, p.profile.Name, profile.Encode(p.profile))
 			if err == nil {
-				err = st.SetDefaultProfile(s.ctx, p.typ, stored.ID)
+				err = st.SetDefaultProfile(s.ctx, stored.ID, p.typ)
 			}
 		}
 		if err != nil {

@@ -121,10 +121,10 @@ func TestProfiles(t *testing.T) {
 
 	// A show uses German; its search was judged by German's rules.
 	saveShow(t, st, 42)
-	if err := st.ChangeProfile(ctx, 42, id); err != nil {
+	if err := st.ChangeSeries(ctx, 42, SeriesChange{ProfileID: id}, time.Now()); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.ChangeProfile(ctx, 42, 999); !errors.Is(err, ErrNoProfile) {
+	if err := st.ChangeSeries(ctx, 42, SeriesChange{ProfileID: 999}, time.Now()); !errors.Is(err, ErrNoProfile) {
 		t.Errorf("unknown profile: %v", err)
 	}
 	if err := st.SaveSearch(ctx, Search{EpisodeID: 101, Searched: time.Now(), Outcome: "nothing", Summary: "-"}); err != nil {
@@ -146,10 +146,10 @@ func TestProfiles(t *testing.T) {
 	}
 
 	// German becomes the TV default in place of Original language.
-	if err := st.SetDefaultProfile(ctx, TypeTV, id); err != nil {
+	if err := st.SetDefaultProfile(ctx, id, TypeTV); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.SetDefaultProfile(ctx, TypeTV, 999); !errors.Is(err, ErrNoProfile) {
+	if err := st.SetDefaultProfile(ctx, 999, TypeTV); !errors.Is(err, ErrNoProfile) {
 		t.Errorf("unknown default: %v", err)
 	}
 	if def, err := st.DefaultProfile(ctx, TypeTV); err != nil || def.ID != id {
@@ -166,7 +166,7 @@ func TestProfiles(t *testing.T) {
 	}
 
 	// Once the show uses Original language, German is still the TV default.
-	if err := st.ChangeProfile(ctx, 42, original.ID); err != nil {
+	if err := st.ChangeSeries(ctx, 42, SeriesChange{ProfileID: original.ID}, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.DeleteProfile(ctx, id); !errors.As(err, &inUse) || !inUse.DefaultTV || len(inUse.Shows) > 0 {
@@ -193,10 +193,10 @@ func TestChangeType(t *testing.T) {
 	if err := st.SaveSearch(ctx, Search{EpisodeID: 101, Searched: time.Now(), Outcome: "nothing", Summary: "-"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.ChangeType(ctx, 42, "cartoon"); err == nil {
+	if err := st.ChangeSeries(ctx, 42, SeriesChange{Type: "cartoon"}, time.Now()); err == nil {
 		t.Error("an unknown type was accepted")
 	}
-	if err := st.ChangeType(ctx, 42, TypeAnime); err != nil {
+	if err := st.ChangeSeries(ctx, 42, SeriesChange{Type: TypeAnime}, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if d, _ := st.LoadSeries(ctx, 42); d.Series.Type != TypeAnime {
@@ -205,7 +205,7 @@ func TestChangeType(t *testing.T) {
 	if _, err := st.LoadSearch(ctx, 101); err == nil {
 		t.Error("the search matched with the old numbering survived the change")
 	}
-	if err := st.ChangeType(ctx, 999, TypeTV); !errors.Is(err, ErrNotFound) {
+	if err := st.ChangeSeries(ctx, 999, SeriesChange{Type: TypeTV}, time.Now()); !errors.Is(err, ErrNotFound) {
 		t.Errorf("unknown show: %v", err)
 	}
 }

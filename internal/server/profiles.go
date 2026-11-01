@@ -242,9 +242,10 @@ func (s *Server) saveProfile(ctx context.Context, id int64, p profile.Profile) (
 
 // profilesChanged reloads the profiles garner judges by and tells the
 // clients. A changed profile drops the search results of its shows, so the
-// monitor may have work.
+// monitor may have work. The change is saved, so the cache follows it even
+// when the client stopped waiting.
 func (s *Server) profilesChanged(ctx context.Context) {
-	if err := s.loadProfiles(ctx); err != nil {
+	if err := s.loadProfiles(context.WithoutCancel(ctx)); err != nil {
 		s.log.Error("reload profiles", "err", err)
 	}
 	s.events.publish(Event{Type: api.EventProfilesUpdated})
@@ -302,12 +303,10 @@ func (s *Server) handleDefaultProfile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, `expected {"types": ["tv"], ["anime"] or ["tv", "anime"]}`)
 		return
 	}
-	for _, typ := range req.Types {
-		if err := s.store.SetDefaultProfile(r.Context(), typ, id); err != nil {
-			if !s.profileSaved(w, err) {
-				return
-			}
-		}
+	// The types change together, so a failure leaves the defaults and the
+	// cache as they were.
+	if !s.profileSaved(w, s.store.SetDefaultProfile(r.Context(), id, req.Types...)) {
+		return
 	}
 	s.profilesChanged(r.Context())
 	s.writeProfile(w, r, id, http.StatusOK)

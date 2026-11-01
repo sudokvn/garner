@@ -221,33 +221,36 @@ func (s *Store) DeleteProfile(ctx context.Context, id int64) error {
 	return tx.Commit()
 }
 
-// SetDefaultProfile makes a profile the one new shows of a type get, in
-// place of the type's earlier default.
-func (s *Store) SetDefaultProfile(ctx context.Context, typ string, id int64) error {
+// SetDefaultProfile makes a profile the one new shows of the types get, in
+// place of each type's earlier default. The types change together or not
+// at all.
+func (s *Store) SetDefaultProfile(ctx context.Context, id int64, types ...string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 	q := s.q.WithTx(tx)
-	var n int64
-	switch typ {
-	case TypeTV:
-		if err = q.ClearDefaultTV(ctx); err == nil {
-			n, err = q.SetDefaultTV(ctx, id)
+	for _, typ := range types {
+		var n int64
+		switch typ {
+		case TypeTV:
+			if err = q.ClearDefaultTV(ctx); err == nil {
+				n, err = q.SetDefaultTV(ctx, id)
+			}
+		case TypeAnime:
+			if err = q.ClearDefaultAnime(ctx); err == nil {
+				n, err = q.SetDefaultAnime(ctx, id)
+			}
+		default:
+			return fmt.Errorf("type %q is neither %s nor %s", typ, TypeTV, TypeAnime)
 		}
-	case TypeAnime:
-		if err = q.ClearDefaultAnime(ctx); err == nil {
-			n, err = q.SetDefaultAnime(ctx, id)
+		if err != nil {
+			return err
 		}
-	default:
-		return fmt.Errorf("type %q is neither %s nor %s", typ, TypeTV, TypeAnime)
-	}
-	if err != nil {
-		return err
-	}
-	if n == 0 {
-		return fmt.Errorf("profile %d: %w", id, ErrNoProfile)
+		if n == 0 {
+			return fmt.Errorf("profile %d: %w", id, ErrNoProfile)
+		}
 	}
 	return tx.Commit()
 }

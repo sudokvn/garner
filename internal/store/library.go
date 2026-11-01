@@ -265,45 +265,25 @@ func (s *Store) DeleteSeries(ctx context.Context, seriesID int64) error {
 	return tx.Commit()
 }
 
-// ChangeProfile gives a show another profile and, when it changed, drops
-// the show's search results in the same transaction: they were judged by
-// the old rules, and the next search judges by the new ones. Episodes with
-// a running download keep theirs: it may need a replacement from them.
-func (s *Store) ChangeProfile(ctx context.Context, seriesID, profileID int64) error {
-	return s.changeSeries(ctx, seriesID, func(q *query.Queries, row query.Series) (bool, error) {
-		if row.ProfileID.Int64 == profileID {
-			return false, nil
-		}
-		if _, err := q.GetProfile(ctx, profileID); errors.Is(err, sql.ErrNoRows) {
-			return false, fmt.Errorf("profile %d: %w", profileID, ErrNoProfile)
-		} else if err != nil {
-			return false, err
-		}
-		_, err := q.SetSeriesProfile(ctx, query.SetSeriesProfileParams{ProfileID: sql.NullInt64{Int64: profileID, Valid: true}, ID: seriesID})
-		return true, err
-	})
+// SeriesChange is what ChangeSeries changes of a show; empty fields stay.
+type SeriesChange struct {
+	ProfileID int64
+	Type      string // TypeTV or TypeAnime
+	Monitor   string // MonitorNew, MonitorAll or MonitorOff
 }
 
-// ChangeType sets a show's type, TypeTV or TypeAnime, and, when it
-// changed, drops the show's search results as ChangeProfile does: they
-// were matched with the old numbering. Files in the library stay where
-// they are; new ones go to the type's folder.
-func (s *Store) ChangeType(ctx context.Context, seriesID int64, typ string) error {
-	if typ != TypeTV && typ != TypeAnime {
-		return fmt.Errorf("type %q is neither %s nor %s", typ, TypeTV, TypeAnime)
+// ChangeSeries changes a show's profile, type and monitor mode in one
+// transaction, so either all of them change or none. A changed profile
+// drops the show's search results: they were judged by the old rules, and
+// the next search judges by the new ones. So does a changed type: they
+// were matched with the old numbering. Episodes with a running download
+// keep theirs: it may need a replacement from them. Files in the library
+// stay where they are; new ones go to the type's folder. A monitor mode
+// chosen anew counts from now.
+func (s *Store) ChangeSeries(ctx context.Context, seriesID int64, c SeriesChange, now time.Time) error {
+	if c.Type != "" && c.Type != TypeTV && c.Type != TypeAnime {
+		return fmt.Errorf("type %q is neither %s nor %s", c.Type, TypeTV, TypeAnime)
 	}
-	return s.changeSeries(ctx, seriesID, func(q *query.Queries, row query.Series) (bool, error) {
-		if row.Type.String == typ {
-			return false, nil
-		}
-		_, err := q.SetSeriesType(ctx, query.SetSeriesTypeParams{Type: nullString(typ), ID: seriesID})
-		return true, err
-	})
-}
-
-// changeSeries runs change on a show in a transaction and, when change
-// reports a change, drops the show's search results.
-func (s *Store) changeSeries(ctx context.Context, seriesID int64, change func(*query.Queries, query.Series) (bool, error)) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -317,12 +297,33 @@ func (s *Store) changeSeries(ctx context.Context, seriesID int64, change func(*q
 	if err != nil {
 		return err
 	}
-	changed, err := change(q, row)
-	if err != nil || !changed {
-		return err
+	rejudge := false
+	if c.ProfileID != 0 && row.ProfileID.Int64 != c.ProfileID {
+		if _, err := q.GetProfile(ctx, c.ProfileID); errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("profile %d: %w", c.ProfileID, ErrNoProfile)
+		} else if err != nil {
+			return err
+		}
+		if _, err := q.SetSeriesProfile(ctx, query.SetSeriesProfileParams{ProfileID: sql.NullInt64{Int64: c.ProfileID, Valid: true}, ID: seriesID}); err != nil {
+			return err
+		}
+		rejudge = true
 	}
-	if err := clearJudgements(ctx, q, seriesID); err != nil {
-		return err
+	if c.Type != "" && row.Type.String != c.Type {
+		if _, err := q.SetSeriesType(ctx, query.SetSeriesTypeParams{Type: nullString(c.Type), ID: seriesID}); err != nil {
+			return err
+		}
+		rejudge = true
+	}
+	if c.Monitor != "" {
+		if _, err := q.SetSeriesMonitor(ctx, query.SetSeriesMonitorParams{Monitor: c.Monitor, Since: now.Unix(), ID: seriesID}); err != nil {
+			return err
+		}
+	}
+	if rejudge {
+		if err := clearJudgements(ctx, q, seriesID); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }

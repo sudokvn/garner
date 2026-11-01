@@ -219,7 +219,7 @@ func (s *Server) seriesDetail(w http.ResponseWriter, r *http.Request, id int64) 
 	return detail, true
 }
 
-// handleUpdateSeries changes a show's profile, its monitor mode, or both.
+// handleUpdateSeries changes any of a show's profile, type and monitor mode.
 func (s *Server) handleUpdateSeries(w http.ResponseWriter, r *http.Request) {
 	id, ok := seriesID(w, r)
 	if !ok {
@@ -239,16 +239,9 @@ func (s *Server) handleUpdateSeries(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, `expected any of {"profile_id": a profile's ID, "type": "tv" or "anime", "monitor": "new", "all" or "off"}`)
 		return
 	}
-	ctx := r.Context()
-	if req.ProfileID != 0 {
-		err = s.store.ChangeProfile(ctx, id, req.ProfileID)
-	}
-	if err == nil && req.Type != "" {
-		err = s.store.ChangeType(ctx, id, req.Type)
-	}
-	if err == nil && req.Monitor != "" {
-		err = s.store.SetMonitor(ctx, id, req.Monitor, s.now())
-	}
+	// One transaction: a failure leaves the show as it was, so clients
+	// showing it need no update.
+	err = s.store.ChangeSeries(r.Context(), id, store.SeriesChange{ProfileID: req.ProfileID, Type: req.Type, Monitor: req.Monitor}, s.now())
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		writeError(w, http.StatusNotFound, "series is not in the catalogue")
