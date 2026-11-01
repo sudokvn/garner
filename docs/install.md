@@ -114,7 +114,7 @@ To start garner with the server, run the container from a systemd unit, such as 
 2. Install `garner` on that device as the [README](../README.md#get-started) describes, then run `garner`.
 3. Paste the connection code. The library opens.
 4. Press `?`, then `a`, to open the About screen. It shows whether Prowlarr, SABnzbd, Jellyfin and TheTVDB answer, and why not when one of them does not.
-5. Press `P` to see the profiles. garner starts with Original language, which wants each show in its original audio. To download in another language, press `a` to start a profile from a shipped one, such as German or English, then `u` to make it the profile for new shows. [Choose which releases garner accepts](../README.md#choose-which-releases-garner-accepts) says more.
+5. Press `P` to see the profiles. garner starts with Original language, which wants each show in its original audio. To download in another language, press `a` to start a profile from a shipped one, such as German or English, then `u` to make it the profile for new shows. [Profiles](profiles.md) says more.
 
 `garnerd token list` lists the tokens, and `garnerd token revoke <device>` disconnects a device.
 

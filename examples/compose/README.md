@@ -63,7 +63,7 @@ All services see the media at `/srv/media`, as one folder: SABnzbd downloads int
     ```
 
     Install `garner` on that device as the [README](../../README.md#get-started) describes, run it and paste the connection code. Press `?`, then `a`, to open the About screen: it shows whether Prowlarr, SABnzbd, Jellyfin and TheTVDB answer.
-12. Press `P` to see the profiles. garner starts with Original language, which wants each show in its original audio. To download in another language, press `a` to start a profile from a shipped one, such as German or English, then `u` to make it the profile for new shows. [Choose which releases garner accepts](../../README.md#choose-which-releases-garner-accepts) says more.
+12. Press `P` to see the profiles. garner starts with Original language, which wants each show in its original audio. To download in another language, press `a` to start a profile from a shipped one, such as German or English, then `u` to make it the profile for new shows. [Profiles](../../docs/profiles.md) says more.
 
 At start, garner warns that the services' API keys travel over plain HTTP. Between containers on one machine, they never leave it.
 
