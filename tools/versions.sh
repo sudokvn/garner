@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # Versions for the release scripts, sourced by them. A stable release is
-# vX.Y.Z; a candidate for it is vX.Y.Z-rc.N. install.sh keeps its own copy
-# of sort_versions, since users run it on its own.
+# vX.Y.Z; a candidate for it is vX.Y.Z-rc.N. install.sh orders versions
+# the same way in its own function, newest, since users run it on its own.
 
 # shellcheck disable=SC2034 # used by the scripts that source this file
 VERSION_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[1-9][0-9]*)?$'

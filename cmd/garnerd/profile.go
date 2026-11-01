@@ -36,7 +36,7 @@ func (a *app) profileCmd() *cobra.Command {
 				for _, p := range pe.Problems {
 					printError(errors.New(p))
 				}
-				return fmt.Errorf("the profile has %s; nothing was imported", count(len(pe.Problems), "problem"))
+				return fmt.Errorf("the profile has %s; nothing was imported", plural(len(pe.Problems), "problem"))
 			}
 			if err != nil {
 				return err
@@ -50,7 +50,7 @@ func (a *app) profileCmd() *cobra.Command {
 				success("Replaced %s · %s follows the new settings", bold.Render(res.Name), res.Shows[0])
 			default:
 				success("Replaced %s · %s follow the new settings: %s", bold.Render(res.Name),
-					count(len(res.Shows), "show"), strings.Join(res.Shows, ", "))
+					plural(len(res.Shows), "show"), strings.Join(res.Shows, ", "))
 			}
 			for _, w := range res.Warnings {
 				lipgloss.Println(warn.Render("!") + " " + w)
@@ -61,12 +61,4 @@ func (a *app) profileCmd() *cobra.Command {
 	imp.Flags().BoolVar(&replace, "replace", false, "replace a profile of the same name")
 	cmd.AddCommand(imp)
 	return cmd
-}
-
-// count writes n with a noun, such as "1 show" or "3 shows".
-func count(n int, noun string) string {
-	if n == 1 {
-		return "1 " + noun
-	}
-	return fmt.Sprintf("%d %ss", n, noun)
 }

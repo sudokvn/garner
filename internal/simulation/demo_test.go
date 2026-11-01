@@ -27,17 +27,17 @@ import (
 	"github.com/trucke/garner/internal/store"
 )
 
-// The demo serves Garner on a fixed world, for recording the terminal
-// interface: docs/demo.tape drives it, and mise run demo runs both. It
-// runs only with -demo and serves until it is stopped.
+// The demo serves garner on a fixed world, for recording the terminal
+// interface with a VHS tape: mise run demo <tape> runs both (tools/demo.sh).
+// It runs only with -demo and serves until it is stopped.
 var (
 	demoFlag       = flag.Bool("demo", false, "serve Garner on the demo world until stopped")
 	demoAddr       = flag.String("demo-addr", "127.0.0.1:0", "where the demo serves Garner")
 	demoConnection = flag.String("demo-connection", "", "write the demo's connection code to this file once it serves")
-	// The interface shows paths in the library, so a recording wants a
-	// short one rather than a temporary folder's.
 	// A download takes six ticks.
 	demoTick = flag.Duration("demo-tick", 600*time.Millisecond, "how often the demo's world and Garner's loops move on")
+	// The interface shows paths in the library, so a recording wants a
+	// short one rather than a temporary folder's.
 	demoRoot = flag.String("demo-root", "", "build the demo's share and database in this empty folder instead of a temporary one")
 )
 
