@@ -342,9 +342,9 @@ func (s *releasesScreen) progressLines() string {
 	return b.String()
 }
 
-// Column widths of the releases table, except the release name.
+// Column widths of the releases table, except the release name and the
+// preference, which fit the releases listed.
 const (
-	tierWidth   = len("English 1080p")
 	triedWidth  = len("downloading")
 	sourceWidth = len("WEBRip")
 	audioWidth  = len("DE, EN, JA")
@@ -354,7 +354,11 @@ const (
 
 func (s *releasesScreen) table(width, height int) string {
 	all := s.candidates()
-	cols := releaseCols{source: sourceWidth, audio: audioWidth, age: ageWidth}
+	cols := releaseCols{tier: len("Preference"), source: sourceWidth, audio: audioWidth, age: ageWidth}
+	for _, c := range all {
+		tier, _ := tierLabel(c)
+		cols.tier = max(cols.tier, ansi.StringWidth(tier))
+	}
 	// Tried appears once Garner tried one of the postings.
 	if slices.ContainsFunc(all, func(c api.Candidate) bool { return c.Attempt != nil }) {
 		cols.tried = triedWidth
@@ -424,13 +428,13 @@ const minReleaseName = 30
 // 0 when left out, on a narrow terminal or, for Tried, when Garner tried
 // none of the releases. The indexer shows in WHY.
 type releaseCols struct {
-	name, tried, source, audio, age int
+	name, tier, tried, source, audio, age int
 }
 
 // fixed is the table's width without the release name: margins, gaps and
 // the columns shown.
 func (cols releaseCols) fixed() int {
-	n := 3 + 1 + 3 + 3 + tierWidth + 3 + sizeWidth + 3
+	n := 3 + 1 + 3 + 3 + cols.tier + 3 + sizeWidth + 3
 	for _, w := range []int{cols.tried, cols.source, cols.audio, cols.age} {
 		if w > 0 {
 			n += w + 3
@@ -441,7 +445,7 @@ func (cols releaseCols) fixed() int {
 
 func (cols releaseCols) head() string {
 	head := func(t string, w int, right bool) string { return sSubtle.Render(fit(t, w, right)) + "   " }
-	line := "   " + " " + "   " + head("Release", cols.name, false) + head("Preference", tierWidth, false)
+	line := "   " + " " + "   " + head("Release", cols.name, false) + head("Preference", cols.tier, false)
 	if cols.tried > 0 {
 		line += head("Tried", cols.tried, false)
 	}
@@ -462,15 +466,14 @@ func (cols releaseCols) row(c api.Candidate, width int, selected bool) string {
 	bg := selectBg(selected)
 	glyph, glyphStyle := "✓", sMint
 	text := sNormal
-	tier, tierStyle := clean(c.Tier), sNormal
 	switch c.Verdict {
 	case "fallback":
 		glyph, glyphStyle = "~", sAmber
-		tier, tierStyle = "last resort", sAmber
 	case "reject":
 		glyph, glyphStyle = "✗", sRed
-		text, tier, tierStyle = sSubtle, "", sSubtle
+		text = sSubtle
 	}
+	tier, tierStyle := tierLabel(c)
 	audio := make([]string, len(c.Audio))
 	for i, a := range c.Audio {
 		audio[i] = strings.ToUpper(clean(a))
@@ -482,7 +485,7 @@ func (cols releaseCols) row(c api.Candidate, width int, selected bool) string {
 	gap := bg(lipgloss.NewStyle()).Render("   ")
 	line := gap + bg(glyphStyle).Render(glyph) + gap +
 		bg(text).Render(fit(cutMiddle(clean(c.Title), cols.name), cols.name, false)) + gap +
-		bg(tierStyle).Render(fit(tier, tierWidth, false)) + gap
+		bg(tierStyle).Render(fit(tier, cols.tier, false)) + gap
 	if cols.tried > 0 {
 		label, style := attemptLabel(c.Attempt)
 		line += bg(style).Render(fit(label, cols.tried, false)) + gap
@@ -498,6 +501,18 @@ func (cols releaseCols) row(c api.Candidate, width int, selected bool) string {
 		line += gap + bg(text).Render(fit(age, cols.age, true))
 	}
 	return fill(line, width, bg)
+}
+
+// tierLabel is what the Preference column shows for a release: the
+// preference it meets, or that it is only a last resort.
+func tierLabel(c api.Candidate) (string, lipgloss.Style) {
+	switch c.Verdict {
+	case "fallback":
+		return "last resort", sAmber
+	case "reject":
+		return "", sSubtle
+	}
+	return clean(c.Tier), sNormal
 }
 
 // why explains the release under the cursor: its full name, its indexer

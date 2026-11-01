@@ -67,3 +67,15 @@ func TestReleasesTried(t *testing.T) {
 		t.Errorf("a Tried column without tried releases:\n%s", view)
 	}
 }
+
+// TestReleasesPreferenceFits shows every release's preference in full,
+// however long its language's name.
+func TestReleasesPreferenceFits(t *testing.T) {
+	s := &releasesScreen{sess: &session{}, back: &showScreen{name: "Lanterns and Tides"}, search: &api.Search{Candidates: []api.Candidate{
+		{ID: 1, Rank: 1, Title: "Lanterns.and.Tides.S01E11.1080p.WEB-DL.H.264-TIDE", Size: 780e6, Verdict: "accept", Tier: "Japanese 1080p"},
+		{ID: 2, Rank: 2, Title: "Lanterns.and.Tides.S01E11.720p.WEB-DL.H.264-TIDE", Size: 377e6, Verdict: "accept", Tier: "Japanese 720p"},
+	}}, selected: 1}
+	if view := ansi.Strip(s.view(150, 30)); !strings.Contains(view, "Japanese 1080p") {
+		t.Errorf("the preference is cut:\n%s", view)
+	}
+}
