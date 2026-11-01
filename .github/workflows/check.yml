@@ -60,9 +60,7 @@ jobs:
           bash tools/versions_test.sh
 
       - name: Links in the Markdown files
-        run: |
-          git ls-files -z --cached --others --exclude-standard '*.md' |
-            xargs -0 lychee --offline --include-fragments --no-progress
+        run: bash tools/links.sh
 
       - name: Generated database code
         working-directory: internal/store

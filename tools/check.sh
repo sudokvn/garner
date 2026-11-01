@@ -2,9 +2,9 @@
 # Checks the working copy in place: formatting, vet, the links in the
 # docs, the generated database code and known vulnerabilities; the tests on macOS with the race
 # detector, and again on Linux in the Go image the container is built
-# with; and builds for Linux x86. With jj, every file that is not ignored
-# belongs to the working-copy commit, so the folder is what gets
-# committed. Run it before every push.
+# with; and builds for Linux x86. It checks every file in the folder that
+# Git does not ignore, committed or not, so it works the same with Git and
+# with jj. Run it before every push.
 #
 # Usage: mise run check
 set -euo pipefail
@@ -25,8 +25,16 @@ step() { printf '\n· %s\n' "$1"; }
 # Passes go test's output on without a line per passing package.
 quiet() { grep -v -E '^(ok|\?) ' || true; }
 
-# The tree jj records for the working copy now.
-tree() { git rev-parse "$(jj log -r @ --no-graph -T commit_id)^{tree}"; }
+# The folder's files as a Git tree, written through an index of its own so
+# Git's index stays as it is: every file Git does not ignore, committed or
+# not.
+index=$(mktemp)
+trap 'rm -f "$index"' EXIT
+tree() {
+	rm -f "$index"
+	GIT_INDEX_FILE=$index git add -A
+	GIT_INDEX_FILE=$index git write-tree
+}
 
 podman info >/dev/null 2>&1 || fail "Podman does not answer; start it with: podman machine start"
 image=$(sed -n 's/^ARG GOLANG=//p' Dockerfile)
@@ -34,7 +42,7 @@ tags=$(sed -n 's/.*go build -tags \([^ ]*\) .*/\1/p' Dockerfile)
 [ -n "$image" ] && [ -n "$tags" ] || fail "the Dockerfile names no Go image or build tags"
 
 checked=$(tree)
-printf 'Checking the working copy (%s)\n' "$(jj log -r @ --no-graph -T 'coalesce(description.first_line(), "no description")')"
+printf 'Checking the working folder in %s\n' "$root"
 
 export GOTOOLCHAIN=local
 
@@ -49,14 +57,8 @@ step "Shell scripts"
 shellcheck -x install.sh tools/*.sh || fail "shellcheck found problems"
 bash tools/versions_test.sh || fail "the release scripts order versions wrongly"
 
-# Only the links between the repository's files: --offline leaves the web
-# alone, and the anchors must name a heading of the file they point to.
 step "Links in the Markdown files"
-# jj lists the working copy's files, deleted ones left out, as Git's index
-# would not.
-jj file list -r @ 'glob:"**/*.md"' | tr '\n' '\0' |
-	xargs -0 lychee --offline --include-fragments --no-progress ||
-	fail "the docs link to a file or heading that does not exist; see above"
+bash tools/links.sh || fail "the docs link to a file or heading that does not exist; see above"
 
 step "Generated database code"
 (cd internal/store && sqlc diff) || fail "internal/store/query does not match the SQL; run mise run generate"

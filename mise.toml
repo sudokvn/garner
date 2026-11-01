@@ -49,6 +49,10 @@ run = "go run ./tools/devstack"
 description = "Drive the terminal interface with a VHS tape against a simulated world: mise run demo <tape> (needs vhs)"
 run = "bash tools/demo.sh"
 
+[tasks.links]
+description = "Check the links between the Markdown files (mise run check runs it too)"
+run = "bash tools/links.sh"
+
 [tasks.clean]
 description = "Remove the build output and the dev stack's scratch folder (~/garner-dev/scratch)"
 run = "bash tools/clean.sh"
