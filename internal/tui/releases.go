@@ -554,9 +554,10 @@ func attemptLabel(d *api.Download) (string, lipgloss.Style) {
 	if d == nil {
 		return "", sNormal
 	}
-	switch state := downloadState(*d); state {
-	case activityCancelled:
+	if d.State == api.Cancelled {
 		return "cancelled", sSubtle
+	}
+	switch d.EpisodeState() {
 	case api.EpisodeDownloading, api.EpisodeProcessing:
 		return "downloading", sAmber
 	case api.EpisodeImporting:

@@ -1,6 +1,9 @@
 package api
 
-import "time"
+import (
+	"slices"
+	"time"
+)
 
 // DownloadState is where a download is with SABnzbd.
 type DownloadState string
@@ -82,6 +85,32 @@ func (d Download) Active() bool {
 	return false
 }
 
+// EpisodeState is the state the download alone puts its episode in, as the
+// library names it: downloading, processing or importing while it runs,
+// attention when Jellyfin did not confirm its files, failed when it or its
+// import failed and imported when its import is done. It is empty for a
+// cancelled download. The library also weighs the episode's file and
+// searches: a file in the library outranks a failure, and a newer search
+// replaces it.
+func (d Download) EpisodeState() EpisodeState {
+	switch {
+	case d.State == Processing:
+		return EpisodeProcessing
+	case d.Active():
+		return EpisodeDownloading
+	case d.State == Completed && (d.Import.State == "" || d.Import.State == ImportPending ||
+		d.Import.State == ImportMoving || d.Import.State == ImportScanning):
+		return EpisodeImporting
+	case d.State == Completed && d.Import.State == ImportUnverified:
+		return EpisodeAttention
+	case d.State == Failed || d.Import.State == ImportFailed || d.Import.State == ImportRejected:
+		return EpisodeFailed
+	case d.Import.State == ImportDone:
+		return EpisodeImported
+	}
+	return ""
+}
+
 // CanAcknowledge reports whether this is an uncleared download failure,
 // not an import problem that still needs fixing. The server also checks
 // that this attempt is still the episode's latest.
@@ -127,6 +156,12 @@ type Import struct {
 	// in SABnzbd's folder.
 	Notes   []string  `json:"notes"`
 	Updated time.Time `json:"updated,omitzero"`
+}
+
+// Planned reports whether the file check gave every file its place in the
+// library; a failure after that happened while moving.
+func (im Import) Planned() bool {
+	return len(im.Files) > 0 && !slices.ContainsFunc(im.Files, func(f ImportFile) bool { return f.Target == "" })
 }
 
 // ImportFile is one video file of a download.

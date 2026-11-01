@@ -237,11 +237,16 @@ var activityRank = map[api.EpisodeState]int{
 	api.EpisodeDownloading: 4, api.EpisodeImported: 5, activityCancelled: 5, activityCleared: 5,
 }
 
-// Cleared failures are ended activity, not a new download state. Their
-// original failure remains available on the episode screen.
+// activityState is the state a row's download puts its episode in.
+// Cancelled downloads and cleared failures are ended activity, not new
+// download states. A cleared failure remains available on the episode
+// screen.
 func activityState(d api.Download) api.EpisodeState {
-	state := downloadState(d)
-	if state == api.EpisodeFailed && !d.Acknowledged.IsZero() {
+	state := d.EpisodeState()
+	switch {
+	case d.State == api.Cancelled:
+		return activityCancelled
+	case state == api.EpisodeFailed && !d.Acknowledged.IsZero():
 		return activityCleared
 	}
 	return state
@@ -273,27 +278,6 @@ func (s *activityScreen) move(n int) {
 	}
 	i := max(0, slices.IndexFunc(rows, func(it api.ActivityItem) bool { return it.Download.EpisodeID == s.selected }))
 	s.selected = rows[min(len(rows)-1, max(0, i+n))].Download.EpisodeID
-}
-
-// downloadState is the state a download puts its episode in, as the
-// library names them; a cancelled one is activityCancelled.
-func downloadState(d api.Download) api.EpisodeState {
-	switch {
-	case d.State == api.Cancelled:
-		return activityCancelled
-	case d.State == api.Processing:
-		return api.EpisodeProcessing
-	case d.Active():
-		return api.EpisodeDownloading
-	case d.State == api.Completed && (d.Import.State == "" || d.Import.State == api.ImportPending ||
-		d.Import.State == api.ImportMoving || d.Import.State == api.ImportScanning):
-		return api.EpisodeImporting
-	case d.Import.State == api.ImportUnverified:
-		return api.EpisodeAttention
-	case d.Import.State == api.ImportDone:
-		return api.EpisodeImported
-	}
-	return api.EpisodeFailed
 }
 
 // since is when the row's state began: when the download started while it

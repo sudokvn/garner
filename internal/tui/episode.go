@@ -611,7 +611,7 @@ func pipeline(d api.Download, now time.Time) []step {
 		// The row names the step; the reason need not.
 		fail(3, strings.TrimPrefix(cmp.Or(d.Failure, im.Detail), "file check: "), d.Updated)
 		return steps
-	case im.State == api.ImportFailed && !planned(im.Files):
+	case im.State == api.ImportFailed && !im.Planned():
 		fail(3, im.Detail, im.Updated)
 		return steps
 	}
@@ -645,12 +645,6 @@ func pipeline(d api.Download, now time.Time) []step {
 		done(5, im.Updated, part{clean(im.Detail), sMuted})
 	}
 	return steps
-}
-
-// planned reports whether the file check gave every file its place in the
-// library; a failure after that happened while moving.
-func planned(files []api.ImportFile) bool {
-	return len(files) > 0 && !slices.ContainsFunc(files, func(f api.ImportFile) bool { return f.Target == "" })
 }
 
 // stageNames lists SABnzbd's post-processing steps, such as "repair ·

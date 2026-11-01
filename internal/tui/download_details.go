@@ -10,7 +10,7 @@ import (
 // episode details screen. The reason comes from the server; the interface
 // does not infer a cause from an unfamiliar error.
 func downloadDetails(d api.Download, width int) string {
-	state := downloadState(d)
+	state := d.EpisodeState()
 	if state != api.EpisodeFailed && state != api.EpisodeAttention {
 		return ""
 	}

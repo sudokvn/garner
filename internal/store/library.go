@@ -154,24 +154,18 @@ func explains(state api.EpisodeState, d *Download) bool {
 // episodeState decides an episode's state from its file, latest download
 // and latest search.
 func episodeState(hasFile bool, d *Download, s searchOutcome, searched, aired bool) api.EpisodeState {
+	var own api.EpisodeState
 	if d != nil {
-		switch {
-		case d.State == Processing:
-			return EpisodeProcessing
-		case d.Active():
-			return EpisodeDownloading
-		case d.State == Completed && (d.Import.State == "" || d.Import.State == ImportPending ||
-			d.Import.State == ImportMoving || d.Import.State == ImportScanning):
-			return EpisodeImporting
-		case d.State == Completed && d.Import.State == ImportUnverified:
-			return EpisodeAttention
-		}
+		own = d.EpisodeState()
+	}
+	switch own {
+	case EpisodeProcessing, EpisodeDownloading, EpisodeImporting, EpisodeAttention:
+		return own
 	}
 	if hasFile {
 		return EpisodeImported
 	}
-	if d != nil && (d.State == Failed || d.Import.State == ImportFailed || d.Import.State == ImportRejected) &&
-		(!searched || !s.searched.After(d.Updated)) {
+	if own == EpisodeFailed && (!searched || !s.searched.After(d.Updated)) {
 		return EpisodeFailed
 	}
 	switch {

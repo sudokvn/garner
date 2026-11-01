@@ -205,7 +205,7 @@ func (s *Service) Retry(ctx context.Context, downloadID int64) (store.Download, 
 	}
 	im := d.Import
 	switch {
-	case im.State == store.ImportFailed && planned(im.Files):
+	case im.State == store.ImportFailed && im.Planned():
 		im.State = store.ImportMoving
 	case im.State == store.ImportFailed:
 		im.State = store.ImportPending
@@ -994,10 +994,6 @@ func videoFiles(dir string) ([]store.ImportFile, error) {
 	files = slices.DeleteFunc(files, func(f store.ImportFile) bool { return f.Size < largest/10 })
 	slices.SortFunc(files, func(a, b store.ImportFile) int { return strings.Compare(a.Source, b.Source) })
 	return files, nil
-}
-
-func planned(files []store.ImportFile) bool {
-	return len(files) > 0 && !slices.ContainsFunc(files, func(f store.ImportFile) bool { return f.Target == "" })
 }
 
 // unwrapPath drops the path from an *fs.PathError; the message names it.
