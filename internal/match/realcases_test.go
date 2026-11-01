@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/store"
 )
 
 // TestRealMatchCases checks matching against real release names with
@@ -42,7 +42,7 @@ func TestRealMatchCases(t *testing.T) {
 	if len(cases) == 0 {
 		t.Fatal("no cases")
 	}
-	catalog := map[int64]store.SeriesData{}
+	catalog := map[int64]api.SeriesData{}
 	for _, tc := range cases {
 		d, ok := catalog[tc.Series]
 		if !ok {

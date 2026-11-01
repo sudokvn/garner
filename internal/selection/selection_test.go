@@ -11,14 +11,13 @@ import (
 	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/match"
 	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/store"
 )
 
 // fixture is a made-up show with three episodes in season 1.
 func fixture(name, original string) (*match.Show, int64) {
-	d := store.SeriesData{Series: store.Series{ID: 1, Name: name, OriginalLanguage: original}}
+	d := api.SeriesData{Series: api.Series{ID: 1, Name: name, OriginalLanguage: original}}
 	for n := 1; n <= 3; n++ {
-		d.Episodes = append(d.Episodes, store.Episode{ID: int64(100 + n), Numbers: map[string]store.Position{"official": {Season: 1, Number: n}}})
+		d.Episodes = append(d.Episodes, api.Episode{ID: int64(100 + n), Numbers: map[string]api.Position{"official": {Season: 1, Number: n}}})
 	}
 	return match.NewShow(d, match.Options{}), 101
 }

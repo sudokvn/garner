@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/store"
 )
 
 // aired is TVDB's season type for the aired order.
@@ -28,16 +28,16 @@ type Show struct {
 	opts     Options
 	name     string
 	titles   []showTitle
-	orders   []store.Order
+	orders   []api.Order
 	episodes map[int64]*episode
 	// positions maps an order type and position to an episode.
-	positions map[string]map[store.Position]int64
+	positions map[string]map[api.Position]int64
 	// absolute numbers regular episodes in aired order, the way release
 	// groups count. TVDB's absolute order can include specials and
 	// TheXEM's absolute numbers restart every season, so neither fits.
 	absolute map[int]int64
 	// scene maps TheXEM's scene numbering, which releases use, to TVDB.
-	scene map[store.Position]store.SceneNumber
+	scene map[api.Position]api.SceneNumber
 }
 
 type showTitle struct {
@@ -50,15 +50,15 @@ type showTitle struct {
 }
 
 type episode struct {
-	store.Episode
+	api.Episode
 	names []text
 }
 
-func NewShow(d store.SeriesData, opts Options) *Show {
+func NewShow(d api.SeriesData, opts Options) *Show {
 	s := &Show{
 		opts: opts, name: cmp.Or(d.Series.NameEng, d.Series.Name), orders: d.Orders,
-		episodes: map[int64]*episode{}, positions: map[string]map[store.Position]int64{},
-		absolute: map[int]int64{}, scene: map[store.Position]store.SceneNumber{},
+		episodes: map[int64]*episode{}, positions: map[string]map[api.Position]int64{},
+		absolute: map[int]int64{}, scene: map[api.Position]api.SceneNumber{},
 	}
 	for _, n := range []string{d.Series.Name, d.Series.NameEng, d.Series.NameDeu} {
 		if t := newText(n); !t.empty() {
@@ -89,7 +89,7 @@ func NewShow(d store.SeriesData, opts Options) *Show {
 		s.episodes[e.ID] = ep
 		for order, p := range e.Numbers {
 			if s.positions[order] == nil {
-				s.positions[order] = map[store.Position]int64{}
+				s.positions[order] = map[api.Position]int64{}
 			}
 			s.positions[order][p] = e.ID
 		}
@@ -136,7 +136,7 @@ func (s *Show) sceneEpisode(season int, ep release.Episode) (id int64, note, err
 	if ep.Fraction > 0 {
 		return 0, "", fmt.Sprintf("TVDB has no S%02dE%s; half episodes such as recaps are usually specials", season, ep)
 	}
-	p := store.Position{Season: season, Number: ep.Number}
+	p := api.Position{Season: season, Number: ep.Number}
 	if n, ok := s.scene[p]; ok {
 		if n.EpisodeID == nil {
 			return 0, "", fmt.Sprintf("TheXEM maps %s to TVDB %s, which TVDB does not list", position(p), position(n.TVDB))
@@ -154,7 +154,7 @@ func (s *Show) orderEpisode(order string, season int, ep release.Episode) (id in
 	if ep.Fraction > 0 {
 		return 0, "", fmt.Sprintf("TVDB has no S%02dE%s; half episodes such as recaps are usually specials", season, ep)
 	}
-	p := store.Position{Season: season, Number: ep.Number}
+	p := api.Position{Season: season, Number: ep.Number}
 	if id, ok := s.positions[order][p]; ok {
 		return id, "", ""
 	}
@@ -235,8 +235,8 @@ func (s *Show) serviceOrder(services []release.Claim[release.Service]) (order st
 	return "", false
 }
 
-func comparePosition(a, b store.Position) int {
+func comparePosition(a, b api.Position) int {
 	return cmp.Or(cmp.Compare(a.Season, b.Season), cmp.Compare(a.Number, b.Number))
 }
 
-func position(p store.Position) string { return fmt.Sprintf("S%02dE%02d", p.Season, p.Number) }
+func position(p api.Position) string { return fmt.Sprintf("S%02dE%02d", p.Season, p.Number) }

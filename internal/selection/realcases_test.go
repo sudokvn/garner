@@ -13,7 +13,6 @@ import (
 	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/match"
 	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/store"
 )
 
 // TestRealSelectCases checks verdicts on real release names reviewed in
@@ -47,7 +46,7 @@ func TestRealSelectCases(t *testing.T) {
 	if len(cases) == 0 {
 		t.Fatal("no cases")
 	}
-	catalog := map[int64]store.SeriesData{}
+	catalog := map[int64]api.SeriesData{}
 	for _, tc := range cases {
 		d, ok := catalog[tc.Series]
 		if !ok {
@@ -80,9 +79,9 @@ func TestRealSelectCases(t *testing.T) {
 }
 
 // episodeAt finds the episode at an aired-order position such as S01E01.
-func episodeAt(t *testing.T, d store.SeriesData, label string) int64 {
+func episodeAt(t *testing.T, d api.SeriesData, label string) int64 {
 	t.Helper()
-	var p store.Position
+	var p api.Position
 	if _, err := fmt.Sscanf(label, "S%02dE%d", &p.Season, &p.Number); err != nil {
 		t.Fatalf("bad position %q", label)
 	}

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/store"
 )
 
 // FuzzMatch matches arbitrary names against the made-up shows of the test
@@ -18,7 +18,7 @@ func FuzzMatch(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, name string) {
 		claims := release.Parse(name)
-		for _, build := range []func() store.SeriesData{lanternHarbor, harborPrecinct, precinct100} {
+		for _, build := range []func() api.SeriesData{lanternHarbor, harborPrecinct, precinct100} {
 			for _, opts := range []Options{{}, anime} {
 				show := NewShow(build(), opts)
 				m := show.Match(claims, time.Time{})

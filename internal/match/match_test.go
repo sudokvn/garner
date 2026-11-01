@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/trucke/garner/internal/api"
 	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/store"
 )
 
 func TestWords(t *testing.T) {
@@ -34,11 +34,11 @@ func TestWords(t *testing.T) {
 // lanternHarbor is a made-up anime: 23 episodes in season 1 with a
 // three-episode premiere on one day, 24 in season 2, six specials, and a
 // Netflix order whose season 2 holds four of the specials.
-func lanternHarbor() store.SeriesData {
-	d := store.SeriesData{
-		Series: store.Series{ID: 1, Name: "Tourou no Minato", NameEng: "Lantern Harbor", NameDeu: "Laternenhafen"},
-		Orders: []store.Order{{Type: "official", Name: "Aired Order"}, {Type: "alternate", Name: "Alternate", AlternateName: "Netflix"}},
-		Titles: []store.Title{
+func lanternHarbor() api.SeriesData {
+	d := api.SeriesData{
+		Series: api.Series{ID: 1, Name: "Tourou no Minato", NameEng: "Lantern Harbor", NameDeu: "Laternenhafen"},
+		Orders: []api.Order{{Type: "official", Name: "Aired Order"}, {Type: "alternate", Name: "Alternate", AlternateName: "Netflix"}},
+		Titles: []api.Title{
 			{Title: "Tōrō no Minato", Source: "tvdb"},
 			{Title: "Lanterns & Tides", Source: "tvdb"},
 			{Title: "Tourou no Minato Ni no Shou", Source: "xem", SceneSeason: ptr(2), Season: ptr(2)},
@@ -46,12 +46,12 @@ func lanternHarbor() store.SeriesData {
 			// TheXEM lists the plain show title under season 1.
 			{Title: "Lantern Harbor", Source: "xem", SceneSeason: ptr(1), Season: ptr(1)},
 		},
-		Scene: []store.SceneNumber{
-			{Scene: store.Position{Season: 2, Number: 25}, TVDB: store.Position{Season: 2, Number: 25}},
-			{Scene: store.Position{Season: 3, Number: 1}, TVDB: store.Position{Season: 2, Number: 13}, EpisodeID: ptr64(2013)},
+		Scene: []api.SceneNumber{
+			{Scene: api.Position{Season: 2, Number: 25}, TVDB: api.Position{Season: 2, Number: 25}},
+			{Scene: api.Position{Season: 3, Number: 1}, TVDB: api.Position{Season: 2, Number: 13}, EpisodeID: ptr64(2013)},
 		},
 	}
-	names := map[store.Position][2]string{
+	names := map[api.Position][2]string{
 		{Season: 1, Number: 4}:  {"The Quiet Pier", "Der stille Steg"},
 		{Season: 1, Number: 5}:  {"Rooftops", "Über den Dächern"},
 		{Season: 1, Number: 8}:  {"Let's Go", "Gehen wir"},
@@ -59,28 +59,28 @@ func lanternHarbor() store.SeriesData {
 		{Season: 0, Number: 2}:  {"Recollection of the Fallen", "Erinnerung an die Gefallenen"},
 	}
 	premiere := time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC)
-	add := func(season, number int, aired time.Time) *store.Episode {
-		p := store.Position{Season: season, Number: number}
+	add := func(season, number int, aired time.Time) *api.Episode {
+		p := api.Position{Season: season, Number: number}
 		n, ok := names[p]
 		if !ok {
 			n = [2]string{fmt.Sprintf("Chapter %d-%d", season, number), fmt.Sprintf("Kapitel %d-%d", season, number)}
 		}
-		d.Episodes = append(d.Episodes, store.Episode{
+		d.Episodes = append(d.Episodes, api.Episode{
 			ID: int64(season*1000 + number), Aired: aired.Format(time.DateOnly), NameEng: n[0], NameDeu: n[1],
-			Numbers: map[string]store.Position{"official": p},
+			Numbers: map[string]api.Position{"official": p},
 		})
 		return &d.Episodes[len(d.Episodes)-1]
 	}
 	for n := 1; n <= 23; n++ {
-		add(1, n, premiere.AddDate(0, 0, 7*max(0, n-3))).Numbers["alternate"] = store.Position{Season: 1, Number: n}
+		add(1, n, premiere.AddDate(0, 0, 7*max(0, n-3))).Numbers["alternate"] = api.Position{Season: 1, Number: n}
 	}
 	for n := 1; n <= 24; n++ {
-		add(2, n, premiere.AddDate(1, 0, 7*n)).Numbers["alternate"] = store.Position{Season: 3, Number: n}
+		add(2, n, premiere.AddDate(1, 0, 7*n)).Numbers["alternate"] = api.Position{Season: 3, Number: n}
 	}
 	for n := 1; n <= 6; n++ {
 		e := add(0, n, premiere.AddDate(0, 6, n))
 		if n >= 3 {
-			e.Numbers["alternate"] = store.Position{Season: 2, Number: n - 2}
+			e.Numbers["alternate"] = api.Position{Season: 2, Number: n - 2}
 		}
 	}
 	return d
@@ -88,8 +88,8 @@ func lanternHarbor() store.SeriesData {
 
 // harborPrecinct is a made-up regular show: five seasons of 22 weekly
 // episodes from 2013, so episode 101 overall is S05E13 and aired in 2017.
-func harborPrecinct() store.SeriesData {
-	d := store.SeriesData{Series: store.Series{ID: 2, Name: "Harbor Precinct", NameDeu: "Hafenrevier"}}
+func harborPrecinct() api.SeriesData {
+	d := api.SeriesData{Series: api.Series{ID: 2, Name: "Harbor Precinct", NameDeu: "Hafenrevier"}}
 	start := time.Date(2013, 9, 17, 0, 0, 0, 0, time.UTC)
 	for s := 1; s <= 5; s++ {
 		for n := 1; n <= 22; n++ {
@@ -97,9 +97,9 @@ func harborPrecinct() store.SeriesData {
 			if s > 1 {
 				deu = ""
 			}
-			d.Episodes = append(d.Episodes, store.Episode{
+			d.Episodes = append(d.Episodes, api.Episode{
 				ID: int64(s*1000 + n), Aired: start.AddDate(s-1, 0, 7*(n-1)).Format(time.DateOnly), NameDeu: deu,
-				Numbers: map[string]store.Position{"official": {Season: s, Number: n}},
+				Numbers: map[string]api.Position{"official": {Season: s, Number: n}},
 			})
 		}
 	}
@@ -107,10 +107,10 @@ func harborPrecinct() store.SeriesData {
 }
 
 // precinct100 is a made-up show whose title ends in a number.
-func precinct100() store.SeriesData {
-	d := store.SeriesData{Series: store.Series{ID: 3, Name: "Precinct 100"}}
+func precinct100() api.SeriesData {
+	d := api.SeriesData{Series: api.Series{ID: 3, Name: "Precinct 100"}}
 	for n := 1; n <= 10; n++ {
-		d.Episodes = append(d.Episodes, store.Episode{ID: int64(1000 + n), Numbers: map[string]store.Position{"official": {Season: 1, Number: n}}})
+		d.Episodes = append(d.Episodes, api.Episode{ID: int64(1000 + n), Numbers: map[string]api.Position{"official": {Season: 1, Number: n}}})
 	}
 	return d
 }
@@ -125,7 +125,7 @@ func posted(s string) time.Time { d, _ := time.Parse(time.DateOnly, s); return d
 // matchTests are made-up release names and what matching them must yield.
 // FuzzMatch seeds its corpus from them.
 var matchTests = []struct {
-	show      func() store.SeriesData
+	show      func() api.SeriesData
 	opts      Options
 	name      string
 	published time.Time
