@@ -39,7 +39,7 @@ type Candidate struct {
 	Link string `json:"-"`
 	// Posting tells NZB postings of the same release apart: a fingerprint
 	// of the indexer's ID for this one. Empty for candidates stored before
-	// Garner kept it. Never sent to clients.
+	// garner kept it. Never sent to clients.
 	Posting string `json:"-"`
 	// Page is the release's page at the indexer, for people to open; empty
 	// when unknown or when its address could hold credentials.
@@ -59,13 +59,13 @@ type Candidate struct {
 	Decisive int     `json:"decisive"`
 	Episodes []int64 `json:"episodes"`
 	// Attempt is the latest download of this posting for the episode the
-	// candidate is for; nil when Garner never tried it.
+	// candidate is for; nil when garner never tried it.
 	Attempt *Download `json:"attempt,omitempty"`
 }
 
 // SamePosting reports whether the download is of this candidate's NZB
 // posting: by the indexer's ID for it when both have one, otherwise, for
-// rows from before Garner kept it, by name and size.
+// rows from before garner kept it, by name and size.
 func (c Candidate) SamePosting(d Download) bool {
 	if c.Posting != "" && d.Posting != "" {
 		return c.Posting == d.Posting
@@ -82,7 +82,6 @@ type SearchProgress struct {
 	Indexers  []IndexerProgress `json:"indexers"`
 }
 
-// IndexerProgress is one indexer of a running search.
 type IndexerProgress struct {
 	Name    string `json:"name"`
 	Done    bool   `json:"done"`

@@ -16,7 +16,7 @@ type Series struct {
 	FirstAired       string `json:"first_aired,omitempty"`
 	AverageRuntime   int    `json:"average_runtime,omitempty"`
 	DefaultOrder     string `json:"default_order"`
-	// Type is TypeTV or TypeAnime: how Garner reads episode numbers and
+	// Type is TypeTV or TypeAnime: how garner reads episode numbers and
 	// which library folder takes the show's files. ProfileID is the
 	// profile that says which releases the show accepts.
 	Type        string     `json:"type"`
@@ -52,7 +52,7 @@ func (sr Series) Monitors(aired string) bool {
 	return false
 }
 
-// Show types: how Garner reads a show's episode numbers and which library
+// Show types: how garner reads a show's episode numbers and which library
 // folder takes its files.
 const (
 	TypeTV    = "tv"
@@ -63,7 +63,7 @@ const (
 const (
 	MonitorNew = "new" // those airing from the day the mode was chosen
 	MonitorAll = "all" // every aired episode not in the library
-	MonitorOff = "off" // none; Garner searches when asked
+	MonitorOff = "off" // none; garner searches when asked
 )
 
 // MonitorModes lists the modes, the default first.
@@ -122,7 +122,7 @@ type SceneNumber struct {
 	EpisodeID *int64 `json:"episode_id,omitempty"`
 }
 
-// SeriesData is a show with everything Garner knows about it.
+// SeriesData is a show with everything garner knows about it.
 type SeriesData struct {
 	Series   Series        `json:"series"`
 	Orders   []Order       `json:"orders"`
@@ -145,7 +145,7 @@ const (
 	EpisodeImported    = "imported"     // in the library
 )
 
-// Show is a show with a summary of what Garner has of it.
+// Show is a show with a summary of what garner has of it.
 type Show struct {
 	Series
 	// Aired counts the episodes aired so far, specials excluded; Imported
@@ -179,7 +179,7 @@ type Focus struct {
 	NextRetry *time.Time `json:"next_retry,omitempty"`
 }
 
-// EpisodeStatus is what Garner has of one episode.
+// EpisodeStatus is what garner has of one episode.
 type EpisodeStatus struct {
 	EpisodeID int64 `json:"episode_id"`
 	// State is one of the episode states, or empty for a special nobody
@@ -199,8 +199,8 @@ type EpisodeStatus struct {
 	NextRetry *time.Time `json:"next_retry,omitempty"`
 }
 
-// SeriesDetail is a show with everything Garner knows about it, the
-// problems found in imported data, and what Garner has of each episode.
+// SeriesDetail is a show with everything garner knows about it, the
+// problems found in imported data, and what garner has of each episode.
 type SeriesDetail struct {
 	SeriesData
 	Issues []Issue `json:"issues"`
@@ -237,26 +237,26 @@ type SeriesDetail struct {
 	TakenOver *TakeOver `json:"taken_over,omitempty"`
 }
 
-// TakeOver is what Garner found when it looked for a show's files in the
+// TakeOver is what garner found when it looked for a show's files in the
 // library: in its own folder for the show and the folders Jellyfin holds
 // the show in.
 type TakeOver struct {
 	Folders []string `json:"folders"`
-	// Files counts the files Garner took over; Episodes the episodes they
+	// Files counts the files garner took over; Episodes the episodes they
 	// hold.
 	Files    int `json:"files"`
 	Episodes int `json:"episodes"`
-	// Skipped are the video files Garner left alone, and why.
+	// Skipped are the video files garner left alone, and why.
 	Skipped []SkippedFile `json:"skipped"`
-	// Renamable counts the show's taken-over files outside Garner's folder
-	// for it; renaming moves them there under Garner's names.
+	// Renamable counts the show's taken-over files outside garner's folder
+	// for it; renaming moves them there under garner's names.
 	Renamable int `json:"renamable"`
 	// Notes are problems that did not stop the search, such as Jellyfin
 	// not answering.
 	Notes []string `json:"notes"`
 }
 
-// SkippedFile is a video file Garner did not take over.
+// SkippedFile is a video file garner did not take over.
 type SkippedFile struct {
 	Path   string `json:"path"`
 	Reason string `json:"reason"`
@@ -264,7 +264,7 @@ type SkippedFile struct {
 
 // Renamed is what renaming a show's taken-over files did.
 type Renamed struct {
-	// Files counts the files moved into Garner's folder for the show.
+	// Files counts the files moved into garner's folder for the show.
 	Files int `json:"files"`
 	// Notes are what stayed behind, and why.
 	Notes []string `json:"notes"`
@@ -309,7 +309,7 @@ type SearchPage struct {
 // Preview is a show as TVDB describes it, for deciding whether to add it.
 type Preview struct {
 	SearchResult
-	// Type is the profile Garner will give the show: anime for TVDB's
+	// Type is the profile garner will give the show: anime for TVDB's
 	// Anime genre, otherwise tv. Rules describes that profile's tiers.
 	Type  string `json:"type"`
 	Rules string `json:"rules"`

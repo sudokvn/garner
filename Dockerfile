@@ -1,5 +1,5 @@
-# garner's container image: the server, garnerd, plus an FFprobe that can only read
-# the files garner imports. Build with `mise run image`.
+# garner's container image: the server, garnerd, plus an FFprobe that can
+# only read the files garner imports. Build with `mise run image`.
 #
 # Base images are pinned by index digest and FFmpeg by checksum; update them
 # deliberately. The image runs as UID 1000 on a read-only root filesystem.

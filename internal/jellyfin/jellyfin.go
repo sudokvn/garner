@@ -24,7 +24,6 @@ type Client struct {
 	http *http.Client
 }
 
-// New returns a client for the Jellyfin at baseURL.
 func New(baseURL, apiKey string, client *http.Client) *Client {
 	return &Client{base: strings.TrimRight(baseURL, "/"), key: apiKey, http: client}
 }

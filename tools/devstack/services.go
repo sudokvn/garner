@@ -19,7 +19,7 @@ import (
 )
 
 // setupSABnzbd points SABnzbd at the media folder, the Usenet server from
-// devstack.toml and the tv category Garner uses, and removes any other
+// devstack.toml and the tv category garner uses, and removes any other
 // server. It returns SABnzbd's API key.
 func setupSABnzbd(a accounts) (string, error) {
 	u := a.Usenet
@@ -394,7 +394,6 @@ func ensureLibraries(jf *client) error {
 	return nil
 }
 
-// client talks to one service.
 type client struct {
 	base   string
 	header http.Header

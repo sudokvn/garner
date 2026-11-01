@@ -24,7 +24,6 @@ type XEM struct {
 	http *http.Client
 }
 
-// NewXEM returns a client.
 func NewXEM(base string, client *http.Client) *XEM { return &XEM{base: base, http: client} }
 
 type xemNumber struct {

@@ -146,13 +146,11 @@ func (s *Store) saveSeries(ctx context.Context, d SeriesData, scene bool, now ti
 	return tx.Commit()
 }
 
-// HasSeries reports whether the show is in the catalogue.
 func (s *Store) HasSeries(ctx context.Context, id int64) (bool, error) {
 	n, err := s.q.SeriesExists(ctx, id)
 	return n > 0, err
 }
 
-// ListSeries lists the catalogue.
 func (s *Store) ListSeries(ctx context.Context) ([]Series, error) {
 	rows, err := s.q.ListSeries(ctx)
 	if err != nil {
@@ -165,12 +163,11 @@ func (s *Store) ListSeries(ctx context.Context) ([]Series, error) {
 	return out, nil
 }
 
-// SeriesIDs lists the IDs of all shows in the catalogue.
 func (s *Store) SeriesIDs(ctx context.Context) ([]int64, error) {
 	return s.q.ListSeriesIDs(ctx)
 }
 
-// LoadSeries returns a show with everything Garner knows about it.
+// LoadSeries returns a show with everything garner knows about it.
 func (s *Store) LoadSeries(ctx context.Context, id int64) (SeriesData, error) {
 	row, err := s.q.GetSeries(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -250,7 +247,6 @@ func (s *Store) SyncState(ctx context.Context, key string) (string, error) {
 	return v, err
 }
 
-// SetSyncState stores a value.
 func (s *Store) SetSyncState(ctx context.Context, key, value string) error {
 	return s.q.SetSyncState(ctx, query.SetSyncStateParams{Key: key, Value: value})
 }

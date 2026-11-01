@@ -1,4 +1,4 @@
-// Command garner is Garner's terminal interface. It connects to a Garner
+// Command garner is garner's terminal interface. It connects to a garner
 // server (garnerd) on this or another machine and holds none of the
 // server's code.
 package main

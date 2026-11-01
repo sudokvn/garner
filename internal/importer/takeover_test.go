@@ -15,7 +15,7 @@ import (
 // TestTakeOver takes over a show's files from an older library folder that
 // Jellyfin holds the show in, keeps the better of two files for one
 // episode, leaves what it cannot assign, and then renames the files into
-// Garner's folder with their subtitles.
+// garner's folder with their subtitles.
 func TestTakeOver(t *testing.T) {
 	ctx := context.Background()
 	e, _ := setup(t, german)
@@ -90,7 +90,7 @@ func TestTakeOver(t *testing.T) {
 	}
 }
 
-// TestTakeOverOwnNames takes back files Garner named, as after a show was
+// TestTakeOverOwnNames takes back files garner named, as after a show was
 // deleted with its files kept: the number after the show's name decides,
 // whatever numbers the episode title holds.
 func TestTakeOverOwnNames(t *testing.T) {
@@ -118,7 +118,7 @@ func TestTakeOverOwnNames(t *testing.T) {
 // TestImportDuringRename runs an import of an episode while a rename moves
 // the episode's taken-over file, as the import loop may while the user
 // renames: right after the rename moved the file and before it recorded
-// the move. Every video in Garner's folder must end up recorded, with the
+// the move. Every video in garner's folder must end up recorded, with the
 // import's file as the episode's (GRR-37).
 func TestImportDuringRename(t *testing.T) {
 	ctx := context.Background()
@@ -170,7 +170,7 @@ func TestImportDuringRename(t *testing.T) {
 	}
 }
 
-// TestRenameCrash ends Garner right after a rename moved a taken-over file,
+// TestRenameCrash ends garner right after a rename moved a taken-over file,
 // before it recorded the move. After a restart, the episode's record must
 // point at a file that exists (GRR-37).
 func TestRenameCrash(t *testing.T) {
@@ -203,7 +203,7 @@ func TestRenameCrash(t *testing.T) {
 		crashing.Rename(ctx, 42)
 	}()
 
-	// Garner starts again from its database.
+	// garner starts again from its database.
 	restarted := New(e.st, e.svc.probe, e.svc.jellyfin, e.svc.opts, slog.New(slog.DiscardHandler))
 	restarted.Work(ctx)
 	f, found, _ := e.st.EpisodeFile(ctx, 102)

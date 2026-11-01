@@ -7,10 +7,10 @@ ALTER TABLE downloads ADD COLUMN import_recovery TEXT NOT NULL DEFAULT '';
 ALTER TABLE downloads ADD COLUMN import_files TEXT NOT NULL DEFAULT '[]'; -- JSON: plan and file checks
 ALTER TABLE downloads ADD COLUMN import_updated_at INTEGER NOT NULL DEFAULT 0;
 
--- The file Garner imported for each episode; one version per episode.
+-- The file garner imported for each episode; one version per episode.
 CREATE TABLE episode_files (
     episode_id INTEGER PRIMARY KEY REFERENCES episodes (id) ON DELETE CASCADE,
-    path TEXT NOT NULL, -- as Garner reaches it
+    path TEXT NOT NULL, -- as garner reaches it
     size INTEGER NOT NULL,
     download_id INTEGER REFERENCES downloads (id) ON DELETE SET NULL,
     imported_at INTEGER NOT NULL

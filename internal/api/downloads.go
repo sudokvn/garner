@@ -56,7 +56,7 @@ type Download struct {
 	FailureSummary string `json:"failure_summary,omitempty"`
 	// Retryable means another release may succeed where this one failed.
 	Retryable bool `json:"retryable,omitempty"`
-	// Stopped says why Garner tried no other release after this one
+	// Stopped says why garner tried no other release after this one
 	// failed; empty when it tried one or did not have to.
 	Stopped string    `json:"stopped,omitempty"`
 	Stages  []Stage   `json:"stages"`
@@ -65,8 +65,7 @@ type Download struct {
 	// Acknowledged is when the user cleared this attempt's warning. The
 	// failure, its original timestamps and its retry eligibility stay put.
 	Acknowledged time.Time `json:"acknowledged,omitzero"`
-	// Import is the move of the finished files into the library.
-	Import Import `json:"import"`
+	Import       Import    `json:"import"`
 }
 
 // Stage is one of SABnzbd's post-processing steps and what happened in it.
@@ -75,7 +74,6 @@ type Stage struct {
 	Actions []string `json:"actions"`
 }
 
-// Active reports whether the download is still running.
 func (d Download) Active() bool {
 	switch d.State {
 	case Submitting, Queued, Downloading, Processing:
@@ -129,7 +127,7 @@ type Import struct {
 
 // ImportFile is one video file of a download.
 type ImportFile struct {
-	// Source and Target are as Garner reaches them.
+	// Source and Target are as garner reaches them.
 	Source   string  `json:"source"`
 	Target   string  `json:"target,omitempty"`
 	Episodes []int64 `json:"episodes"`
@@ -167,7 +165,7 @@ func ResolutionClass(w, h int) int {
 	return h
 }
 
-// EpisodeDetail is what Garner has of one episode: TVDB's description, its
+// EpisodeDetail is what garner has of one episode: TVDB's description, its
 // file in the library, if any, and every download, newest first.
 type EpisodeDetail struct {
 	Overview         string       `json:"overview,omitempty"`
@@ -176,7 +174,7 @@ type EpisodeDetail struct {
 	Downloads        []Download   `json:"downloads"`
 }
 
-// EpisodeFile is an episode's file, as Garner reaches it.
+// EpisodeFile is an episode's file, as garner reaches it.
 type EpisodeFile struct {
 	Path string `json:"path"`
 	Size int64  `json:"size"`

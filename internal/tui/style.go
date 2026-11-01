@@ -158,7 +158,7 @@ func factLines(width int, facts ...string) string {
 	return "   " + strings.Join(lines, "\n   ")
 }
 
-// breadcrumb renders the first row: Garner › … › screen, the ends in bold.
+// breadcrumb renders the first row: garner › … › screen, the ends in bold.
 func breadcrumb(parts ...string) string {
 	out := make([]string, len(parts))
 	for i, p := range parts {
@@ -187,7 +187,6 @@ func screenLayout(width, height int, body, bottom string) string {
 	return strings.Join(append(lines, " "+fitKeys(bottom, width-1)), "\n")
 }
 
-// indent shifts every line of s right by n cells.
 func indent(s string, n int) string {
 	prefix := strings.Repeat(" ", n)
 	lines := strings.Split(s, "\n")

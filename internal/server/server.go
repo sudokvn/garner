@@ -1,4 +1,4 @@
-// Package server runs Garner's HTTP API for clients and the local admin
+// Package server runs garner's HTTP API for clients and the local admin
 // socket the command line uses.
 package server
 
@@ -62,7 +62,7 @@ type Server struct {
 	deps     Deps
 }
 
-// Deps stand in for what Garner reaches outside its own code, so the
+// Deps stand in for what garner reaches outside its own code, so the
 // simulation can run it against a simulated world. A zero field means the
 // real one.
 type Deps struct {
@@ -169,7 +169,7 @@ func Run(ctx context.Context, cfg *config.Config, version string, log *slog.Logg
 	return err
 }
 
-// New sets Garner's services up on an open database, without serving or
+// New sets garner's services up on an open database, without serving or
 // starting their loops: Run does both, the simulation drives the steps
 // itself.
 func New(cfg *config.Config, st *store.Store, version string, deps Deps, log *slog.Logger) (*Server, error) {
@@ -187,7 +187,7 @@ func New(cfg *config.Config, st *store.Store, version string, deps Deps, log *sl
 	return s, nil
 }
 
-// now is the time on Garner's clock: the real one unless Deps set another.
+// now is the time on garner's clock: the real one unless Deps set another.
 func (s *Server) now() time.Time {
 	if s.deps.Now == nil {
 		return time.Now()
@@ -195,7 +195,6 @@ func (s *Server) now() time.Time {
 	return s.deps.Now()
 }
 
-// httpClient is the client for one of the services Garner uses.
 func (s *Server) httpClient(caFile string, timeout time.Duration) (*http.Client, error) {
 	if s.deps.Transport != nil {
 		return &http.Client{Transport: s.deps.Transport, Timeout: timeout}, nil

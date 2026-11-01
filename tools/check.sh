@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Checks the working copy in place: formatting, vet, the links in the
-# docs, the generated database code and known vulnerabilities; the tests on macOS with the race
+# Checks the working copy in place: formatting, vet, the shell scripts,
+# the links in the docs, the generated database code, the third-party
+# notices and known vulnerabilities; the tests on macOS with the race
 # detector, and again on Linux in the Go image the container is built
 # with; and builds for Linux x86. It checks every file in the folder that
 # Git does not ignore, committed or not, so it works the same with Git and

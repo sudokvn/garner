@@ -21,14 +21,14 @@ const (
 	pollActive = 3 * time.Second
 	pollIdle   = time.Minute
 	// confirmAfter is how long a recorded download may lack SABnzbd's job
-	// ID before Garner looks the job up by name.
+	// ID before garner looks the job up by name.
 	confirmAfter = 30 * time.Second
 	// giveUpAfter ends the lookup for a job SABnzbd never got.
 	giveUpAfter = 2 * time.Minute
 	// lostAfter is how many polls a job may be missing from SABnzbd's
-	// queue and history before Garner treats it as removed.
+	// queue and history before garner treats it as removed.
 	lostAfter = 3
-	// maxReplacements bounds how often Garner replaces a failed release on
+	// maxReplacements bounds how often garner replaces a failed release on
 	// its own. Every failure for the episode since the source search counts,
 	// across both search scopes and manual choices: many failures in a row
 	// suggest a shared problem.
@@ -36,7 +36,6 @@ const (
 	submitTimeout   = time.Minute
 )
 
-// ErrNoCandidate means the latest search has no release left to try.
 var ErrNoCandidate = errors.New("the latest search has no release left to try; search again")
 
 // Service submits and follows downloads.
@@ -46,10 +45,9 @@ type Service struct {
 	category string
 	log      *slog.Logger
 	// Now tells the time: time.Now, or the simulation's clock.
-	Now     func() time.Time
-	wake    chan struct{}
-	missing map[int64]int // polls a job was not found, by download
-	// OnChange is called whenever a download changes.
+	Now      func() time.Time
+	wake     chan struct{}
+	missing  map[int64]int // polls a job was not found, by download
 	OnChange func(store.Download)
 	// OnCompleted is called once a download finished and its import was
 	// queued.
@@ -185,7 +183,7 @@ func (s *Service) Run(ctx context.Context) {
 	}
 }
 
-// poll updates every running download from SABnzbd and reports whether any
+// Poll updates every running download from SABnzbd and reports whether any
 // is still running.
 func (s *Service) Poll(ctx context.Context) bool {
 	active, err := s.store.ActiveDownloads(ctx)
@@ -350,9 +348,9 @@ func (s *Service) Cancel(ctx context.Context, d store.Download, reason string) (
 // replace starts the next release after a failure another release may fix.
 // It keeps what was asked for (GRR-64): a release the user chose is
 // replaced only by another upload of it, which stays the user's choice;
-// one Garner chose only by a release with the same verdict and tier, so
+// one garner chose only by a release with the same verdict and tier, so
 // German 1080p stays German 1080p. When none is left, the failed download
-// records why Garner stopped.
+// records why garner stopped.
 func (s *Service) replace(ctx context.Context, failed store.Download) {
 	sr, err := s.store.DownloadSearch(ctx, failed)
 	if err != nil {
@@ -389,7 +387,7 @@ func (s *Service) replace(ctx context.Context, failed store.Download) {
 }
 
 // noneLike says that no release like the failed one is left to try, and
-// that Garner does not pick a different kind on its own.
+// that garner does not pick a different kind on its own.
 func noneLike(failed store.Download) string {
 	switch {
 	case failed.Manual:
@@ -483,7 +481,7 @@ var releaseFailures = []string{
 }
 
 // retryable reports whether another release may succeed where this one
-// failed. Unknown failures count as not retryable, so Garner does not
+// failed. Unknown failures count as not retryable, so garner does not
 // churn through releases for a problem they share.
 func retryable(failure string) bool {
 	f := strings.ToLower(failure)

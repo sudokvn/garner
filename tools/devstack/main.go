@@ -1,4 +1,4 @@
-// Command devstack runs Garner's local development stack: SABnzbd, Prowlarr
+// Command devstack runs garner's local development stack: SABnzbd, Prowlarr
 // and Jellyfin in a Podman pod on this machine, configured entirely by this
 // program. Data lives in ~/garner-dev; the services listen on 127.0.0.1 only.
 //
@@ -312,7 +312,7 @@ func readSecret(name string) string {
 	return strings.TrimSpace(string(b))
 }
 
-// writeGarnerConfig writes garner.toml in the current folder (the Garner
+// writeGarnerConfig writes garner.toml in the current folder (the garner
 // repository) for the stack, unless that file was written by hand.
 func writeGarnerConfig() error {
 	const file = "garner.toml"

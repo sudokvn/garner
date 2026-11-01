@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// TestWelcomeMark checks where the empty library shows Garner's mark:
+// TestWelcomeMark checks where the empty library shows garner's mark:
 // centred over the message with two blank rows around it, only in
 // terminals with 256 colours or more and only when the table has room.
 // Otherwise the message stands alone at the table's left edge.

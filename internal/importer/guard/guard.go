@@ -1,20 +1,20 @@
 // Package guard is the only way the importer changes files and folders.
-// It changes only what Garner owns, the same with and without path
+// It changes only what garner owns, the same with and without path
 // mappings in garner.toml:
 //
 //  1. It writes only inside library.tv and library.anime, and never
 //     creates those folders themselves.
 //  2. It moves or deletes a file only when the database records it as
-//     Garner's, or lists it as one Garner is about to remove, or when it
+//     garner's, or lists it as one garner is about to remove, or when it
 //     lies where SABnzbd put the download being imported. Subtitle files
 //     count with the video they belong to.
 //  3. It deletes a whole folder only when it is a download's job folder
 //     and holds no file the database records.
-//  4. It removes a folder only when it is empty after Garner moved or
+//  4. It removes a folder only when it is empty after garner moved or
 //     deleted a file in it, and never a library root, a folder above one
 //     or one of Jellyfin's library folders.
 //
-// What Garner may move or delete is claimed first, as a Job or a File,
+// What garner may move or delete is claimed first, as a Job or a File,
 // while the evidence holds: a record can move on before its file goes, as
 // when an upgrade replaces a file. The guard refuses everything else with
 // a *Refusal that says why.
@@ -33,19 +33,19 @@ import (
 	"github.com/trucke/garner/internal/config"
 )
 
-// Options says what Garner owns.
+// Options says what garner owns.
 type Options struct {
-	// Library holds the roots Garner writes to.
+	// Library holds the roots garner writes to.
 	Library config.Library
-	// SABnzbdPaths translates SABnzbd's folders to Garner's view.
+	// SABnzbdPaths translates SABnzbd's folders to garner's view.
 	SABnzbdPaths config.PathMap
 	// Recorded reports whether the database records the file at path as an
 	// episode's file.
 	Recorded func(ctx context.Context, path string) (bool, error)
 	// Planned reports whether the database lists the file at path as one
-	// Garner is about to remove.
+	// garner is about to remove.
 	Planned func(ctx context.Context, path string) (bool, error)
-	// LibraryFolders lists Jellyfin's library folders as Garner reaches
+	// LibraryFolders lists Jellyfin's library folders as garner reaches
 	// them; nil without Jellyfin.
 	LibraryFolders func(ctx context.Context) ([]string, error)
 	// Rename moves a file once the guard allowed it: os.Rename, or the
@@ -58,10 +58,9 @@ type Options struct {
 	Before func(op, path string)
 }
 
-// Guard checks every change to files and folders against what Garner owns.
+// Guard checks every change to files and folders against what garner owns.
 type Guard struct{ opts Options }
 
-// New returns a guard for what opts says Garner owns.
 func New(opts Options) *Guard {
 	if opts.Rename == nil {
 		opts.Rename = os.Rename
@@ -90,7 +89,7 @@ var subtitleExtensions = map[string]bool{".srt": true, ".ass": true, ".ssa": tru
 // reads.
 func IsSubtitle(path string) bool { return subtitleExtensions[strings.ToLower(filepath.Ext(path))] }
 
-// Job is where SABnzbd put a download's files, as Garner reaches them.
+// Job is where SABnzbd put a download's files, as garner reaches them.
 type Job struct {
 	dir  string // the job folder, or the file or folder SABnzbd reported
 	real string // dir with symbolic links resolved
@@ -109,7 +108,7 @@ func (j Job) KeepReason() string { return j.keep }
 var repeatedJob = regexp.MustCompile(`^\.\d+$`)
 
 // Job finds the files of the download of title that SABnzbd reports at
-// storage. Garner may move and delete them when they lie inside the
+// storage. garner may move and delete them when they lie inside the
 // sabnzbd.paths folders, if there are any, and apart from the library.
 // It may delete the folder itself only when the folder is named after the
 // release (SABnzbd may append ".1" for a repeated name), which rules out
@@ -171,7 +170,7 @@ func isJobName(name, title string) bool {
 	return found && (suffix == "" || repeatedJob.MatchString(suffix))
 }
 
-// File is a file Garner may move or delete.
+// File is a file garner may move or delete.
 type File struct{ path string }
 
 // Path is where the file was when it was claimed.
@@ -199,7 +198,7 @@ func (g *Guard) Recorded(ctx context.Context, path string) (File, error) {
 	return File{path: filepath.Clean(path)}, nil
 }
 
-// Planned claims a file the database lists as one Garner is about to
+// Planned claims a file the database lists as one garner is about to
 // remove, such as the version an upgrade replaced when a crash came after
 // the new record and before the removal.
 func (g *Guard) Planned(ctx context.Context, path string) (File, error) {
@@ -227,7 +226,7 @@ func (g *Guard) Subtitle(video File, path string) (File, error) {
 }
 
 // Mkdir creates dir and the folders above it inside a library root, which
-// must exist: Garner never creates the library folders themselves.
+// must exist: garner never creates the library folders themselves.
 func (g *Guard) Mkdir(dir string) error {
 	if err := g.inLibrary(dir); err != nil {
 		return err

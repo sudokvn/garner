@@ -111,7 +111,7 @@ func TestDeleteSeries(t *testing.T) {
 	if ok, _ := st.HasSeries(ctx, 42); !ok {
 		t.Fatal("a refused delete removed the show")
 	}
-	// Deleting files needs the importer, whose guard checks they are Garner's.
+	// Deleting files needs the importer, whose guard checks they are garner's.
 	bare := &Server{cfg: s.cfg, store: st, log: log, events: newBroker(), tlsMode: TLSOff}
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/series/42?files=delete", nil)

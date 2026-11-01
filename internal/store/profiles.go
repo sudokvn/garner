@@ -23,9 +23,7 @@ type StoredProfile struct {
 }
 
 var (
-	// ErrNoProfile means no profile has that ID.
 	ErrNoProfile = errors.New("no such profile")
-	// ErrNameTaken means another profile has that name.
 	ErrNameTaken = errors.New("another profile has that name")
 )
 
@@ -190,7 +188,7 @@ func (s *Store) UpdateProfile(ctx context.Context, id int64, name, text string) 
 
 // DeleteProfile deletes a profile that no show uses and that is no
 // default; otherwise it fails with a *ProfileInUseError. Shows switching
-// to another profile without notice could change the language Garner
+// to another profile without notice could change the language garner
 // downloads.
 func (s *Store) DeleteProfile(ctx context.Context, id int64) error {
 	tx, err := s.db.BeginTx(ctx, nil)

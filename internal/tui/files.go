@@ -14,8 +14,8 @@ import (
 )
 
 // Taking over a show's files from the library: the overlay after adding a
-// show, or after t on Show details, says what Garner found and, when files
-// lie outside Garner's folder for the show, asks whether to rename and move
+// show, or after t on Show details, says what garner found and, when files
+// lie outside garner's folder for the show, asks whether to rename and move
 // them. Keeping them as they are is the safe choice and preselected.
 
 type (
@@ -125,7 +125,7 @@ func takeOverFiles(cl *client.Client, id int64) tea.Cmd {
 	}
 }
 
-// renameFiles moves a show's taken-over files into Garner's folder.
+// renameFiles moves a show's taken-over files into garner's folder.
 func renameFiles(cl *client.Client, id int64) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)

@@ -12,7 +12,6 @@ import (
 	"github.com/trucke/garner/internal/store/query"
 )
 
-// SeriesOfEpisode returns the show an episode belongs to.
 func (s *Store) SeriesOfEpisode(ctx context.Context, episodeID int64) (int64, error) {
 	id, err := s.q.SeriesOfEpisode(ctx, episodeID)
 	if errors.Is(err, sql.ErrNoRows) {

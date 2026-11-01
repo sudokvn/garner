@@ -21,7 +21,7 @@ import (
 	"github.com/trucke/garner/internal/client"
 )
 
-// Library lists the shows with what Garner has of each.
+// Library lists the shows with what garner has of each.
 
 type category int
 
@@ -303,7 +303,6 @@ func (s *libraryScreen) answer(key string) tea.Cmd {
 	return deleteShow(s.sess.client, sh.ID, a.keep)
 }
 
-// cursorShow is the show under the cursor, if any is shown.
 func (s *libraryScreen) cursorShow() (api.Show, bool) {
 	rows, _ := s.rows()
 	i := slices.IndexFunc(rows, func(sh api.Show) bool { return sh.ID == s.selected })
@@ -460,7 +459,7 @@ func (s *libraryScreen) view(width, height int) string {
 }
 
 // welcome is what an empty library shows: how to add a show, under
-// Garner's mark when the terminal shows it and the table has room for it.
+// garner's mark when the terminal shows it and the table has room for it.
 // Two blank rows above and below the mark are the brand's free space
 // (docs/brand).
 func (s *libraryScreen) welcome(width int) string {

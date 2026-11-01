@@ -51,7 +51,7 @@ const (
 	kSeasonWord    // Season, Staffel
 	kOrdinal       // 2nd
 	kSpecial       // NCOP, OVA, S08SP01
-	kIgnore        // recognised tags that carry nothing Garner uses
+	kIgnore        // recognised tags that carry nothing garner uses
 )
 
 type token struct {
@@ -184,7 +184,7 @@ var languageNames = map[Language]string{
 	"da": "Danish", "no": "Norwegian", "sv": "Swedish",
 }
 
-// Languages lists the languages Garner knows by code, in alphabetical
+// Languages lists the languages garner knows by code, in alphabetical
 // order.
 func Languages() []Language { return slices.Sorted(maps.Keys(languageNames)) }
 

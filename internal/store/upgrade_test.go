@@ -13,7 +13,7 @@ import (
 )
 
 // openAt builds a database in dataDir at a migration version, as an older
-// Garner left it. Close it before Open takes the file over.
+// garner left it. Close it before Open takes the file over.
 func openAt(t *testing.T, dataDir string, version int64) *sql.DB {
 	t.Helper()
 	ctx := context.Background()
@@ -80,9 +80,9 @@ func newestMigration(t *testing.T) int64 {
 	return sources[len(sources)-1].Version
 }
 
-// upgrade opens the database in dir, which an older Garner left at
+// upgrade opens the database in dir, which an older garner left at
 // version from, and checks the backup it takes before migrating: it opens,
-// holds the old version and its token, and only Garner's account can read
+// holds the old version and its token, and only garner's account can read
 // it.
 func upgrade(t *testing.T, dir string, from int64) *Store {
 	t.Helper()
@@ -109,7 +109,7 @@ func upgrade(t *testing.T, dir string, from int64) *Store {
 	return st
 }
 
-// TestUpgradeFromTheFirstMigration opens a database from Garner's first
+// TestUpgradeFromTheFirstMigration opens a database from garner's first
 // version: its token still works.
 func TestUpgradeFromTheFirstMigration(t *testing.T) {
 	dir := t.TempDir()
@@ -174,7 +174,7 @@ func seedShow(t *testing.T, db *sql.DB, version int64) {
 	exec(t, db, "INSERT INTO episode_files (episode_id, path, size, download_id, imported_at) VALUES (101, ?, 1, 7, 1)", showFile)
 }
 
-// TestMigrationFileTier checks migration 15: a file Garner imported takes
+// TestMigrationFileTier checks migration 15: a file garner imported takes
 // the tier of the download that brought it; a file it took over has none.
 func TestMigrationFileTier(t *testing.T) {
 	ctx := context.Background()
@@ -247,7 +247,7 @@ func TestMigrationProfileHeader(t *testing.T) {
 	}
 }
 
-// TestBackup writes a snapshot that opens and only Garner's account can
+// TestBackup writes a snapshot that opens and only garner's account can
 // read, and never overwrites a file.
 func TestBackup(t *testing.T) {
 	ctx := context.Background()

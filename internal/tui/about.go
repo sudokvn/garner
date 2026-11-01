@@ -114,7 +114,7 @@ func (s *aboutScreen) view(width, height int) string {
 	var b strings.Builder
 	b.WriteString(header(width, s.sess, "garner", "About") + "\n\n")
 
-	// Where the terminal shows Garner's mark and has 80 columns, the mark
+	// Where the terminal shows garner's mark and has 80 columns, the mark
 	// stands left of the name and versions, and they start after it.
 	withMark := s.sess.mark && width >= 80
 	left := 3

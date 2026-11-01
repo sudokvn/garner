@@ -37,7 +37,7 @@ type session struct {
 	shows []api.Show
 	// folded remembers each show's folded seasons.
 	folded map[int64]map[int]bool
-	// mark is whether the terminal shows Garner's mark: with 256 colours
+	// mark is whether the terminal shows garner's mark: with 256 colours
 	// or more. With 16, mint turns into the palette's green; NO_COLOR
 	// leaves no colour at all.
 	mark bool

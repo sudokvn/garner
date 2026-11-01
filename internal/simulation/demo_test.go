@@ -31,11 +31,11 @@ import (
 // interface with a VHS tape: mise run demo <tape> runs both (tools/demo.sh).
 // It runs only with -demo and serves until it is stopped.
 var (
-	demoFlag       = flag.Bool("demo", false, "serve Garner on the demo world until stopped")
-	demoAddr       = flag.String("demo-addr", "127.0.0.1:0", "where the demo serves Garner")
+	demoFlag       = flag.Bool("demo", false, "serve garner on the demo world until stopped")
+	demoAddr       = flag.String("demo-addr", "127.0.0.1:0", "where the demo serves garner")
 	demoConnection = flag.String("demo-connection", "", "write the demo's connection code to this file once it serves")
 	// A download takes six ticks.
-	demoTick = flag.Duration("demo-tick", 600*time.Millisecond, "how often the demo's world and Garner's loops move on")
+	demoTick = flag.Duration("demo-tick", 600*time.Millisecond, "how often the demo's world and garner's loops move on")
 	// The interface shows paths in the library, so a recording wants a
 	// short one rather than a temporary folder's.
 	demoRoot = flag.String("demo-root", "", "build the demo's share and database in this empty folder instead of a temporary one")
@@ -200,10 +200,10 @@ var demoLibrary = []struct {
 	{"The Iron Lighthouse", 2016, store.TypeTV, "eng", "Ended", 4, 10, 45, webEnglish, "GRP"},
 }
 
-// newDemoWorld builds the demo's library: shows Garner has, with their
+// newDemoWorld builds the demo's library: shows garner has, with their
 // files, and one new episode of an anime whose best-looking release is
 // an English dub that its name and the indexers call Japanese. The file
-// check catches it, and Garner downloads the next release instead.
+// check catches it, and garner downloads the next release instead.
 func newDemoWorld(root string, now time.Time) (*world, error) {
 	w := &world{seed: 1, root: root, now: now, rnd: rand.New(rand.NewPCG(1, 1)),
 		indexerError: map[int]bool{}, foreign: map[string]foreignFile{}}
@@ -299,8 +299,8 @@ func (w *world) demoPosting(e *episode, k demoKind, group string, posted time.Ti
 	return p
 }
 
-// demoFile puts an episode's file into Garner's folder of the show, named
-// the way Garner names its files.
+// demoFile puts an episode's file into garner's folder of the show, named
+// the way garner names its files.
 func (w *world) demoFile(e *episode, k demoKind, group string) error {
 	p := w.demoPosting(e, k, group, e.aired, false)
 	library := "library/tv"

@@ -142,7 +142,7 @@ func (s *Server) checkJellyfin(ctx context.Context) api.ServiceCheck {
 }
 
 // missing names the settings a service lacks: its url in garner.toml, its
-// API key or both. Garner sets up Prowlarr, SABnzbd and Jellyfin only
+// API key or both. garner sets up Prowlarr, SABnzbd and Jellyfin only
 // with both.
 func missing(c config.Service, section, key string) []string {
 	var m []string

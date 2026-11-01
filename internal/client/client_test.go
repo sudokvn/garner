@@ -15,7 +15,7 @@ import (
 	"github.com/trucke/garner/internal/tlsident"
 )
 
-// pinnedServer serves like the real server: Garner's own key, no CA.
+// pinnedServer serves like the real server: garner's own key, no CA.
 func pinnedServer(t *testing.T, h http.Handler) (url, pin string) {
 	t.Helper()
 	id, err := tlsident.LoadOrCreate(t.TempDir(), []string{"127.0.0.1"})

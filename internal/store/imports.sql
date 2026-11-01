@@ -18,16 +18,16 @@ ON CONFLICT (episode_id) DO UPDATE SET
     path = excluded.path, size = excluded.size, tier = excluded.tier, download_id = excluded.download_id,
     imported_at = excluded.imported_at;
 
--- A file Garner took over from the library, unless the episode has one.
+-- A file garner took over from the library, unless the episode has one.
 -- name: InsertTakenFile :execrows
 INSERT INTO episode_files (episode_id, path, size, tier, download_id, imported_at) VALUES (?, ?, ?, ?, NULL, ?)
 ON CONFLICT (episode_id) DO NOTHING;
 
--- A file Garner moved within the library, for every episode it holds.
+-- A file garner moved within the library, for every episode it holds.
 -- name: MoveEpisodeFile :exec
 UPDATE episode_files SET path = sqlc.arg(new_path) WHERE path = sqlc.arg(old_path);
 
--- The files of a show Garner took over from the library, with the
+-- The files of a show garner took over from the library, with the
 -- episodes each holds.
 -- name: ListSeriesTakenFiles :many
 SELECT f.episode_id, f.path, f.size, f.tier FROM episode_files f JOIN episodes e ON e.id = f.episode_id

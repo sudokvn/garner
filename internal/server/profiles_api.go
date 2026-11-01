@@ -136,7 +136,7 @@ func (s *Server) handleReplaceProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 // saveProfile stores a checked profile in its canonical form: as a new
-// one for id 0, or in place of profile id. Garner then judges by it at
+// one for id 0, or in place of profile id. garner then judges by it at
 // once, and the clients learn of it.
 func (s *Server) saveProfile(ctx context.Context, id int64, p profile.Profile) (int64, error) {
 	text := profile.Encode(p)
@@ -153,7 +153,7 @@ func (s *Server) saveProfile(ctx context.Context, id int64, p profile.Profile) (
 	return id, nil
 }
 
-// profilesChanged reloads the profiles Garner judges by and tells the
+// profilesChanged reloads the profiles garner judges by and tells the
 // clients. A changed profile drops the search results of its shows, so the
 // monitor may have work.
 func (s *Server) profilesChanged(ctx context.Context) {

@@ -259,7 +259,7 @@ func (c *Catalog) describe(ctx context.Context, id int64) (described, error) {
 }
 
 // LanguageName names a TVDB language code in English, such as Japanese
-// for jpn. Languages Garner has no name for keep a two-letter code.
+// for jpn. Languages garner has no name for keep a two-letter code.
 func LanguageName(code string) string {
 	if l, ok := release.LanguageNamed(code); ok {
 		return l.Name()

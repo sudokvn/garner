@@ -63,7 +63,7 @@ func (c showContext) target(lib config.Library, episodes []int64, tags, ext stri
 	return filepath.Join(folder, fmt.Sprintf("Season.%02d", pos.Season), file), nil
 }
 
-// ShowFolder is the folder new files of a show go to, as Garner reaches it:
+// ShowFolder is the folder new files of a show go to, as garner reaches it:
 //
 //	<library root>/Show.2013.[tvdbid-1]
 func ShowFolder(lib config.Library, sr store.Series) (string, error) {

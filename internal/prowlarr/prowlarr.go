@@ -29,7 +29,7 @@ const (
 	// maxPages bounds paging when an indexer ignores the season and
 	// episode and returns the whole show.
 	maxPages = 10
-	// requestGap keeps Garner under 5 requests per second, a limit some
+	// requestGap keeps garner under 5 requests per second, a limit some
 	// indexers set, counting every request that goes through Prowlarr.
 	requestGap = 250 * time.Millisecond
 )
@@ -49,12 +49,10 @@ type Client struct {
 	next time.Time // earliest start of the next request
 }
 
-// New returns a client for the Prowlarr at baseURL.
 func New(baseURL, apiKey string, client *http.Client) *Client {
 	return &Client{base: strings.TrimRight(baseURL, "/"), key: apiKey, http: client, Now: time.Now, Sleep: sleep}
 }
 
-// sleep waits for d or until ctx is done.
 func sleep(ctx context.Context, d time.Duration) error {
 	t := time.NewTimer(d)
 	defer t.Stop()
@@ -66,7 +64,6 @@ func sleep(ctx context.Context, d time.Duration) error {
 	}
 }
 
-// Indexer is an indexer configured in Prowlarr.
 type Indexer struct {
 	ID       int    `json:"id"`
 	Name     string `json:"name"`

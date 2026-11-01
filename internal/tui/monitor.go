@@ -6,7 +6,7 @@ import (
 	"github.com/trucke/garner/internal/api"
 )
 
-// The monitor question asks which of a show's episodes Garner gets on its
+// The monitor question asks which of a show's episodes garner gets on its
 // own, when adding a show and on its details page.
 
 // monitorModes are the choices, the default first, as the server names them.

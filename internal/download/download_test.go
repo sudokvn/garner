@@ -319,7 +319,7 @@ func TestSameTitlePostings(t *testing.T) {
 	}
 }
 
-// TestEarlierFailuresWithoutPosting covers downloads from before Garner
+// TestEarlierFailuresWithoutPosting covers downloads from before garner
 // kept postings apart: one excludes the postings of its name and size only.
 func TestEarlierFailuresWithoutPosting(t *testing.T) {
 	ctx := context.Background()
@@ -383,7 +383,7 @@ func TestRestart(t *testing.T) {
 
 // TestCancel stops a download: SABnzbd drops the job, a poll that started
 // before the cancel cannot undo it, nothing replaces it, the episode is
-// missing rather than failed, and Garner does not pick the release again.
+// missing rather than failed, and garner does not pick the release again.
 func TestCancel(t *testing.T) {
 	ctx := context.Background()
 	st, svc, fake := setup(t)

@@ -26,9 +26,9 @@ import (
 )
 
 // TakeOver looks for a show's video files in the library and records those
-// that clearly hold its episodes, as if Garner had imported them: one file
+// that clearly hold its episodes, as if garner had imported them: one file
 // per episode, the better one when several hold the same episode. It looks
-// in Garner's folder for the show and in the folders Jellyfin holds the
+// in garner's folder for the show and in the folders Jellyfin holds the
 // show in, checks each file with FFprobe for its tier, so upgrades work for
 // it, and leaves the files where they are. Episodes with a file keep it.
 func (s *Service) TakeOver(ctx context.Context, seriesID int64) (api.TakeOver, error) {
@@ -129,7 +129,7 @@ func (s *Service) TakeOver(ctx context.Context, seriesID int64) (api.TakeOver, e
 	return out, nil
 }
 
-// showFolders lists the folders that hold a show's files, as Garner
+// showFolders lists the folders that hold a show's files, as garner
 // reaches them: its own folder for the show and those Jellyfin holds the
 // show in, when they exist. notes say what could not be looked at.
 func (s *Service) showFolders(ctx context.Context, c showContext) (folders, notes []string) {
@@ -186,7 +186,7 @@ func libraryVideos(dir string) ([]store.ImportFile, error) {
 	return files, err
 }
 
-// garnerNumber is the episode part of a name Garner gave a file, after the
+// garnerNumber is the episode part of a name garner gave a file, after the
 // show's name: "S01E01." or "S01E01-E02.", or the end of the name.
 var garnerNumber = regexp.MustCompile(`^S(\d{2,})E(\d{2,})(?:-E(\d{2,}))?(?:\.|$)`)
 
@@ -194,7 +194,7 @@ var garnerNumber = regexp.MustCompile(`^S(\d{2,})E(\d{2,})(?:-E(\d{2,}))?(?:\.|$
 // from its name, or why it cannot tell.
 func (c showContext) fileEpisodes(path string) ([]int64, string) {
 	name := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-	// A name Garner gave is read directly: the episode title that follows
+	// A name garner gave is read directly: the episode title that follows
 	// the number, such as "1.23.45", must not count as numbers.
 	if rest, ok := strings.CutPrefix(name, showName(c.data.Series)+"."); ok {
 		if ids := c.garnerEpisodes(rest); len(ids) > 0 {
@@ -279,7 +279,7 @@ func (c showContext) fileTier(path string, p inspect.Probe) string {
 	return selection.FileTier(c.profile, audio, res)
 }
 
-// renamable counts the show's taken-over files outside Garner's folder for
+// renamable counts the show's taken-over files outside garner's folder for
 // it.
 func (s *Service) renamable(ctx context.Context, c showContext) (int, error) {
 	own, err := ShowFolder(s.opts.Library, c.data.Series)
@@ -299,8 +299,8 @@ func (s *Service) renamable(ctx context.Context, c showContext) (int, error) {
 	return len(paths), nil
 }
 
-// Rename moves the show's taken-over files that lie outside Garner's folder
-// for it into that folder, named the way Garner names the files it imports,
+// Rename moves the show's taken-over files that lie outside garner's folder
+// for it into that folder, named the way garner names the files it imports,
 // with their subtitle files. It never overwrites a file, tells Jellyfin
 // about the moves and removes the folders the moves left empty. What stays
 // behind is in the notes.
@@ -368,7 +368,7 @@ func (s *Service) Rename(ctx context.Context, seriesID int64) (api.Renamed, erro
 			note("%s stayed: cannot create %s: %v", f.Source, filepath.Dir(f.Target), unwrapPath(err))
 			continue
 		}
-		// The plan comes first: if Garner ends after the move, finishChanges
+		// The plan comes first: if garner ends after the move, finishChanges
 		// moves the record when it starts again.
 		if err := s.store.PlanMove(ctx, f.Source, f.Target); err != nil {
 			return out, fmt.Errorf("plan the move of %s: %w", f.Source, err)

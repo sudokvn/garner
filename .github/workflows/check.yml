@@ -1,9 +1,9 @@
 # Checks every pull request and every push to main as `mise run check` does
-# locally: formatting, vet, the links in the docs, the generated database
-# code, known vulnerabilities, the tests on Linux as the container image
-# builds garner and again with the race detector, and builds for every
-# release platform.
-# It also runs install.sh against the newest release of each channel. The private
+# locally: formatting, vet, the shell scripts, the links in the docs, the
+# generated database code, the third-party notices, known vulnerabilities,
+# the tests on Linux as the container image builds garner and again with
+# the race detector, and builds for every release platform. It also runs
+# install.sh against the newest release of each channel. The private
 # real-case tests are not part of it.
 name: Check
 
@@ -99,8 +99,6 @@ jobs:
           CGO_ENABLED: "1"
         run: go test -race ./...
 
-      # The script users pipe into bash, against the newest release of each
-      # channel.
       - name: Install script
         run: |
           GARNER_INSTALL_DIR="$RUNNER_TEMP/bin" bash install.sh

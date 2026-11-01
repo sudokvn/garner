@@ -1,4 +1,4 @@
-// Package config loads Garner's settings from a TOML file and its secrets
+// Package config loads garner's settings from a TOML file and its secrets
 // from the environment.
 package config
 
@@ -56,7 +56,6 @@ type Monitor struct {
 	UpgradeOlder  Duration `toml:"upgrade_older"`
 }
 
-// Recent is how long after airing an episode counts as recent.
 func (m Monitor) Recent() time.Duration { return time.Duration(m.RecentDays) * 24 * time.Hour }
 
 // Duration is a whole number of hours or days, such as "6h" or "7d".
@@ -78,25 +77,24 @@ func (d *Duration) UnmarshalText(b []byte) error {
 	return nil
 }
 
-// Server configures how clients reach Garner.
+// Server configures how clients reach garner.
 type Server struct {
-	// Listen is the TCP address to listen on.
 	Listen string `toml:"listen"`
 	// URL is the address clients use. Required unless Listen is loopback.
 	URL string `toml:"url"`
-	// TLSCert and TLSKey name certificate files. Without them, Garner
+	// TLSCert and TLSKey name certificate files. Without them, garner
 	// creates its own certificate when it listens beyond loopback.
 	TLSCert string `toml:"tls_cert"`
 	TLSKey  string `toml:"tls_key"`
 	// Proxied means a reverse proxy serves URL with a publicly trusted
-	// certificate and forwards to Listen. Garner then serves plain HTTP,
+	// certificate and forwards to Listen. garner then serves plain HTTP,
 	// which only the proxy may reach, and its connection codes let clients
 	// verify the proxy's certificate the usual way.
 	Proxied bool `toml:"proxied"`
 }
 
-// Library names the folders shows are imported into, as Garner reaches
-// them. Garner creates folders below them but never the folders themselves,
+// Library names the folders shows are imported into, as garner reaches
+// them. garner creates folders below them but never the folders themselves,
 // so an unmounted share fails instead of filling the local disk.
 type Library struct {
 	TV    string `toml:"tv"`
@@ -107,35 +105,35 @@ type Library struct {
 type TVDB struct {
 	APIKey Secret `toml:"-"`
 	PIN    Secret `toml:"-"`
-	// BuiltIn means APIKey is Garner's own key, as no TVDB_API_KEY is set.
+	// BuiltIn means APIKey is garner's own key, as no TVDB_API_KEY is set.
 	BuiltIn bool `toml:"-"`
 }
 
-// builtinTVDBKey is Garner's TheTVDB project key. The release sets it when
+// builtinTVDBKey is garner's TheTVDB project key. The release sets it when
 // it builds the server image (see the Dockerfile); other builds have none
 // and need TVDB_API_KEY.
 var builtinTVDBKey string
 
-// Service is an HTTP service Garner talks to.
+// Service is an HTTP service garner talks to.
 type Service struct {
 	URL string `toml:"url"`
 	// CAFile trusts an extra certificate authority for an https:// URL.
 	CAFile string `toml:"ca_file"`
-	// Paths translates folders as the service reports them to where Garner
+	// Paths translates folders as the service reports them to where garner
 	// reaches them, such as "/data/usenet" to "/Volumes/media/usenet".
 	Paths  PathMap `toml:"paths"`
 	APIKey Secret  `toml:"-"`
 }
 
-// PathMap maps folders as another host sees them (keys) to where Garner
+// PathMap maps folders as another host sees them (keys) to where garner
 // reaches them (values), like Sonarr's remote path mappings. An empty map
 // means both see the same paths.
 type PathMap map[string]string
 
-// Local translates a path the service reported to Garner's view.
+// Local translates a path the service reported to garner's view.
 func (m PathMap) Local(p string) (string, bool) { return m.translate(p, false) }
 
-// Remote translates a path in Garner's view to the service's view.
+// Remote translates a path in garner's view to the service's view.
 func (m PathMap) Remote(p string) (string, bool) { return m.translate(p, true) }
 
 func (m PathMap) translate(p string, reverse bool) (string, bool) {
@@ -240,7 +238,7 @@ func Load(path string, explicit bool) (*Config, error) {
 		}
 	}
 	// A key of one's own wins. TVDB_PIN goes with such a key only: a
-	// subscriber PIN means nothing to Garner's project key.
+	// subscriber PIN means nothing to garner's project key.
 	if cfg.TVDB.APIKey == "" && builtinTVDBKey != "" {
 		cfg.TVDB.APIKey, cfg.TVDB.PIN, cfg.TVDB.BuiltIn = Secret(builtinTVDBKey), "", true
 	}
@@ -348,7 +346,7 @@ func (c *Config) Warnings() []string {
 
 // staysOnHost reports whether traffic to host stays on this machine: a
 // loopback name or address, or an address of one of its own network
-// interfaces, as when Garner shares the host's network with the service.
+// interfaces, as when garner shares the host's network with the service.
 // Other host names are not resolved, so they count as remote.
 func staysOnHost(host string, own func() ([]net.Addr, error)) bool {
 	if IsLoopback(host) {

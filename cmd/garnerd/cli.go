@@ -21,7 +21,6 @@ import (
 	"github.com/trucke/garner/internal/server"
 )
 
-// execute runs the command line and returns the exit code.
 func execute(version string) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

@@ -1,6 +1,6 @@
 package tui
 
-// markLines is Garner's mark from docs/brand, drawn with half blocks: a
+// markLines is garner's mark from docs/brand, drawn with half blocks: a
 // pixel is half a cell, so the mark's 18 by 18 pixels take 9 rows. It is
 // the logo's construction laid on the pixel grid (outer radius 9, inner
 // radius 5, ring and block 4 wide), so the cuts, the block and the gaps

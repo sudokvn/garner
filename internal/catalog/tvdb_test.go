@@ -166,7 +166,7 @@ func TestTVDBBudget(t *testing.T) {
 	}
 }
 
-// TestTVDBSlowDown answers 429: Garner holds every request back for as long
+// TestTVDBSlowDown answers 429: garner holds every request back for as long
 // as TheTVDB asks, without retrying meanwhile.
 func TestTVDBSlowDown(t *testing.T) {
 	f := newFakeTVDB(http.StatusOK, http.StatusTooManyRequests)
@@ -192,7 +192,7 @@ func TestTVDBSlowDown(t *testing.T) {
 	}
 }
 
-// TestTVDBRetryAfter reads how long TheTVDB asks Garner to wait.
+// TestTVDBRetryAfter reads how long TheTVDB asks garner to wait.
 func TestTVDBRetryAfter(t *testing.T) {
 	now := time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)
 	c := NewTVDB("", "key", "", nil)
@@ -220,7 +220,7 @@ func TestTVDBRetryAfter(t *testing.T) {
 	}
 }
 
-// TestTVDBRefusedKey refuses the key: Garner stops logging in for an hour
+// TestTVDBRefusedKey refuses the key: garner stops logging in for an hour
 // and names TVDB_API_KEY as the way out.
 func TestTVDBRefusedKey(t *testing.T) {
 	f := newFakeTVDB(http.StatusUnauthorized, http.StatusOK)

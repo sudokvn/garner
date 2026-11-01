@@ -13,7 +13,7 @@ CREATE TABLE profiles (
 CREATE UNIQUE INDEX profiles_default_tv ON profiles (default_tv) WHERE default_tv = 1;
 CREATE UNIQUE INDEX profiles_default_anime ON profiles (default_anime) WHERE default_anime = 1;
 
--- A show's type, tv or anime, decides how Garner reads episode numbers and
+-- A show's type, tv or anime, decides how garner reads episode numbers and
 -- which library folder takes its files; its profile which releases it
 -- accepts. Both stay NULL until a refresh loads the show from TVDB, as the
 -- profile did.
@@ -76,7 +76,7 @@ ALTER TABLE series DROP COLUMN profile;
 
 -- +goose Down
 -- SQLite cannot drop a column that references another table, so type and
--- profile_id stay, unused by the older Garner.
+-- profile_id stay, unused by the older garner.
 ALTER TABLE series ADD COLUMN profile TEXT;
 UPDATE series SET profile = type, profile_id = NULL;
 DROP TABLE profiles;

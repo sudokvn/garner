@@ -19,7 +19,7 @@ import (
 	"github.com/trucke/garner/internal/client"
 )
 
-// Episode follows one episode through Garner: its release, the six steps
+// Episode follows one episode through garner: its release, the six steps
 // from SABnzbd to Jellyfin, and what to fix or what was noted.
 
 type (
@@ -293,7 +293,6 @@ func (s *episodeScreen) again() tea.Cmd {
 	return func() tea.Msg { return switchMsg{next} }
 }
 
-// latest is the episode's newest download.
 func (s *episodeScreen) latest() (api.Download, bool) {
 	if s.detail == nil || len(s.detail.Downloads) == 0 {
 		return api.Download{}, false
@@ -541,7 +540,7 @@ func (st step) render(width int) string {
 }
 
 // pipeline lays a download out as the six steps from SABnzbd to Jellyfin.
-// Times show where Garner records them: when it was sent, when SABnzbd
+// Times show where garner records them: when it was sent, when SABnzbd
 // finished, and when the import ended or failed.
 func pipeline(d api.Download, now time.Time) []step {
 	// Each step's name while pending, running and done.

@@ -35,11 +35,11 @@ import (
 
 const (
 	pollInterval = 10 * time.Second
-	// fullScanAfter is how long Garner waits for Jellyfin to act on its
+	// fullScanAfter is how long garner waits for Jellyfin to act on its
 	// hint before asking for a scan of all libraries. Jellyfin delays its
 	// own reaction to file changes by 60 seconds.
 	fullScanAfter = 90 * time.Second
-	// scanTimeout is how long Garner waits for Jellyfin to list a moved
+	// scanTimeout is how long garner waits for Jellyfin to list a moved
 	// file without progress before it reports the import as unconfirmed.
 	scanTimeout = 3 * time.Minute
 
@@ -47,7 +47,6 @@ const (
 	detailFullScan = "moved into the library; Jellyfin did not pick the files up, so garner asked it to scan all libraries"
 )
 
-// ErrNotRetryable means the import has no failed step to repeat.
 var ErrNotRetryable = errors.New("only failed or unconfirmed imports can be retried")
 
 // ErrBusy refuses a change to the library's files while another one runs.
@@ -64,11 +63,10 @@ type Prober interface {
 	Probe(ctx context.Context, file string) (inspect.Probe, error)
 }
 
-// Options configures the importer.
 type Options struct {
-	// SABnzbdPaths translates SABnzbd's folders to Garner's view.
+	// SABnzbdPaths translates SABnzbd's folders to garner's view.
 	SABnzbdPaths config.PathMap
-	// JellyfinPaths translates Jellyfin's folders to Garner's view.
+	// JellyfinPaths translates Jellyfin's folders to garner's view.
 	JellyfinPaths config.PathMap
 	Library       config.Library
 	// Rules returns a show's reviewed streaming-service order rules.
@@ -99,8 +97,7 @@ type Service struct {
 	// files. Each would otherwise act on records another one is changing.
 	// Nothing waits for it: a user's request is refused with ErrBusy, and
 	// the import loop leaves its move for the next round.
-	files sync.Mutex
-	// OnChange is called whenever an import changes.
+	files    sync.Mutex
 	OnChange func(store.Download)
 	// OnRejected marks a download's release bad, so another one is tried.
 	OnRejected func(ctx context.Context, d store.Download, reason string)
@@ -119,9 +116,9 @@ func New(st *store.Store, probe Prober, jf *jellyfin.Client, opts Options, log *
 	return &Service{store: st, probe: probe, jellyfin: jf, opts: opts, guard: g, log: log, Now: time.Now, wake: make(chan struct{}, 1)}
 }
 
-// jellyfinFolders lists Jellyfin's library folders as Garner reaches them;
+// jellyfinFolders lists Jellyfin's library folders as garner reaches them;
 // nil without Jellyfin. A folder no jellyfin.paths entry covers is out of
-// Garner's reach, so it is left out.
+// garner's reach, so it is left out.
 func jellyfinFolders(jf *jellyfin.Client, paths config.PathMap) func(context.Context) ([]string, error) {
 	if jf == nil {
 		return nil
@@ -493,10 +490,9 @@ func (s *Service) moveFiles(ctx context.Context, d *store.Download) ([]store.Imp
 const permissionFix = "On the NAS, give the account garner uses write access to SABnzbd's completed folder and the library (UID 1000 in this setup), then retry the import."
 
 // guardFix is the recovery step when the guard refused to change a file
-// that Garner does not own.
+// that garner does not own.
 const guardFix = "Check sabnzbd.paths, jellyfin.paths, library.tv and library.anime in garner.toml, then retry the import. garner changes only files and folders it owns."
 
-// refused reports whether the guard refused a change.
 func refused(err error) bool {
 	var r *guard.Refusal
 	return errors.As(err, &r)
@@ -590,7 +586,7 @@ func keepsGained(c showContext, d *store.Download, have map[int64]string, episod
 func (s *Service) removeKept(ctx context.Context, d *store.Download, job func() (guard.Job, error)) {
 	j, err := job()
 	if err != nil {
-		return // gone already, or not Garner's to change
+		return // gone already, or not garner's to change
 	}
 	videos, err := videoFiles(j.Dir())
 	if err != nil || len(videos) == 0 {
@@ -620,7 +616,7 @@ func (s *Service) removeKept(ctx context.Context, d *store.Download, job func() 
 	}
 }
 
-// recordFiles records each episode's file and removes the version Garner
+// recordFiles records each episode's file and removes the version garner
 // imported or took over before: one version per episode. A record and the
 // plan to remove the version it replaces change in one step, so a crash
 // before the removal leaves the plan for finishChanges. A file whose
@@ -645,7 +641,7 @@ func (s *Service) recordFiles(ctx context.Context, d *store.Download, files []st
 	var recorded []store.ImportFile
 	var dropped []string
 	for _, f := range files {
-		// A file recorded already is the import's own, as when Garner
+		// A file recorded already is the import's own, as when garner
 		// ended after recording it and before saving that it had; one it
 		// cannot check is recorded too.
 		own, err := s.store.FileInUse(ctx, f.Target)

@@ -11,7 +11,7 @@ import (
 )
 
 // TestDeleteFiles checks that deleting a show removes its videos, their
-// subtitles and the folders left empty, but nothing Garner did not put
+// subtitles and the folders left empty, but nothing garner did not put
 // there and never the library root.
 func TestDeleteFiles(t *testing.T) {
 	ctx := context.Background()

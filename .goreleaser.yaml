@@ -1,7 +1,7 @@
 # GoReleaser builds a release's terminal interface for macOS and Linux, on
-# ARM and x86, and creates the GitHub release with it. The
-# release workflow builds the server image first and passes its reference
-# as IMAGE_REF. Try a release without publishing anything:
+# ARM and x86, and creates the GitHub release with it. The release workflow
+# builds the server image first and passes its reference as IMAGE_REF. Try
+# a release without publishing anything:
 #   goreleaser release --snapshot --clean
 version: 2
 project_name: garner

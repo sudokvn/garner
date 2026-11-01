@@ -1,4 +1,4 @@
-// Command garnerd is Garner's server, with the commands that manage it on
+// Command garnerd is garner's server, with the commands that manage it on
 // its machine: tokens, backups and status.
 package main
 

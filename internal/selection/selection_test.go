@@ -29,11 +29,9 @@ func evaluate(p Profile, show string, original release.Language, name string, la
 		Release{Claims: claims, Match: s.Match(claims, time.Time{}), IndexerLanguages: IndexerLanguages(languages)})
 }
 
-// german1080 accepts German 1080p only.
 var german1080 = fromText(`audio = ["de"]
 resolution = ["1080p"]`, "")
 
-// english accepts English audio.
 var english = fromText(`audio = ["en"]
 resolution = ["1080p", "720p"]`, "")
 
@@ -114,7 +112,7 @@ dual_audio = "`+tc.dual+`"`, "en")
 
 // TestEvaluateDegrades checks the production path, which tests and
 // fuzzers never take: when an invariant breaks outside go test, Evaluate
-// rejects the release with a reason that says Garner could not judge it
+// rejects the release with a reason that says garner could not judge it
 // and logs the invariant and the name instead of crashing the server. The
 // rejected release must also rank like any other rejection, not first.
 func TestEvaluateDegrades(t *testing.T) {

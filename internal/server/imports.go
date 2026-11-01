@@ -88,8 +88,8 @@ func (s *Server) handleTakeOver(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleRename moves a show's taken-over files into Garner's folder for it
-// under Garner's names.
+// handleRename moves a show's taken-over files into garner's folder for it
+// under garner's names.
 func (s *Server) handleRename(w http.ResponseWriter, r *http.Request) {
 	if id, ok := s.filesRequest(w, r); ok {
 		// Files may have moved already: finish even when the client stops

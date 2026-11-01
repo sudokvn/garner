@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Writes a version's release notes to stdout: the commits since the last
 # published stable release that change garner itself, then what to know
-# before upgrading. A candidate's notes are those its release will have. A commit counts when it changes a file other than the
-# documentation, the tests, CI and the project's scripts in tools/, which
-# GoReleaser cannot tell from commit messages. The build files, such as
-# .goreleaser.yaml and the Dockerfile, count: they decide what users get. The upgrade notes say when
-# the version changes the database, followed by the note given with
+# before upgrading. A candidate's notes are those its release will have.
+# A commit counts when it changes a file other than the documentation, the
+# tests, CI and the project's scripts in tools/, which GoReleaser cannot
+# tell from commit messages. The build files, such as .goreleaser.yaml and
+# the Dockerfile, count: they decide what users get. The upgrade notes say
+# when the version changes the database, followed by the note given with
 # `mise run release --note`, which the tag's message keeps.
 #
 # Usage: tools/release-notes.sh VERSION [COMMIT]

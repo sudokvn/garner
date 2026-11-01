@@ -1,25 +1,25 @@
-// Package simulation runs Garner's server against a simulated world:
+// Package simulation runs garner's server against a simulated world:
 // SABnzbd, Prowlarr, Jellyfin, FFprobe, the share and the clock. The share
-// holds a library with files from before Garner, the user's own files and
+// holds a library with files from before garner, the user's own files and
 // an older Jellyfin library; the downloads or the older library may sit on
 // another disk. A seed drives every choice, and after every step the test
-// checks the promises Garner makes about the user's files:
+// checks the promises garner makes about the user's files:
 //
-//   - S1: files no one gave Garner, such as the user's own files and
+//   - S1: files no one gave garner, such as the user's own files and
 //     Jellyfin's metadata, stay as they are.
 //   - S2: a video leaves the library only when a file as good or better
 //     replaced it, or a worse one the user chose over it, or when the user
 //     deleted its show with its files. S3: no video is in it twice.
-//   - S4: every file Garner records exists.
-//   - S5: Garner changes nothing outside the library and SABnzbd's
+//   - S4: every file garner records exists.
+//   - S5: garner changes nothing outside the library and SABnzbd's
 //     folders, and removes a download's folder only when it is done with
 //     the download.
 //   - S6: downloads and imports change state only along the allowed
 //     transitions.
 //
 // Before every rule, the test compares its own notes of what it told
-// Garner with Garner's database; a difference is the simulation's mistake,
-// not Garner's. The calm period at the end adds the rules L1 to L4 (see
+// garner with garner's database; a difference is the simulation's mistake,
+// not garner's. The calm period at the end adds the rules L1 to L5 (see
 // calm).
 //
 // go test runs the fixed seeds (fixedSeeds), each twice: the second run
@@ -77,7 +77,7 @@ var (
 
 const defaultSteps = 300
 
-// Garner tells some dates in local time, such as the day a show's monitor
+// garner tells some dates in local time, such as the day a show's monitor
 // started. One zone everywhere keeps a seed's story the same on every
 // machine.
 func init() { time.Local = time.UTC }
@@ -86,7 +86,7 @@ func init() { time.Local = time.UTC }
 // something in them (a refused request does not count), a crash and
 // another step meet each step that changes files, they cover both path
 // setups and the three disk setups, and they catch the bugs built into
-// Garner on purpose to test the simulation: overwriting a file Garner does
+// garner on purpose to test the simulation: overwriting a file garner does
 // not own, removing SABnzbd's whole folder, never giving up on Jellyfin,
 // downloading again while an import waits for the user, not finishing the
 // changes a crash left and creating a library folder that went. Rarer bugs
@@ -224,7 +224,7 @@ type outcome struct {
 	covered, all []string
 }
 
-// sim is one run: the world, Garner on top of it and the story so far.
+// sim is one run: the world, garner on top of it and the story so far.
 type sim struct {
 	ctx   context.Context
 	seed  uint64
@@ -258,7 +258,7 @@ type sim struct {
 	deleted map[int64]bool
 	// strays counts the user's files put in the way, for their contents.
 	strays int
-	// refused is whether Garner refused the step's last request.
+	// refused is whether garner refused the step's last request.
 	refused  bool
 	covered  map[string]bool
 	failure  string
@@ -377,7 +377,7 @@ func setup(w *world) []string {
 	return []string{paths, "other disk " + cmp.Or(w.disks, "none")}
 }
 
-// start opens the database and sets Garner up on the world, as a restart
+// start opens the database and sets garner up on the world, as a restart
 // does.
 func (s *sim) start() error {
 	st, err := store.Open(s.ctx, s.cfg.DataDir, slog.New(slog.DiscardHandler))
@@ -487,8 +487,8 @@ func (s *sim) do(actor, name string, f func() string) {
 	detail := s.runStep(f)
 	s.current = ""
 	s.note(actor+" "+name, detail)
-	// Garner's own steps always run; the others changed something when
-	// they say what, unless Garner refused the request.
+	// garner's own steps always run; the others changed something when
+	// they say what, unless garner refused the request.
 	if actor == "garner" || detail != "" && !s.refused {
 		s.covered[actor+" "+name] = true
 	}
@@ -502,7 +502,7 @@ func (s *sim) do(actor, name string, f func() string) {
 	}
 	s.last = &after
 	s.hold(after)
-	// The rules judge Garner by the simulation's notes, so those are checked
+	// The rules judge garner by the simulation's notes, so those are checked
 	// first. What the user sets changes only before the calm period, which
 	// checks it once at its end, with the episodes, which only the
 	// simulation's own catalogue changes write.
@@ -520,17 +520,17 @@ func (s *sim) do(actor, name string, f func() string) {
 	}
 }
 
-// Failures that are the simulation's, not Garner's.
+// Failures that are the simulation's, not garner's.
 const (
-	simOutOfStep = "out of step" // the simulation's notes differ from what it told Garner
+	simOutOfStep = "out of step" // the simulation's notes differ from what it told garner
 	simStopped   = "setup"       // the simulation could not go on
 )
 
-// outOfStep compares what the simulation told Garner with Garner's
+// outOfStep compares what the simulation told garner with garner's
 // database: which shows it has, with what monitor mode, start and profile,
 // and with episodes, their episodes as the catalogue has them. A
 // difference is the simulation's own mistake, so the rules would judge
-// Garner by notes that are wrong.
+// garner by notes that are wrong.
 func (s *sim) outOfStep(episodes bool) string {
 	list, err := s.st.ListSeries(s.ctx)
 	if err != nil {
@@ -607,7 +607,7 @@ func (s *sim) fail(rule, msg string) {
 		s.seed, s.step, what, strings.ReplaceAll(msg, s.w.root, "<share>"), strings.Join(last, "\n  "), s.seed, s.steps)
 }
 
-// restart throws Garner away and sets it up again from the database.
+// restart throws garner away and sets it up again from the database.
 func (s *sim) restart() string {
 	if err := s.st.Close(); err != nil {
 		return "close: " + err.Error()
@@ -618,7 +618,7 @@ func (s *sim) restart() string {
 	return "garner started again"
 }
 
-// boot starts Garner again, as after a restart or a crash: its import
+// boot starts garner again, as after a restart or a crash: its import
 // loop runs a round at once, which finishes the changes to files a crash
 // interrupted.
 func (s *sim) boot() error {
@@ -636,12 +636,12 @@ func (s *sim) boot() error {
 // must meet in the middle.
 var changing = []string{"garner import step", "user rename", "user delete show"}
 
-// crash ends Garner in the middle of a step: before a change to a file,
+// crash ends garner in the middle of a step: before a change to a file,
 // or right after a move.
 type crash struct{ when, path string }
 
 // beforeChange runs before each change to a file the guard allows. With
-// the faults on, Garner crashes there now and then, or another step runs
+// the faults on, garner crashes there now and then, or another step runs
 // first, as another goroutine or request may.
 func (s *sim) beforeChange(op, path string) {
 	if s.nested || s.current == "" {
@@ -656,8 +656,8 @@ func (s *sim) beforeChange(op, path string) {
 	}
 }
 
-// moveFile moves a file for Garner as the world does; with crashes on,
-// Garner now and then ends right after the move, before it recorded it.
+// moveFile moves a file for garner as the world does; with crashes on,
+// garner now and then ends right after the move, before it recorded it.
 func (s *sim) moveFile(oldpath, newpath string) error {
 	err := s.w.rename(oldpath, newpath)
 	if err == nil && s.w.faults.crashes && !s.nested && s.current != "" && s.inside.IntN(100) < 5 {
@@ -666,7 +666,7 @@ func (s *sim) moveFile(oldpath, newpath string) error {
 	return err
 }
 
-// between runs another step before a change to a file. Garner's loops each
+// between runs another step before a change to a file. garner's loops each
 // run in one goroutine, so a loop's step never runs inside its own; a
 // restart is a crash, which beforeChange makes.
 func (s *sim) between(op, path string) {
@@ -698,7 +698,7 @@ func (s *sim) between(op, path string) {
 	}
 }
 
-// runStep runs a step. A crash in it ends Garner, which starts again from
+// runStep runs a step. A crash in it ends garner, which starts again from
 // its database, as after a power cut.
 func (s *sim) runStep(f func() string) (detail string) {
 	defer func() {
@@ -843,7 +843,7 @@ func (s *sim) catalogue() string {
 }
 
 // stray puts a file of the user's own where a failed import will move one
-// when it is retried: Garner must not overwrite it.
+// when it is retried: garner must not overwrite it.
 func (s *sim) stray() string {
 	d := s.someDownload(func(d store.Download) bool {
 		return d.Import.State == store.ImportFailed && len(d.Import.Files) > 0 && d.Import.Files[0].Target != ""
@@ -869,7 +869,7 @@ func (s *sim) stray() string {
 	return fmt.Sprintf("download %d: %s", d.ID, rel)
 }
 
-// call sends a request to Garner's API as the terminal interface does.
+// call sends a request to garner's API as the terminal interface does.
 func (s *sim) call(method, path, body string) (int, []byte) {
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+s.token)
@@ -888,7 +888,7 @@ func answer(code int, body []byte) string {
 	return fmt.Sprintf("%d %s", code, e.Error)
 }
 
-// someEpisode is an aired episode of a show Garner has.
+// someEpisode is an aired episode of a show garner has.
 func (s *sim) someEpisode() *episode {
 	var aired []*episode
 	for _, sh := range s.w.shows {
@@ -990,7 +990,7 @@ func (s *sim) downloadPack() string {
 	return fmt.Sprintf("show %d season %d: %s; pack %d (%s): %s", e.show.id, e.season, sr, id, verdict, answer(code, body))
 }
 
-// someShow is a show Garner has.
+// someShow is a show garner has.
 func (s *sim) someShow() *show {
 	var shows []*show
 	for _, sh := range s.w.shows {
@@ -1070,10 +1070,10 @@ func (s *sim) deleteShow() string {
 	return fmt.Sprintf("show %d, files=%s: %s", sh.id, files, answer(code, body))
 }
 
-// addShow adds a show the way the terminal interface does: Garner records
+// addShow adds a show the way the terminal interface does: garner records
 // it, takes over its files in the library and then turns its monitor on.
 // TheTVDB is not simulated, so the show goes into the database from the
-// world instead of from Garner's catalogue.
+// world instead of from garner's catalogue.
 func (s *sim) addShow() string {
 	var absent []*show
 	for _, sh := range s.w.shows {
@@ -1091,7 +1091,7 @@ func (s *sim) addShow() string {
 		return ""
 	}
 	// Seeded with the monitor off; the notes take the mode the user wants
-	// once Garner took it.
+	// once garner took it.
 	want := sh.monitor
 	sh.added, sh.monitor = true, store.MonitorOff
 	detail := fmt.Sprintf("show %d: take-over %s", sh.id, s.takeOverShow(sh))
@@ -1112,7 +1112,7 @@ func (s *sim) takeOverShow(sh *show) string {
 		Skipped                    []any
 	}
 	json.Unmarshal(body, &t)
-	// The user handed the files Garner took over to it: they are Garner's
+	// The user handed the files garner took over to it: they are garner's
 	// now, no longer foreign.
 	for _, p := range sortedKeys(s.w.foreign) {
 		if s.recorded(p) {
@@ -1122,7 +1122,7 @@ func (s *sim) takeOverShow(sh *show) string {
 	return fmt.Sprintf("%d files for %d episodes, %d skipped, %d to rename", t.Files, t.Episodes, len(t.Skipped), t.Renamable)
 }
 
-// recorded reports whether Garner records the file at p as an episode's.
+// recorded reports whether garner records the file at p as an episode's.
 func (s *sim) recorded(p string) bool {
 	for _, sh := range s.w.shows {
 		for _, e := range sh.episodes {
@@ -1175,7 +1175,7 @@ func (s *sim) changeProfile() string {
 	return fmt.Sprintf("show %d to %s: %s", sh.id, profile, answer(code, body))
 }
 
-// installProfiles gives Garner the profiles of an installation from before
+// installProfiles gives garner the profiles of an installation from before
 // profiles moved into the database, once: German for TV shows and German
 // with English for anime, as the defaults. The simulation notes a show's
 // type; its profile follows the type.
@@ -1207,13 +1207,13 @@ type snapshot struct {
 	tiers     map[int64]string  // the recorded file's tier, by episode
 	library   map[string]string // where each video in the libraries is, by video
 	dupes     []string
-	// planned are the files Garner planned to remove, as the rest of an
+	// planned are the files garner planned to remove, as the rest of an
 	// upgrade that replaced them.
 	planned map[string]bool
 	jobs    map[string]bool // SABnzbd's job folders that exist, by job
 }
 
-// libraries are the folders whose videos the rules follow: Garner's and
+// libraries are the folders whose videos the rules follow: garner's and
 // Jellyfin's libraries, wherever they are plugged in.
 var libraries = []string{"library", "media-old", "unplugged"}
 
@@ -1295,7 +1295,7 @@ func (s *sim) digest(dir string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-// foreignStays is S1: Garner never moves, renames or deletes a file no one
+// foreignStays is S1: garner never moves, renames or deletes a file no one
 // gave it.
 func (s *sim) foreignStays(_, _ snapshot) (string, string) {
 	for _, p := range sortedKeys(s.w.foreign) {
@@ -1314,7 +1314,7 @@ func (s *sim) foreignStays(_, _ snapshot) (string, string) {
 
 // filesStay is S2 and S3: a video leaves the libraries only when a newer
 // file of its episodes replaced it, or when the user deleted its show with
-// its files; Garner copies nothing and overwrites nothing else.
+// its files; garner copies nothing and overwrites nothing else.
 func (s *sim) filesStay(before, after snapshot) (string, string) {
 	if len(after.dupes) > 0 {
 		return "S3", "a video is in the library twice: " + after.dupes[0]
@@ -1417,7 +1417,7 @@ func (s *sim) recordsMatch(_, after snapshot) (string, string) {
 var top = []string{"elsewhere", "garner", "library", "media-old", "unplugged", "usenet"}
 
 // outsideStays is S5: nothing outside the libraries, SABnzbd's folders and
-// Garner's data changes, the library roots stay, and an unplugged root
+// garner's data changes, the library roots stay, and an unplugged root
 // stays away until it is plugged in again.
 func (s *sim) outsideStays(before, after snapshot) (string, string) {
 	if s.digest(filepath.Join(s.w.root, "elsewhere")) != s.sentinel {
@@ -1438,8 +1438,8 @@ func (s *sim) outsideStays(before, after snapshot) (string, string) {
 		}
 	}
 	// A job folder goes when someone removes the job in SABnzbd by hand,
-	// when Garner is done with its download (imported or rejected), when
-	// Garner cancelled the download and SABnzbd deleted its files, or with
+	// when garner is done with its download (imported or rejected), when
+	// garner cancelled the download and SABnzbd deleted its files, or with
 	// its show or episode.
 	done := []string{store.ImportScanning, store.ImportDone, store.ImportUnverified, store.ImportRejected}
 	for _, j := range s.w.sab.jobs {
@@ -1566,8 +1566,8 @@ func merge(a, b map[string][]string) map[string][]string {
 // for the user. Then the clock runs, by the minute while something runs
 // and by six hours while nothing does, until nothing is left to do. The
 // final rules follow: L1 and L2, every download and import ended; L3, the
-// monitor got every wanted episode; L4, Garner cleaned up after its
-// imports.
+// monitor got every wanted episode; L4, garner cleaned up after its
+// imports; L5, a replaced video is gone.
 func (s *sim) calm() {
 	w := s.w
 	w.sab.loseNext, w.sab.hideNext = false, false
@@ -1744,8 +1744,8 @@ func (s *sim) missing() []int64 {
 	return out
 }
 
-// cleanedUp is L4: SABnzbd's folder of every download Garner imported is
-// gone, unless it holds a file Garner could not assign to an episode, such
+// cleanedUp is L4: SABnzbd's folder of every download garner imported is
+// gone, unless it holds a file garner could not assign to an episode, such
 // as an extra or a file of an episode the catalogue dropped, or a subtitle
 // it could not move.
 func (s *sim) cleanedUp(all []store.Download) {

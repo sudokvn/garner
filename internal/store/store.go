@@ -1,4 +1,4 @@
-// Package store owns Garner's database: opening it, applying migrations,
+// Package store owns garner's database: opening it, applying migrations,
 // backups and the queries the server needs.
 package store
 
@@ -39,7 +39,7 @@ var (
 	ErrUnauthorized = errors.New("unauthorized")
 )
 
-// Store is an open database. Garner uses a single connection: its load is
+// Store is an open database. garner uses a single connection: its load is
 // small, and every Turso connection opens its own database instance.
 type Store struct {
 	db   *sql.DB
@@ -141,10 +141,8 @@ func removeOtherLibraries(libs, keep string, log *slog.Logger) {
 	}
 }
 
-// Close closes the database.
 func (s *Store) Close() error { return s.db.Close() }
 
-// Path returns the database file.
 func (s *Store) Path() string { return s.path }
 
 // pragmaConnector enables foreign keys on every new connection.
@@ -169,7 +167,7 @@ func (c pragmaConnector) Connect(ctx context.Context) (driver.Conn, error) {
 
 func (c pragmaConnector) Driver() driver.Driver { return c.inner.Driver() }
 
-// migrator returns goose's view of Garner's migrations on db.
+// migrator returns goose's view of garner's migrations on db.
 func migrator(db *sql.DB) (*goose.Provider, error) {
 	sub, err := fs.Sub(migrations, "migrations")
 	if err != nil {
@@ -278,7 +276,6 @@ func (s *Store) StillValid(ctx context.Context, t Token) (bool, error) {
 	return n == 1, err
 }
 
-// Tokens lists all tokens.
 func (s *Store) Tokens(ctx context.Context) ([]TokenInfo, error) {
 	rows, err := s.q.ListTokens(ctx)
 	if err != nil {
@@ -378,7 +375,6 @@ func (s *Store) record(ctx context.Context, b Backup, reason string) {
 	}
 }
 
-// Status describes the database.
 type Status struct {
 	Path       string
 	Size       int64 // database file plus write-ahead log

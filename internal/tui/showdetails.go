@@ -439,7 +439,6 @@ func deleteQuestion(name string, sh api.Show, chosen int) []string {
 		keyBar("h l", "choose", "enter", "ok", "esc", "cancel"))
 }
 
-// deleteShow deletes a show, with its files unless keepFiles is set.
 func deleteShow(cl *client.Client, id int64, keepFiles bool) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -550,7 +549,7 @@ func overviewLabel(language string) string {
 	return "overview"
 }
 
-// seriesFacts are TVDB's facts as Garner stored them: episodes and seasons
+// seriesFacts are TVDB's facts as garner stored them: episodes and seasons
 // of the default order without specials, the default order first.
 func seriesFacts(d *api.SeriesDetail) tvdbFacts {
 	sr := d.Series

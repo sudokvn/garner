@@ -104,7 +104,7 @@ type InsertTakenFileParams struct {
 	ImportedAt int64
 }
 
-// A file Garner took over from the library, unless the episode has one.
+// A file garner took over from the library, unless the episode has one.
 func (q *Queries) InsertTakenFile(ctx context.Context, arg InsertTakenFileParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, insertTakenFile,
 		arg.EpisodeID,
@@ -220,7 +220,7 @@ type ListSeriesTakenFilesRow struct {
 	Tier      string
 }
 
-// The files of a show Garner took over from the library, with the
+// The files of a show garner took over from the library, with the
 // episodes each holds.
 func (q *Queries) ListSeriesTakenFiles(ctx context.Context, seriesID int64) ([]ListSeriesTakenFilesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listSeriesTakenFiles, seriesID)
@@ -273,7 +273,7 @@ type MoveEpisodeFileParams struct {
 	OldPath string
 }
 
-// A file Garner moved within the library, for every episode it holds.
+// A file garner moved within the library, for every episode it holds.
 func (q *Queries) MoveEpisodeFile(ctx context.Context, arg MoveEpisodeFileParams) error {
 	_, err := q.db.ExecContext(ctx, moveEpisodeFile, arg.NewPath, arg.OldPath)
 	return err

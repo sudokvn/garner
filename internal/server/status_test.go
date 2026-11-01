@@ -91,7 +91,7 @@ func (r rewrite) RoundTrip(req *http.Request) (*http.Response, error) {
 	return http.DefaultTransport.RoundTrip(req)
 }
 
-// TestTVDBStatus shows on the About screen which key Garner uses and,
+// TestTVDBStatus shows on the About screen which key garner uses and,
 // after TheTVDB asked it to slow down, that its requests are paused.
 func TestTVDBStatus(t *testing.T) {
 	ctx := context.Background()

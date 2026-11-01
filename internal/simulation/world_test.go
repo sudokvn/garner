@@ -28,20 +28,20 @@ import (
 	"github.com/trucke/garner/internal/store"
 )
 
-// The world is everything outside Garner: the shows, the releases the
+// The world is everything outside garner: the shows, the releases the
 // indexers hold, SABnzbd, Jellyfin, FFprobe, the files on the share, its
 // disks and the clock. Its fakes answer from its state alone and only
-// events change it, so the order of Garner's requests never draws
+// events change it, so the order of garner's requests never draws
 // randomness.
 //
 // The share holds:
 //
 //	usenet/complete/tv   SABnzbd's finished jobs
-//	library/tv, anime    Garner's library roots
+//	library/tv, anime    garner's library roots
 //	media-old/tv         an older library Jellyfin also holds
-//	elsewhere            files nobody Garner works for owns
+//	elsewhere            files nobody garner works for owns
 //	unplugged            where an unplugged library folder waits
-//	garner               Garner's database
+//	garner               garner's database
 
 const (
 	prowlarrHost = "prowlarr.sim"
@@ -53,7 +53,7 @@ const (
 // start is when every run begins.
 var start = time.Date(2026, 3, 2, 12, 0, 0, 0, time.UTC)
 
-// roots are the library folders Garner or Jellyfin hold; none of them may
+// roots are the library folders garner or Jellyfin hold; none of them may
 // ever go, except when the world unplugs one.
 var roots = []string{"library/tv", "library/anime", "media-old/tv"}
 
@@ -63,7 +63,7 @@ type world struct {
 	mapped bool   // SABnzbd and Jellyfin see the share under /data
 	// disks says which top folders lie on another disk than the library:
 	// none, "usenet" (no import can move its files) or "media-old" (files
-	// taken over there cannot be renamed into Garner's folder).
+	// taken over there cannot be renamed into garner's folder).
 	disks  string
 	now    time.Time
 	rnd    *rand.Rand // the world's choices
@@ -72,7 +72,7 @@ type world struct {
 	shows    []*show
 	postings []*posting
 	videos   int // video IDs handed out
-	// foreign are files no one gave Garner, by path, with their content and
+	// foreign are files no one gave garner, by path, with their content and
 	// how the file looked when it was written.
 	foreign map[string]foreignFile
 
@@ -96,7 +96,7 @@ type faults struct {
 	mislabeled, wrongRuntime, corrupt          bool
 	unplug, readOnly, catalogue, strays        bool
 	restarts                                   bool
-	// crashes ends Garner at a change to a file now and then; between
+	// crashes ends garner at a change to a file now and then; between
 	// lets another step run first, as another goroutine or request may.
 	crashes, between bool
 }
@@ -139,7 +139,7 @@ type show struct {
 	monitor  string
 	since    time.Time // when the monitor mode was chosen
 	profile  string
-	added    bool // Garner has the show
+	added    bool // garner has the show
 	episodes []*episode
 	numbered int // episode IDs handed out
 	// language and status are TheTVDB's original language and status;
@@ -149,7 +149,7 @@ type show struct {
 
 func (s *show) dotted() string { return strings.ReplaceAll(s.name, " ", ".") }
 
-// garnerName is the show's part of the names Garner gives folders and
+// garnerName is the show's part of the names garner gives folders and
 // files.
 func (s *show) garnerName() string { return fmt.Sprintf("%s.%d", s.dotted(), s.year) }
 
@@ -252,7 +252,7 @@ func newWorld(seed uint64, root string) (*world, error) {
 			return nil, err
 		}
 	}
-	// A show Garner does not know, which Jellyfin holds.
+	// A show garner does not know, which Jellyfin holds.
 	unknown := "library/tv/Unknown Harbor (2001)"
 	w.jf.folders[filepath.Join(root, unknown)] = 9999
 	w.addForeign(unknown+"/Season 1/Unknown Harbor - S01E01 - Arrival.mkv", `{"id":"unknown-show"}`)
@@ -269,7 +269,7 @@ type foreignFile struct {
 	mod     time.Time
 }
 
-// addForeign writes a file no one gives Garner and reports whether it
+// addForeign writes a file no one gives garner and reports whether it
 // could: a folder that refuses writes refuses the user too.
 func (w *world) addForeign(rel, content string) bool {
 	p := filepath.Join(w.root, rel)
@@ -343,16 +343,16 @@ func (w *world) addPosting(p *posting, k kind, indexed bool) {
 }
 
 // libraryFiles puts files of a show's first episodes into the library
-// before the run, the way an older setup left them: in Garner's own folder,
+// before the run, the way an older setup left them: in garner's own folder,
 // or in the older library under other names, next to files no one gave
-// Garner.
+// garner.
 func (w *world) libraryFiles(s *show) error {
 	switch w.rnd.IntN(3) {
 	case 0:
 		return nil
 	case 1:
-		// Files of releases on the indexers, named the way Garner names
-		// them, as a Garner whose database was lost left them: importing
+		// Files of releases on the indexers, named the way garner names
+		// them, as a garner whose database was lost left them: importing
 		// the same release again meets a file in the way.
 		for _, e := range s.episodes[:min(2, len(s.episodes))] {
 			var same []*posting
@@ -396,7 +396,7 @@ func (w *world) libraryFiles(s *show) error {
 	return nil
 }
 
-// garnerFileName is the name Garner gives the file of a release of an
+// garnerFileName is the name garner gives the file of a release of an
 // episode in its library, such as
 // "Harbor.Precinct.2013.S01E02.Part.2.WEB-1080p.DE.EN-GRP.mkv".
 func garnerFileName(e *episode, p *posting) string {
@@ -408,7 +408,7 @@ func garnerFileName(e *episode, p *posting) string {
 	return fmt.Sprintf("%s.S%02dE%02d.Part.%d.WEB-%dp.%s-%s.mkv", e.show.garnerName(), e.season, e.number, e.number, p.height, strings.Join(langs, "."), group)
 }
 
-// seedShow records a show in Garner's database the way adding it does.
+// seedShow records a show in garner's database the way adding it does.
 func (w *world) seedShow(ctx context.Context, st *store.Store, s *show, monitor string) error {
 	if err := st.SaveSeries(ctx, w.seriesData(s), true, w.now); err != nil {
 		return err
@@ -483,7 +483,7 @@ func (w *world) local(remote string) string {
 	return remote
 }
 
-// rename moves a file for Garner, failing as a rename does between disks.
+// rename moves a file for garner, failing as a rename does between disks.
 func (w *world) rename(oldpath, newpath string) error {
 	if disk := func(p string) bool { return w.disks != "" && strings.HasPrefix(w.rel(p), w.disks+"/") }; disk(oldpath) != disk(newpath) {
 		return &os.LinkError{Op: "rename", Old: oldpath, New: newpath, Err: syscall.EXDEV}
@@ -491,7 +491,7 @@ func (w *world) rename(oldpath, newpath string) error {
 	return os.Rename(oldpath, newpath)
 }
 
-// hash spreads decisions that must not depend on the order of Garner's
+// hash spreads decisions that must not depend on the order of garner's
 // requests, such as how Jellyfin identifies one file, over the seed.
 func (w *world) hash(s string) uint64 {
 	h := fnv.New64a()
@@ -616,7 +616,7 @@ func readVideo(path string) (v video, ok bool) {
 	return v, json.Unmarshal(data, &v) == nil && v.ID != ""
 }
 
-// transport carries Garner's requests to the fakes, in memory and in the
+// transport carries garner's requests to the fakes, in memory and in the
 // calling goroutine.
 type transport struct{ w *world }
 
@@ -765,7 +765,7 @@ type job struct {
 	hidden  bool // SABnzbd never lists it
 	gone    bool // deleted, or removed in SABnzbd by hand
 	// vanished means someone removed the job in SABnzbd by hand, outside
-	// Garner.
+	// garner.
 	vanished bool
 	// lost means the job's folder went; SABnzbd may give a later job of the
 	// same release the same folder.
@@ -930,9 +930,9 @@ func (w *world) complete(j *job) error {
 // scanned and identifies them as episodes, sometimes late, never or wrong.
 type jellyfin struct {
 	down    bool
-	hints   []string // files Garner told it about, not scanned yet
+	hints   []string // files garner told it about, not scanned yet
 	refresh bool
-	items   map[string]*jfItem // by file, as Garner reaches it
+	items   map[string]*jfItem // by file, as garner reaches it
 	// folders are the show folders it identified without a TVDB ID in
 	// their name, with the show they hold.
 	folders map[string]int64

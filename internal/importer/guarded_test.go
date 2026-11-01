@@ -10,7 +10,7 @@ import (
 )
 
 // TestOnlyTheGuardChangesFiles keeps every change to files and folders in
-// the guard, which checks that Garner owns what it changes (GRR-31).
+// the guard, which checks that garner owns what it changes (GRR-31).
 func TestOnlyTheGuardChangesFiles(t *testing.T) {
 	changes := map[string]bool{
 		"Chmod": true, "Chown": true, "Chtimes": true, "Create": true, "Link": true, "Mkdir": true, "MkdirAll": true,

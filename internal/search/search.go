@@ -20,7 +20,6 @@ import (
 	"github.com/trucke/garner/internal/store"
 )
 
-// Service runs searches.
 type Service struct {
 	store    *store.Store
 	prowlarr *prowlarr.Client

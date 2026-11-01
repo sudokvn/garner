@@ -10,9 +10,9 @@ import (
 	"github.com/trucke/garner/internal/api"
 )
 
-// TestReleasesTried shows which of two postings of the same release Garner
+// TestReleasesTried shows which of two postings of the same release garner
 // tried and what came of it, and tells them apart by their upload time and
-// their pages (GRR-43). The Tried column appears only once Garner tried one.
+// their pages (GRR-43). The Tried column appears only once garner tried one.
 func TestReleasesTried(t *testing.T) {
 	const title = "Harbor.Precinct.S01E01.German.DL.1080p.WEB-GRP"
 	first := time.Date(2021, 9, 10, 4, 26, 0, 0, time.Local)

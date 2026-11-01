@@ -1,5 +1,5 @@
 -- +goose Up
--- Shows Garner manages, as described by TVDB.
+-- Shows garner manages, as described by TVDB.
 CREATE TABLE series (
     id INTEGER PRIMARY KEY, -- TVDB series ID
     slug TEXT NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE series_orders (
 ) STRICT;
 
 -- Names releases may use for a show, from TVDB, TheXEM and reviewed
--- corrections shipped with Garner.
+-- corrections shipped with garner.
 CREATE TABLE series_titles (
     id INTEGER PRIMARY KEY,
     series_id INTEGER NOT NULL REFERENCES series (id) ON DELETE CASCADE,

@@ -1,4 +1,4 @@
-// Package client talks to a Garner server for the terminal interface. It
+// Package client talks to a garner server for the terminal interface. It
 // sends the token only to a server it has verified: over HTTPS with the
 // pinned or a CA-verified certificate, or over plain HTTP to this machine.
 // It never follows redirects and ignores proxy settings, so the token cannot
@@ -63,7 +63,6 @@ func (e *UntrustedError) Error() string {
 
 func (e *UntrustedError) Unwrap() error { return e.Err }
 
-// ServerError is an error the server answered with.
 type ServerError struct {
 	Status  int
 	Message string

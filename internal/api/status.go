@@ -9,7 +9,6 @@ type Services struct {
 	Library  LibraryTotals  `json:"library"`
 }
 
-// ServiceCheck is how one service is doing.
 type ServiceCheck struct {
 	Name string `json:"name"`
 	// OK is false when the service is not set up or did not answer.

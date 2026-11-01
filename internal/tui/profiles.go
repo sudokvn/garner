@@ -182,7 +182,6 @@ func (s *profilesScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 	return s, nil
 }
 
-// cursor is the row under the cursor, if any.
 func (s *profilesScreen) cursor() (profileRow, bool) {
 	i := slices.IndexFunc(s.rows, func(r profileRow) bool { return r.ID == s.selected })
 	if i < 0 {
@@ -404,7 +403,6 @@ func writeProfileFile(path, text string, overwrite bool) error {
 	return f.Close()
 }
 
-// expandHome replaces a leading ~ with the home folder.
 func expandHome(path string) string {
 	if path == "~" || strings.HasPrefix(path, "~/") {
 		if home, err := os.UserHomeDir(); err == nil {
@@ -482,7 +480,7 @@ func (e *exportPrompt) lines(name string) []string {
 }
 
 // newPicker lists where a new profile may start from: empty, one of the
-// user's profiles, or one shipped with Garner.
+// user's profiles, or one shipped with garner.
 func (s *profilesScreen) newPicker() pickList {
 	const nameWidth, prefsWidth = 26, 61
 	p := pickList{labelWidth: nameWidth + 3, width: 1 + nameWidth + 3 + prefsWidth + 1}

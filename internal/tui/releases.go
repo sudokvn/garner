@@ -359,7 +359,7 @@ func (s *releasesScreen) table(width, height int) string {
 		tier, _ := tierLabel(c)
 		cols.tier = max(cols.tier, ansi.StringWidth(tier))
 	}
-	// Tried appears once Garner tried one of the postings.
+	// Tried appears once garner tried one of the postings.
 	if slices.ContainsFunc(all, func(c api.Candidate) bool { return c.Attempt != nil }) {
 		cols.tried = triedWidth
 	}
@@ -425,7 +425,7 @@ func (s *releasesScreen) table(width, height int) string {
 const minReleaseName = 30
 
 // releaseCols sizes the releases table; Tried, Source, Audio and Age are
-// 0 when left out, on a narrow terminal or, for Tried, when Garner tried
+// 0 when left out, on a narrow terminal or, for Tried, when garner tried
 // none of the releases. The indexer shows in WHY.
 type releaseCols struct {
 	name, tier, tried, source, audio, age int
@@ -517,7 +517,7 @@ func tierLabel(c api.Candidate) (string, lipgloss.Style) {
 
 // why explains the release under the cursor: its full name, its indexer
 // and when it was uploaded, which tells postings of the same name apart,
-// and its page at the indexer, what came of Garner's last try of it, then
+// and its page at the indexer, what came of garner's last try of it, then
 // the reasons that decided its verdict, then the facts.
 func (s *releasesScreen) why(w int) []string {
 	c, ok := s.cursor()
@@ -548,7 +548,7 @@ func (s *releasesScreen) why(w int) []string {
 	return strings.Split(indent(frame("why", lines, w), 3), "\n")
 }
 
-// attemptLabel is the Tried column: what came of Garner's last try of a
+// attemptLabel is the Tried column: what came of garner's last try of a
 // posting, in the library's words; empty when it never tried it.
 func attemptLabel(d *api.Download) (string, lipgloss.Style) {
 	if d == nil {
@@ -572,7 +572,7 @@ func attemptLabel(d *api.Download) (string, lipgloss.Style) {
 	return "failed", sRed
 }
 
-// attemptLines say what came of Garner's last try of a posting and when,
+// attemptLines say what came of garner's last try of a posting and when,
 // wrapped to w cells. A posting that failed or was cancelled is not picked
 // again on its own.
 func attemptLines(d api.Download, w int, now time.Time) []string {

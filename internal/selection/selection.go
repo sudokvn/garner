@@ -71,7 +71,7 @@ func FromProfile(p profile.Profile, original release.Language) Profile {
 }
 
 // OriginalLanguage is a show's original language as TVDB names it, such as
-// "jpn". A language Garner does not know keeps TVDB's code, so releases
+// "jpn". A language garner does not know keeps TVDB's code, so releases
 // that name no language still count as the show's own.
 func OriginalLanguage(tvdb string) release.Language {
 	if l, ok := release.LanguageNamed(tvdb); ok {
@@ -145,7 +145,7 @@ func (p Profile) Wanted() string {
 	return strings.Join(names, " or ")
 }
 
-// Verdict is what Garner does with a release.
+// Verdict is what garner does with a release.
 type Verdict string
 
 const (
@@ -161,8 +161,7 @@ type Context struct {
 	Profile Profile
 	Show    *match.Show
 	// Want is the TVDB episode searched for.
-	Want int64
-	// Original is the show's original language.
+	Want     int64
 	Original release.Language
 	// Missing are the aired episodes of Want's season without a file. A
 	// pack with all of them, when there are several, ranks before single
@@ -202,7 +201,7 @@ type Evaluation struct {
 	// Tier is the name of the profile tier the release meets, such as
 	// "German 1080p"; empty when it meets none.
 	Tier string
-	// Audio are the audio languages Garner assumes; empty when unknown.
+	// Audio are the audio languages garner assumes; empty when unknown.
 	Audio []release.Language
 	// Reasons explain the verdict, most important first. The first
 	// Decisive of them decided it: why the release is rejected, only a
@@ -226,7 +225,6 @@ type rankKey struct {
 	published time.Time
 }
 
-// Evaluate judges one release.
 func Evaluate(ctx Context, r Release) Evaluation {
 	if testing.Testing() {
 		return judge(ctx, r)
@@ -239,7 +237,7 @@ func Evaluate(ctx Context, r Release) Evaluation {
 }
 
 // degrade runs build and, when an invariant breaks, logs it together with
-// the name and falls back to a rejection that says Garner could not judge
+// the name and falls back to a rejection that says garner could not judge
 // the release.
 func degrade(ctx Context, r Release, build func() Evaluation) (e Evaluation) {
 	defer func() {

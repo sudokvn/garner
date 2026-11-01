@@ -44,14 +44,14 @@ func (c *Client) TakeOver(ctx context.Context, id int64) (api.TakeOver, error) {
 	return t, c.do(ctx, http.MethodPost, "/api/v1/series/"+strconv.FormatInt(id, 10)+"/files/take-over", nil, &t)
 }
 
-// Rename moves a show's taken-over files into Garner's folder for it,
-// named the way Garner names files.
+// Rename moves a show's taken-over files into garner's folder for it,
+// named the way garner names files.
 func (c *Client) Rename(ctx context.Context, id int64) (api.Renamed, error) {
 	var r api.Renamed
 	return r, c.do(ctx, http.MethodPost, "/api/v1/series/"+strconv.FormatInt(id, 10)+"/files/rename", nil, &r)
 }
 
-// Series returns a show with what Garner has of each episode.
+// Series returns a show with what garner has of each episode.
 func (c *Client) Series(ctx context.Context, id int64) (api.SeriesDetail, error) {
 	var d api.SeriesDetail
 	return d, c.do(ctx, http.MethodGet, "/api/v1/series/"+strconv.FormatInt(id, 10), nil, &d)
@@ -65,7 +65,7 @@ func (c *Client) SetProfile(ctx context.Context, id, profileID int64) (api.Serie
 }
 
 // SetType makes a show a TV show or an anime, api.TypeTV or api.TypeAnime:
-// how Garner reads episode numbers and which library folder takes new
+// how garner reads episode numbers and which library folder takes new
 // files. Files already in the library stay where they are.
 func (c *Client) SetType(ctx context.Context, id int64, typ string) (api.SeriesDetail, error) {
 	var d api.SeriesDetail
@@ -116,7 +116,6 @@ func (c *Client) DeleteSeries(ctx context.Context, id int64, keepFiles bool) (De
 	return d, c.do(ctx, http.MethodDelete, "/api/v1/series/"+strconv.FormatInt(id, 10)+"?files="+files, nil, &d)
 }
 
-// SearchEpisode searches the indexers for an episode.
 func (c *Client) SearchEpisode(ctx context.Context, episodeID int64) (api.Search, error) {
 	var s api.Search
 	return s, c.do(ctx, http.MethodPost, "/api/v1/episodes/"+strconv.FormatInt(episodeID, 10)+"/search", nil, &s)

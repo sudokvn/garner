@@ -18,7 +18,7 @@ import (
 )
 
 // The admin API is served only on the Unix socket in the data directory.
-// Access is limited by file permissions to the user running Garner, so it
+// Access is limited by file permissions to the user running garner, so it
 // needs no token.
 
 // CreatedToken is returned once when a token is created.
@@ -36,7 +36,6 @@ type TokenInfo struct {
 	LastUsed *time.Time `json:"last_used,omitempty"`
 }
 
-// RevokedToken reports a revocation.
 type RevokedToken struct {
 	Name          string `json:"name"`
 	ClosedStreams int    `json:"closed_streams"`
@@ -67,7 +66,6 @@ type Status struct {
 	LastBackup *BackupInfo `json:"last_backup,omitempty"`
 }
 
-// AdminRoutes is the admin API.
 func (s *Server) AdminRoutes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /admin/tokens", s.handleCreateToken)
@@ -211,7 +209,7 @@ func (s *Server) handleBackup(w http.ResponseWriter, r *http.Request) {
 // Work counts what runs: downloads with SABnzbd, imports that check or
 // move files, and searches of a show's missing episodes. Idle means a
 // restart interrupts none of it: downloads do not count, as SABnzbd runs
-// them and Garner follows them again after a restart, as it does an import
+// them and garner follows them again after a restart, as it does an import
 // waiting for Jellyfin.
 type Work struct {
 	Downloads int  `json:"downloads"`

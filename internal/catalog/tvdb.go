@@ -15,7 +15,6 @@ import (
 	"time"
 )
 
-// TVDBBaseURL is TheTVDB's v4 API.
 const TVDBBaseURL = "https://api4.thetvdb.com/v4"
 
 // errNotFound means TVDB has no such record, such as a missing translation.
@@ -25,7 +24,7 @@ var errNotFound = errors.New("not found on TVDB")
 const tokenMaxAge = 24 * time.Hour
 
 // Limits on TheTVDB requests. Every installation of a release shares
-// Garner's project key, so one that goes wrong, such as through a bug that
+// garner's project key, so one that goes wrong, such as through a bug that
 // reloads shows in a loop, must not get the key blocked for everyone.
 const (
 	// tvdbInterval paces requests: at most five per second.
@@ -44,7 +43,7 @@ const (
 	tvdbRefusedPause = time.Hour
 )
 
-// PausedError means Garner holds its TheTVDB requests back until Until.
+// PausedError means garner holds its TheTVDB requests back until Until.
 type PausedError struct {
 	Until  time.Time
 	Reason string
@@ -55,7 +54,7 @@ func (e *PausedError) Error() string {
 }
 
 // tvdbMaxResponse bounds each TVDB response body. The largest answers
-// Garner reads are extended series records with aliases, season types
+// garner reads are extended series records with aliases, season types
 // and genres, and pages of 100 episodes from very long-running shows;
 // real ones stay a few hundred KiB, so 16 MiB leaves generous headroom
 // without cutting off a valid show.
@@ -440,7 +439,6 @@ func (c *TVDB) episodes(ctx context.Context, id int64, seasonType, lang string) 
 	return nil, false, fmt.Errorf("TVDB series %d: too many episode pages", id)
 }
 
-// updatedSeries returns the IDs of series changed since t.
 func (c *TVDB) updatedSeries(ctx context.Context, since time.Time) ([]int64, error) {
 	var ids []int64
 	for page := 0; page < 1000; page++ {

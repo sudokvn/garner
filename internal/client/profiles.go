@@ -16,7 +16,6 @@ func (c *Client) Profiles(ctx context.Context) ([]api.Profile, error) {
 	return out, c.do(ctx, http.MethodGet, "/api/v1/profiles", nil, &out)
 }
 
-// Profile returns one stored profile.
 func (c *Client) Profile(ctx context.Context, id int64) (api.Profile, error) {
 	var out api.Profile
 	return out, c.do(ctx, http.MethodGet, profilePath(id), nil, &out)

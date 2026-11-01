@@ -1,4 +1,4 @@
-// Package httpx builds the HTTP clients Garner uses for external services.
+// Package httpx builds the HTTP clients garner uses for external services.
 package httpx
 
 import (

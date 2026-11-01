@@ -241,7 +241,7 @@ func (s *Service) ClaimFiles(ctx context.Context, paths []string) ([]guard.File,
 
 // DeleteFiles removes a show's claimed files and their subtitle files,
 // then the season and show folders that are left empty. Only folders named
-// the way Garner names them are removed, so a library root or someone
+// the way garner names them are removed, so a library root or someone
 // else's folder never goes. It returns the files it removed and the
 // problems it met.
 func (s *Service) DeleteFiles(ctx context.Context, seriesID int64, files []guard.File) (removed, problems []string) {

@@ -1,6 +1,6 @@
 -- +goose Up
 -- Releases handed to SABnzbd. A row is written before SABnzbd is asked, so
--- after a crash Garner looks the job up instead of submitting it again.
+-- after a crash garner looks the job up instead of submitting it again.
 CREATE TABLE downloads (
     id INTEGER PRIMARY KEY,
     episode_id INTEGER NOT NULL REFERENCES episodes (id) ON DELETE CASCADE,
@@ -10,7 +10,7 @@ CREATE TABLE downloads (
     size INTEGER NOT NULL,
     verdict TEXT NOT NULL,
     tier TEXT NOT NULL,
-    manual INTEGER NOT NULL, -- chosen by hand rather than by Garner
+    manual INTEGER NOT NULL, -- chosen by hand rather than by garner
     state TEXT NOT NULL, -- submitting, queued, downloading, processing, completed or failed
     detail TEXT NOT NULL, -- SABnzbd's own status, such as "Repairing"
     job_id TEXT UNIQUE, -- SABnzbd's nzo_id

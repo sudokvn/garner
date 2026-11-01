@@ -17,7 +17,7 @@ audio = ["de", "en"]
 resolution = ["1080p", "720p"]
 `
 
-// TestShipped reads the profiles that come with Garner: each is valid,
+// TestShipped reads the profiles that come with garner: each is valid,
 // without warnings, and in the canonical form Encode writes, so it can
 // serve as an example as it is.
 func TestShipped(t *testing.T) {

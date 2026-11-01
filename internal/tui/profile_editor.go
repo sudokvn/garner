@@ -290,7 +290,6 @@ func (s *editorScreen) edit(row editorRow) {
 	}
 }
 
-// listLen is the length of the audio or resolution list.
 func (s *editorScreen) listLen(kind editorRowKind) int {
 	if kind == rowAudio {
 		return len(s.p.Audio)

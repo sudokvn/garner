@@ -24,7 +24,7 @@ type profileCache struct {
 	defaults map[string]int64 // type → profile ID
 }
 
-// loadProfiles reads the stored profiles into the cache. Garner saves only
+// loadProfiles reads the stored profiles into the cache. garner saves only
 // profiles that pass the check, so one that does not is a bug.
 func (s *Server) loadProfiles(ctx context.Context) error {
 	stored, err := s.store.Profiles(ctx)

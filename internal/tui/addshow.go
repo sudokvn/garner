@@ -27,7 +27,7 @@ import (
 // Add show searches TVDB in the bottom line and opens a show's details
 // before adding it.
 
-// searchPause is how long typing must pause before Garner asks TVDB.
+// searchPause is how long typing must pause before garner asks TVDB.
 const searchPause = 350 * time.Millisecond
 
 type (
@@ -42,7 +42,7 @@ type (
 		id      int64
 		name    string
 		already bool
-		// taken is what Garner found of the show in the library.
+		// taken is what garner found of the show in the library.
 		taken *api.TakeOver
 	}
 )
@@ -295,12 +295,12 @@ func (s *addScreen) bottom(width int, q string) string {
 	return left + strings.Repeat(" ", max(2, width-2-lipgloss.Width(left)-lipgloss.Width(right))) + right
 }
 
-// searchColumns sizes the result table: glyph, name, year, network,
-// language, status.
 type searchCols struct {
 	width, name, network int
 }
 
+// searchColumns sizes the result table: glyph, name, year, network,
+// language, status.
 func searchColumns(rs []api.SearchResult, width int) searchCols {
 	c := searchCols{width: width, name: len("Name"), network: len("Network")}
 	for _, r := range rs {
@@ -479,7 +479,6 @@ func openLink(link string) tea.Cmd {
 	return browse(link)
 }
 
-// browse opens a link in the browser.
 func browse(link string) tea.Cmd {
 	return func() tea.Msg {
 		name := "xdg-open"
@@ -594,7 +593,7 @@ func tvdbLines(f tvdbFacts, inner int) []string {
 	return lines
 }
 
-// garnerLines say how Garner will treat the show's releases. The sentences
+// garnerLines say how garner will treat the show's releases. The sentences
 // come from the server.
 func garnerLines(p *api.Preview, inner int) []string {
 	var lines []string

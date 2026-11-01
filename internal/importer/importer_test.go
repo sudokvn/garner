@@ -182,7 +182,7 @@ func TestImport(t *testing.T) {
 	}
 }
 
-// TestImportSamePaths imports with Garner, SABnzbd and Jellyfin seeing the
+// TestImportSamePaths imports with garner, SABnzbd and Jellyfin seeing the
 // files under the same paths, as on one machine: garner.toml has no paths
 // entries.
 func TestImportSamePaths(t *testing.T) {
@@ -227,7 +227,7 @@ func TestImportMovedAlready(t *testing.T) {
 }
 
 // TestImportEmptyLibrary covers Jellyfin ignoring the hint for a library it
-// has never seen files in: Garner asks for a full scan once.
+// has never seen files in: garner asks for a full scan once.
 func TestImportEmptyLibrary(t *testing.T) {
 	ctx := context.Background()
 	e, d := setup(t, german)
@@ -248,7 +248,7 @@ func TestImportEmptyLibrary(t *testing.T) {
 }
 
 // TestImportWithoutJellyfin covers an import that waits for Jellyfin when
-// Garner restarts without Jellyfin settings.
+// garner restarts without Jellyfin settings.
 func TestImportWithoutJellyfin(t *testing.T) {
 	ctx := context.Background()
 	e, d := setup(t, german)
@@ -342,7 +342,7 @@ func TestImportKeepsForeignFiles(t *testing.T) {
 }
 
 // TestImportReplacesOldVersion keeps one version per episode: a new import
-// removes the file Garner imported before.
+// removes the file garner imported before.
 func TestImportReplacesOldVersion(t *testing.T) {
 	ctx := context.Background()
 	e, d := setup(t, german)
@@ -597,7 +597,7 @@ func TestImportPackRetryRemovesKeptFiles(t *testing.T) {
 	}
 }
 
-// TestUpgradeCrash ends Garner after an upgrade recorded its file and
+// TestUpgradeCrash ends garner after an upgrade recorded its file and
 // before it removed the version it replaces. After a restart, the import
 // must still remove that version (GRR-37).
 func TestUpgradeCrash(t *testing.T) {
@@ -630,7 +630,7 @@ func TestUpgradeCrash(t *testing.T) {
 		crashing.Work(ctx)
 	}()
 
-	// Garner starts again from its database.
+	// garner starts again from its database.
 	restarted := New(e.st, e.svc.probe, e.svc.jellyfin, e.svc.opts, slog.New(slog.DiscardHandler))
 	restarted.Work(ctx)
 	if got, _ := e.st.GetDownload(ctx, d.ID); got.Import.State == store.ImportMoving || got.Import.State == store.ImportFailed {
@@ -693,7 +693,7 @@ func TestUpgradeRemovesLater(t *testing.T) {
 }
 
 // TestImportKeepsBetterGainedMeanwhile moves a 720p pack chosen for S01E01
-// and ends Garner after its first file. Before the import goes on, the
+// and ends garner after its first file. Before the import goes on, the
 // library gains a 1080p file of S01E01, as by a take-over: the import must
 // keep it rather than record its own worse file and remove the better one
 // (GRR-47).
@@ -922,7 +922,7 @@ func TestImportSeasonPackKeepsFirstEpisode(t *testing.T) {
 	}
 }
 
-// TestImportRecordedBeforeCrash ends Garner after an import recorded a
+// TestImportRecordedBeforeCrash ends garner after an import recorded a
 // season pack's files and before it saved that it did: going on, the
 // import finds its own files recorded and takes them for its own, not for
 // files the library kept (GRR-47).

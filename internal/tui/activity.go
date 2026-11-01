@@ -223,10 +223,10 @@ func cancellable(d api.Download) bool {
 	return d.State == api.Queued || d.State == api.Downloading
 }
 
-// activityRank orders the rows: what needs the user first, then what runs,
-// furthest along first, then what ended.
 const activityCleared = "cleared"
 
+// activityRank orders the rows: what needs the user first, then what runs,
+// furthest along first, then what ended.
 var activityRank = map[string]int{
 	api.EpisodeFailed: 0, api.EpisodeAttention: 1, api.EpisodeImporting: 2, api.EpisodeProcessing: 3,
 	api.EpisodeDownloading: 4, api.EpisodeImported: 5, api.Cancelled: 5, activityCleared: 5,

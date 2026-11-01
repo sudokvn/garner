@@ -8,9 +8,9 @@
 // The module set comes from the go tool, the license names from
 // go-licenses (pinned in mise.toml, so run this through mise). A module
 // whose license is missing or outside the allowlist below stops the
-// generation, so a dependency that conflicts with Garner's MIT license
+// generation, so a dependency that conflicts with garner's MIT license
 // cannot ship unnoticed; the allowlist covers the permissive licenses
-// that let Garner redistribute them. License texts are read from the
+// that let garner redistribute them. License texts are read from the
 // module cache: every LICENSE, COPYING or NOTICE file at a module's
 // root, plus every license file go-licenses found elsewhere in it.
 //
@@ -56,7 +56,7 @@ mise run notices, read its summary, and commit the result.
 `
 )
 
-// allowedLicenses holds the licenses that may ship with Garner under the
+// allowedLicenses holds the licenses that may ship with garner under the
 // MIT license, as go-licenses names them. Anything else is flagged for
 // review before it can reach a release.
 var allowedLicenses = map[string]bool{
@@ -293,7 +293,7 @@ func buildEnv(b build) []string {
 	return env
 }
 
-// dockerfileTags reads the build tags the image builds Garner's server
+// dockerfileTags reads the build tags the image builds garner's server
 // with, so the notices cannot drift from what actually ships.
 func dockerfileTags() string {
 	data, err := os.ReadFile("Dockerfile")

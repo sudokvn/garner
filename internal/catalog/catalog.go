@@ -1,4 +1,4 @@
-// Package catalog keeps Garner's knowledge of shows: TVDB's series, episodes
+// Package catalog keeps garner's knowledge of shows: TVDB's series, episodes
 // and episode orders, plus TheXEM's scene numbering and alternative titles,
 // with reviewed corrections on top.
 package catalog
@@ -21,16 +21,14 @@ import (
 	"github.com/trucke/garner/internal/store"
 )
 
-// ErrExists means the show is already in the catalogue.
 var ErrExists = errors.New("already in the catalogue")
 
-// ErrUnknownSeries means TVDB has no show with that ID.
 var ErrUnknownSeries = errors.New("TVDB has no series with that ID")
 
 //go:embed corrections.toml
 var correctionsFile string
 
-// Languages whose episode titles Garner keeps besides the original.
+// Languages whose episode titles garner keeps besides the original.
 var languages = []string{"eng", "deu"}
 
 // Catalog loads shows from TVDB and TheXEM into the store.
@@ -47,7 +45,7 @@ type Catalog struct {
 	OnChange func(seriesID int64)
 }
 
-// Paused reports until when and why Garner holds its TVDB requests back;
+// Paused reports until when and why garner holds its TVDB requests back;
 // the zero time when it does not.
 func (c *Catalog) Paused() (time.Time, string) { return c.tvdb.Paused() }
 

@@ -1,5 +1,5 @@
 // Package profile reads, checks and writes release profiles: the audio
-// languages and resolutions a show accepts, best first, and how Garner
+// languages and resolutions a show accepts, best first, and how garner
 // ranks and upgrades releases within them. A profile is a short TOML text
 // that users can share; docs/profiles.md describes the format.
 //
@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	// Version is the format version this Garner reads and writes.
+	// Version is the format version this garner reads and writes.
 	Version = 1
 	// MaxSize bounds a profile's text; real ones are a few hundred bytes.
 	MaxSize = 64 << 10
@@ -64,7 +64,7 @@ func LanguageName(code string) string {
 // Resolutions are the resolutions a profile may name, best first.
 var Resolutions = []int{1080, 720}
 
-// Priority says which list counts more when Garner ranks the preferences.
+// Priority says which list counts more when garner ranks the preferences.
 type Priority string
 
 const (
@@ -81,7 +81,7 @@ const (
 	IgnoreDual DualAudio = "ignore"
 )
 
-// UnnamedAudio says what Garner does with a release marked dual, multi or
+// UnnamedAudio says what garner does with a release marked dual, multi or
 // dubbed that names no languages.
 type UnnamedAudio string
 
@@ -101,7 +101,7 @@ type Profile struct {
 	Priority     Priority
 	DualAudio    DualAudio
 	UnnamedAudio UnnamedAudio
-	// Upgrades has Garner replace a file below the first preference when a
+	// Upgrades has garner replace a file below the first preference when a
 	// release in a better preference appears.
 	Upgrades bool
 }
@@ -403,7 +403,7 @@ var shippedFiles embed.FS
 // shippedOrder is the order in which lists offer the shipped profiles.
 var shippedOrder = []string{"original-language", "german", "german-english-fallback", "english", "original-english-dub"}
 
-// Shipped returns the profiles that come with Garner, in the order lists
+// Shipped returns the profiles that come with garner, in the order lists
 // offer them. Each is a file in shipped/ in its canonical form.
 func Shipped() []Profile {
 	out := make([]Profile, len(shippedOrder))

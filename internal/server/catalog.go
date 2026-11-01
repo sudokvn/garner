@@ -102,7 +102,7 @@ func (s *Server) handleAddSeries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// The show starts without the monitor, so it does not search episodes
-	// whose files are in the library before Garner took them over.
+	// whose files are in the library before garner took them over.
 	err := s.catalog.Add(r.Context(), req.TVDBID, store.MonitorOff)
 	switch {
 	case errors.Is(err, catalog.ErrExists):
@@ -214,7 +214,7 @@ func (s *Server) seriesDetail(w http.ResponseWriter, r *http.Request, id int64) 
 }
 
 // handleDeleteSeries removes a show and cancels its running downloads.
-// files=delete also deletes the files Garner imported for it; files=keep
+// files=delete also deletes the files garner imported for it; files=keep
 // leaves them in the library. One of them is required, so a bare request
 // never deletes files.
 func (s *Server) handleDeleteSeries(w http.ResponseWriter, r *http.Request) {
@@ -274,7 +274,7 @@ func (s *Server) handleDeleteSeries(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "deleting a show's files needs library.tv or library.anime and ffprobe; delete it with files=keep to leave them in place")
 		return
 	}
-	// Claimed while the records still say the files are Garner's.
+	// Claimed while the records still say the files are garner's.
 	var claimed []guard.File
 	if deleteFiles {
 		if claimed, err = s.imports.ClaimFiles(ctx, paths); err != nil {

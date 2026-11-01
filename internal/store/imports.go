@@ -15,7 +15,6 @@ func (s *Store) MarkImportPending(ctx context.Context, downloadID int64, now tim
 	return s.q.MarkImportPending(ctx, query.MarkImportPendingParams{ImportUpdatedAt: now.Unix(), ID: downloadID})
 }
 
-// UpdateImport saves an import's progress.
 func (s *Store) UpdateImport(ctx context.Context, downloadID int64, im Import, now time.Time) error {
 	if im.Files == nil {
 		im.Files = []ImportFile{}
@@ -46,7 +45,7 @@ func (s *Store) DueImports(ctx context.Context) ([]Download, error) {
 	return downloadsFromRows(rows)
 }
 
-// EpisodeFile is the file Garner imported for an episode.
+// EpisodeFile is the file garner imported for an episode.
 type EpisodeFile struct {
 	EpisodeID int64
 	Path      string
@@ -68,7 +67,7 @@ func (s *Store) EpisodeFile(ctx context.Context, episodeID int64) (f EpisodeFile
 }
 
 // SetEpisodeFile records the file of an episode, replacing the previous
-// one: one Garner imported from the download, or, with downloadID 0, one
+// one: one garner imported from the download, or, with downloadID 0, one
 // it took over from the library.
 func (s *Store) SetEpisodeFile(ctx context.Context, f EpisodeFile, downloadID int64, now time.Time) error {
 	return s.q.UpsertEpisodeFile(ctx, query.UpsertEpisodeFileParams{
@@ -77,7 +76,7 @@ func (s *Store) SetEpisodeFile(ctx context.Context, f EpisodeFile, downloadID in
 	})
 }
 
-// TakeOverFile records a file Garner found in the library for an episode,
+// TakeOverFile records a file garner found in the library for an episode,
 // unless the episode has a file meanwhile, such as from an import that
 // finished. It reports whether it recorded the file.
 func (s *Store) TakeOverFile(ctx context.Context, f EpisodeFile, now time.Time) (bool, error) {
@@ -124,11 +123,11 @@ func (s *Store) RecordFiles(ctx context.Context, files []EpisodeFile, downloadID
 	return planned, tx.Commit()
 }
 
-// FileChange is a change to a file that Garner planned: a move to NewPath,
+// FileChange is a change to a file that garner planned: a move to NewPath,
 // or a removal when NewPath is empty.
 type FileChange = query.FileChange
 
-// PlanMove notes that Garner is about to move a recorded file within the
+// PlanMove notes that garner is about to move a recorded file within the
 // library; FinishMove ends the plan.
 func (s *Store) PlanMove(ctx context.Context, oldPath, newPath string) error {
 	return s.q.InsertFileChange(ctx, query.InsertFileChangeParams{Path: oldPath, NewPath: newPath})
@@ -163,14 +162,14 @@ func (s *Store) FileChanges(ctx context.Context) ([]FileChange, error) {
 	return s.q.ListFileChanges(ctx)
 }
 
-// PlannedRemoval reports whether Garner planned to remove the file at
+// PlannedRemoval reports whether garner planned to remove the file at
 // path.
 func (s *Store) PlannedRemoval(ctx context.Context, path string) (bool, error) {
 	n, err := s.q.CountPlannedRemovals(ctx, path)
 	return n > 0, err
 }
 
-// TakenFiles lists the files of a show Garner took over from the library,
+// TakenFiles lists the files of a show garner took over from the library,
 // one entry per episode, ordered by path.
 func (s *Store) TakenFiles(ctx context.Context, seriesID int64) ([]EpisodeFile, error) {
 	rows, err := s.q.ListSeriesTakenFiles(ctx, seriesID)

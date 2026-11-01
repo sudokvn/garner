@@ -29,7 +29,6 @@ type Probe struct {
 	Subtitles []Track
 }
 
-// Video is a video stream.
 type Video struct {
 	Codec         string
 	Width, Height int
@@ -59,7 +58,7 @@ func NewProber(bin string) (*Prober, error) {
 	return &Prober{bin: p}, nil
 }
 
-// Probe reads a file's streams. FFprobe runs without Garner's environment,
+// Probe reads a file's streams. FFprobe runs without garner's environment,
 // so it never sees API keys, and may only open local files, so a crafted
 // file cannot make it fetch anything.
 func (p *Prober) Probe(ctx context.Context, file string) (Probe, error) {

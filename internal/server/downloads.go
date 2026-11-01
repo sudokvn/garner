@@ -145,8 +145,6 @@ func (s *Server) needDownloads(h http.HandlerFunc) http.Handler {
 	})
 }
 
-// handleDownloadCandidate sends any candidate of a search to SABnzbd: the
-// manual choice.
 func (s *Server) handleDownloadSeasonCandidate(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(w, r, "invalid candidate ID")
 	if !ok {
@@ -156,6 +154,8 @@ func (s *Server) handleDownloadSeasonCandidate(w http.ResponseWriter, r *http.Re
 	s.writeDownload(w, d, err, "candidate is not part of a season search")
 }
 
+// handleDownloadCandidate sends any candidate of a search to SABnzbd: the
+// manual choice.
 func (s *Server) handleDownloadCandidate(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(w, r, "invalid candidate ID")
 	if !ok {

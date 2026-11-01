@@ -54,7 +54,6 @@ type episode struct {
 	names []text
 }
 
-// NewShow prepares a show for matching.
 func NewShow(d store.SeriesData, opts Options) *Show {
 	s := &Show{
 		opts: opts, name: cmp.Or(d.Series.NameEng, d.Series.Name), orders: d.Orders,

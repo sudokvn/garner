@@ -222,7 +222,6 @@ func saveShow(t *testing.T, st *Store, id int64) {
 	}
 }
 
-// openStore opens a new database in a temporary folder.
 func openStore(t *testing.T) *Store {
 	t.Helper()
 	st, err := Open(context.Background(), t.TempDir(), slog.New(slog.DiscardHandler))

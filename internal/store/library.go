@@ -29,7 +29,7 @@ func (s *Store) Library(ctx context.Context, now time.Time, sc *Schedule) ([]Sho
 	return shows, err
 }
 
-// ShowStatus summarises one show and lists what Garner has of each of its
+// ShowStatus summarises one show and lists what garner has of each of its
 // episodes, as Library does.
 func (s *Store) ShowStatus(ctx context.Context, seriesID int64, now time.Time, sc *Schedule) (Show, []EpisodeStatus, error) {
 	shows, states, err := s.summarise(ctx, now, seriesID, sc)
@@ -200,8 +200,8 @@ func moreUrgent(a, b *Focus) bool {
 	return a.Number < b.Number
 }
 
-// SeriesFiles lists the files Garner imported for a show: the paths as
-// Garner reaches them and their sizes.
+// SeriesFiles lists the files garner imported for a show: the paths as
+// garner reaches them and their sizes.
 func (s *Store) SeriesFiles(ctx context.Context, seriesID int64) ([]EpisodeFile, error) {
 	rows, err := s.q.ListSeriesFiles(ctx, seriesID)
 	if err != nil {

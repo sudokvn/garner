@@ -13,11 +13,9 @@ import (
 )
 
 var (
-	// ErrDownloadRunning means the episode already has a download in progress.
 	ErrDownloadRunning = errors.New("a download for this episode is already running")
 	// ErrCancelled means the download was cancelled; it changes no more.
-	ErrCancelled = errors.New("the download was cancelled")
-	// ErrNotRunning means the download has already ended.
+	ErrCancelled  = errors.New("the download was cancelled")
 	ErrNotRunning = errors.New("the download is no longer running")
 	// ErrCannotAcknowledge means the attempt was superseded, is not a
 	// failure, or has an import problem that must stay actionable.
@@ -81,7 +79,7 @@ func (s *Store) UpdateDownload(ctx context.Context, d Download, now time.Time) e
 	return err
 }
 
-// StopReplacing records why Garner tried no other release after a failed
+// StopReplacing records why garner tried no other release after a failed
 // download.
 func (s *Store) StopReplacing(ctx context.Context, id int64, why string) error {
 	return s.q.SetDownloadStopped(ctx, query.SetDownloadStoppedParams{Stopped: why, ID: id})
@@ -126,7 +124,6 @@ func (s *Store) EpisodeDownloads(ctx context.Context, episodeID int64) ([]Downlo
 	return downloadsFromRows(rows)
 }
 
-// GetDownload returns one download.
 func (s *Store) GetDownload(ctx context.Context, id int64) (Download, error) {
 	row, err := s.q.GetDownload(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -138,7 +135,6 @@ func (s *Store) GetDownload(ctx context.Context, id int64) (Download, error) {
 	return downloadFromRow(row)
 }
 
-// ActiveDownloads lists the downloads still running.
 func (s *Store) ActiveDownloads(ctx context.Context) ([]Download, error) {
 	rows, err := s.q.ListActiveDownloads(ctx)
 	if err != nil {
@@ -176,7 +172,6 @@ func (s *Store) Activity(ctx context.Context, since time.Time) ([]ActivityItem, 
 	return out, nil
 }
 
-// FailedSince counts an episode's failed downloads since t.
 func (s *Store) FailedSince(ctx context.Context, episodeID int64, t time.Time) (int, error) {
 	n, err := s.q.CountFailedDownloadsSince(ctx, query.CountFailedDownloadsSinceParams{EpisodeID: episodeID, CreatedAt: t.Unix()})
 	return int(n), err

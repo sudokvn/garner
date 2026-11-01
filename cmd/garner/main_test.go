@@ -8,7 +8,7 @@ import (
 )
 
 // TestNoServerCode keeps the server out of the terminal interface: of
-// Garner's own packages it may use only those a client needs. A type the
+// garner's own packages it may use only those a client needs. A type the
 // TUI needs from the server belongs in package api.
 func TestNoServerCode(t *testing.T) {
 	out, err := exec.Command("go", "list", "-deps", ".").Output()

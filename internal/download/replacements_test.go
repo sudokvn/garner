@@ -171,7 +171,7 @@ func TestSeasonReplacementLimit(t *testing.T) {
 	}
 }
 
-// A release chosen by hand stays the user's choice: when it fails, Garner
+// A release chosen by hand stays the user's choice: when it fails, garner
 // tries only other uploads of it, then stops, rather than download a
 // release the user did not choose (GRR-64).
 func TestReplaceKeepsTheChoice(t *testing.T) {
@@ -212,8 +212,8 @@ func TestReplaceKeepsTheChoice(t *testing.T) {
 	}
 }
 
-// A release Garner chose on its own is replaced only by one that meets the
-// same preference: after both German 1080p releases fail, Garner stops
+// A release garner chose on its own is replaced only by one that meets the
+// same preference: after both German 1080p releases fail, garner stops
 // rather than fall back to German 720p or English (GRR-64).
 func TestReplaceKeepsThePreference(t *testing.T) {
 	ctx := context.Background()

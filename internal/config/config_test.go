@@ -130,7 +130,7 @@ func TestDuration(t *testing.T) {
 }
 
 // TestBuiltinTVDBKey loads the configuration of a release, which has
-// Garner's own TheTVDB key built in: it is used only without TVDB_API_KEY,
+// garner's own TheTVDB key built in: it is used only without TVDB_API_KEY,
 // a key of one's own keeps its PIN, and the built-in key never shows.
 func TestBuiltinTVDBKey(t *testing.T) {
 	old := builtinTVDBKey
@@ -166,7 +166,7 @@ func TestBuiltinTVDBKey(t *testing.T) {
 }
 
 // TestMovedSettings loads a garner.toml that still holds the profiles or
-// the upgrade switch: Garner stops and says where the setting went.
+// the upgrade switch: garner stops and says where the setting went.
 func TestMovedSettings(t *testing.T) {
 	for _, tc := range []struct{ toml, want string }{
 		{"[profiles.tv]\ntiers = [\"en 1080p\"]\n", "[profiles] is no setting of garner.toml any more"},
@@ -184,7 +184,7 @@ func TestMovedSettings(t *testing.T) {
 
 // TestExamplesLoad loads the configurations users copy: garner.example.toml
 // and the Compose example's. A setting renamed in Config but not in them
-// would stop Garner at its first start.
+// would stop garner at its first start.
 func TestExamplesLoad(t *testing.T) {
 	for _, name := range []string{"TVDB_API_KEY", "TVDB_PIN", "PROWLARR_API_KEY", "SABNZBD_API_KEY", "JELLYFIN_API_KEY"} {
 		t.Setenv(name, "")

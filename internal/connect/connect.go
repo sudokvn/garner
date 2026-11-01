@@ -1,5 +1,5 @@
 // Package connect encodes what a client needs to reach the server: its
-// address, a token and, for Garner's own certificate, the key's pin. The code
+// address, a token and, for garner's own certificate, the key's pin. The code
 // travels over the same trusted channel as the token, so clients never have
 // to accept an unknown fingerprint.
 package connect
@@ -28,13 +28,11 @@ type Code struct {
 	Pin string `json:"p,omitempty"`
 }
 
-// String encodes the code for display.
 func (c Code) String() string {
 	b, _ := json.Marshal(c)
 	return prefix + base64.RawURLEncoding.EncodeToString(b)
 }
 
-// Parse decodes a connection code.
 func Parse(s string) (Code, error) {
 	raw, ok := strings.CutPrefix(strings.TrimSpace(s), prefix)
 	if !ok {

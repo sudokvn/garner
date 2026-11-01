@@ -50,7 +50,7 @@ type showScreen struct {
 	// choice 1 is Search.
 	asking bool
 	choice int
-	// files reports the files Garner took over when the show was added.
+	// files reports the files garner took over when the show was added.
 	files filesPrompt
 }
 

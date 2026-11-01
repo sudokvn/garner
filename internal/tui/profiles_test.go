@@ -250,9 +250,6 @@ func TestEditorLists(t *testing.T) {
 	ed.view(120, 36)
 }
 
-// TestEditorSave checks that enter refuses to save while the check finds
-// problems, including a name another profile has, and otherwise sends the
-// encoded profile: PUT for a stored profile, POST for a new one.
 // TestLanguagePicker lists the languages by name and, in a short terminal,
 // keeps the overlay whole and the cursor's row on the screen.
 func TestLanguagePicker(t *testing.T) {
@@ -282,6 +279,9 @@ func TestLanguagePicker(t *testing.T) {
 	}
 }
 
+// TestEditorSave checks that enter refuses to save while the check finds
+// problems, including a name another profile has, and otherwise sends the
+// encoded profile: PUT for a stored profile, POST for a new one.
 func TestEditorSave(t *testing.T) {
 	rec, cl := newRecorder(t)
 	a, ed := editorApp(cl, 3)

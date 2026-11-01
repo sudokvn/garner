@@ -1,10 +1,10 @@
 # Looks for new bugs every night. The fixed seeds and fuzz corpora that go
 # test runs only keep fixed bugs fixed; this runs the simulation with fresh
 # seeds for 50 minutes and each fuzz test for 15 minutes; fuzzing goes on
-# from the inputs earlier nights found. A failure opens
-# a GitHub issue labelled nightly with the commit and how to replay it, or
-# comments on the one still open (tools/nightly-report.sh). GitHub pauses
-# schedules in a repository without activity for 60 days.
+# from the inputs earlier nights found. A failure opens a GitHub issue
+# labelled nightly with the commit and how to replay it, or comments on the
+# one still open (tools/nightly-report.sh). GitHub pauses schedules in a
+# repository without activity for 60 days.
 name: Nightly
 
 on:

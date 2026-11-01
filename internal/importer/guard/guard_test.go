@@ -64,7 +64,7 @@ func isRefusal(err error) bool {
 
 const title = "Show.S01E01-GRP"
 
-// TestJob lets Garner delete only a folder named after the release, inside
+// TestJob lets garner delete only a folder named after the release, inside
 // the sabnzbd.paths folders when there are any and apart from the library,
 // with and without paths entries.
 func TestJob(t *testing.T) {
@@ -273,7 +273,7 @@ func TestRemoveJob(t *testing.T) {
 func TestRemoveEmpty(t *testing.T) {
 	ctx := context.Background()
 	s := newShare(t)
-	jellyfin := s.dir("jellyfin/tv") // a library folder of Jellyfin's outside Garner's
+	jellyfin := s.dir("jellyfin/tv") // a library folder of Jellyfin's outside garner's
 	listed := func(context.Context) ([]string, error) { return []string{jellyfin}, nil }
 	unknown := func(context.Context) ([]string, error) { return nil, errors.New("Jellyfin did not answer") }
 	removed := func(g *Guard, rel string) File {

@@ -12,7 +12,6 @@ import (
 	"github.com/trucke/garner/internal/store"
 )
 
-// ErrSearching means the show's missing episodes are being searched already.
 var ErrSearching = errors.New("garner is already searching this show's missing episodes")
 
 // showQueue holds the shows asked for, in order, and their progress.
@@ -33,7 +32,6 @@ func (q *showQueue) add(id int64) (api.ShowProgress, bool) {
 	return p, true
 }
 
-// next takes the next show asked for.
 func (q *showQueue) next() (int64, bool) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -45,7 +43,6 @@ func (q *showQueue) next() (int64, bool) {
 	return id, true
 }
 
-// waiting reports whether a show waits to be searched.
 func (q *showQueue) waiting() bool {
 	q.mu.Lock()
 	defer q.mu.Unlock()

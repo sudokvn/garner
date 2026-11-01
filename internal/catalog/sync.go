@@ -15,7 +15,7 @@ import (
 const (
 	syncKey  = "catalog_synced_at"
 	retryKey = "catalog_retry" // comma-separated IDs of shows that failed to refresh
-	// syncInterval is how often Garner asks TVDB what changed.
+	// syncInterval is how often garner asks TVDB what changed.
 	syncInterval = 24 * time.Hour
 	// maxUpdatesAge limits how far back TVDB's change list is used; after a
 	// longer gap every show is reloaded.
