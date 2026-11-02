@@ -23,11 +23,12 @@ import (
 
 type category int
 
+// The library's tabs. Movies get one once garner manages them.
 const (
 	catAll category = iota
 	catTV
 	catAnime
-	catMovies
+	categories // how many there are
 )
 
 type sortKey int
@@ -247,10 +248,10 @@ func (s *libraryScreen) key(msg tea.KeyPressMsg) tea.Cmd {
 	case "ctrl+u":
 		s.move(-max(1, s.page/2))
 	case "tab":
-		s.cat = (s.cat + 1) % 4
+		s.cat = (s.cat + 1) % categories
 	case "shift+tab":
-		s.cat = (s.cat + 3) % 4
-	case "1", "2", "3", "4":
+		s.cat = (s.cat + categories - 1) % categories
+	case "1", "2", "3":
 		s.cat = category(key[0] - '1')
 	case "s":
 		s.sort, s.reverse = (s.sort+1)%sortKeys, false
@@ -362,8 +363,6 @@ func (c category) holds(sh api.Show) bool {
 		return sh.Type != api.TypeAnime
 	case catAnime:
 		return sh.Type == api.TypeAnime
-	case catMovies:
-		return false
 	}
 	return true
 }
@@ -425,8 +424,6 @@ func (s *libraryScreen) view(width, height int) string {
 		b.WriteString("   " + sMuted.Render("garner at "+clean(s.sess.client.Addr())+" does not answer. Trying again."))
 	case !s.loaded:
 		b.WriteString("   " + sMuted.Render("Loading the library…"))
-	case s.cat == catMovies:
-		b.WriteString("   " + sMuted.Render("Movies are not available yet."))
 	case len(s.sess.shows) == 0:
 		b.WriteString(s.welcome(width))
 	case len(rows) == 0 && s.filter != "":
@@ -466,25 +463,22 @@ func (s *libraryScreen) welcome(width int) string {
 }
 
 func (s *libraryScreen) tabs() string {
-	counts := [4]int{}
+	counts := [categories]int{}
 	for _, sh := range s.sess.shows {
-		for c := catAll; c <= catAnime; c++ {
+		for c := range categories {
 			if c.holds(sh) {
 				counts[c]++
 			}
 		}
 	}
-	names := [4]string{"All", "TV", "Anime", "Movies"}
-	parts := make([]string, 4)
-	for c := range parts {
+	names := [categories]string{"All", "TV", "Anime"}
+	parts := make([]string, categories)
+	for c := range categories {
 		label := sMuted.Render(names[c])
-		if category(c) == s.cat {
+		if c == s.cat {
 			label = sBold.Render(names[c])
 		}
-		if category(c) != catMovies {
-			label += " " + sMuted.Render(strconv.Itoa(counts[c]))
-		}
-		parts[c] = label
+		parts[c] = label + " " + sMuted.Render(strconv.Itoa(counts[c]))
 	}
 	return strings.Join(parts, "      ")
 }
@@ -643,7 +637,7 @@ func (s *libraryScreen) help() (string, []string) {
 	return "Library", []string{
 		"enter", "open the show", "i", "show details",
 		"a", "add a show", "d", "delete the show",
-		"tab", "next category", "1 2 3 4", "jump to a category",
+		"tab", "next category", "1 2 3", "jump to a category",
 		"/", "filter, esc clears", "s", "sort by the next column",
 		"I", "reverse the order", "q", "quit",
 	}
