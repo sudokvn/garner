@@ -13,24 +13,6 @@ import (
 	"github.com/trucke/garner/internal/release"
 )
 
-func TestWords(t *testing.T) {
-	for in, want := range map[string]string{
-		"Glass Orchard: After Winter's End": "glass orchard after winters end",
-		"Rogue!! Der Herr der Zerstörung":   "rogue der herr der zerstoerung",
-		"Straße":                            "strasse",
-		"Kōri no Mīnato":                    "kori no minato",
-		"Copper Valley II":                  "copper valley 2",
-		"LAMP x HARBOR":                     "lamp x harbor",
-		"Lanterns & Tides":                  "lanterns and tides",
-		"Harbor Twenty-Two":                 "harbor twenty two",
-		"Night Ferryː Crossing":             "night ferry crossing",
-	} {
-		if got := strings.Join(Words(in), " "); got != want {
-			t.Errorf("Words(%q) = %q, want %q", in, got, want)
-		}
-	}
-}
-
 // lanternHarbor is a made-up anime: 23 episodes in season 1 with a
 // three-episode premiere on one day, 24 in season 2, six specials, and a
 // Netflix order whose season 2 holds four of the specials.

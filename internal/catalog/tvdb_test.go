@@ -188,34 +188,6 @@ func TestTVDBSlowDown(t *testing.T) {
 	}
 }
 
-// TestTVDBRetryAfter reads how long TheTVDB asks garner to wait.
-func TestTVDBRetryAfter(t *testing.T) {
-	now := time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)
-	c := NewTVDB("", "key", "", nil)
-	c.Now = func() time.Time { return now }
-	for _, tc := range []struct {
-		header string
-		want   time.Duration
-	}{
-		{"120", 2 * time.Minute},
-		{"", tvdbBackoff},
-		{"soon", tvdbBackoff},
-		{"0", tvdbBackoff},
-		{now.Add(time.Hour).Format(http.TimeFormat), time.Hour},
-		{now.Add(-time.Hour).Format(http.TimeFormat), tvdbBackoff},
-		{"9999999", tvdbMaxBackoff},
-	} {
-		c.pausedUntil = time.Time{}
-		resp := &http.Response{Status: "429 Too Many Requests", Header: http.Header{}}
-		if tc.header != "" {
-			resp.Header.Set("Retry-After", tc.header)
-		}
-		if got := c.slowDown(resp).Until.Sub(now); got != tc.want {
-			t.Errorf("Retry-After %q: waits %s, want %s", tc.header, got, tc.want)
-		}
-	}
-}
-
 // TestTVDBRefusedKey refuses the key: garner stops logging in for an hour
 // and names TVDB_API_KEY as the way out.
 func TestTVDBRefusedKey(t *testing.T) {

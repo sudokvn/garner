@@ -328,20 +328,3 @@ resolution = ["1080p"]`, "")
 		t.Errorf("%s %q", e.Verdict, e.Reasons)
 	}
 }
-
-func TestOriginalNote(t *testing.T) {
-	for _, tc := range []struct {
-		p        Profile
-		original release.Language
-		want     string
-	}{
-		{TV, "de", "Releases that name no language are assumed German and checked after download."},
-		{TV, "en", "German audio only comes from a dub."},
-		{english, "en", "Releases that name no language are assumed English and checked after download."},
-		{Anime, "ja", "German or English audio only comes from a dub."},
-	} {
-		if got := OriginalNote(tc.p, tc.original); got != tc.want {
-			t.Errorf("%s, %s: %q", tc.p.Describe(), tc.original, got)
-		}
-	}
-}

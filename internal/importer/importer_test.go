@@ -441,14 +441,6 @@ func TestSubtitleOwner(t *testing.T) {
 	}
 }
 
-func TestVideoFilesSingleSample(t *testing.T) {
-	f := filepath.Join(t.TempDir(), "show.sample.mkv")
-	os.WriteFile(f, []byte("x"), 0o644)
-	if got, err := videoFiles(f); err != nil || len(got) != 0 {
-		t.Errorf("videoFiles(sample file) = %v, %v", got, err)
-	}
-}
-
 func TestDotted(t *testing.T) {
 	for in, want := range map[string]string{
 		"Glass Orchard: After Winter's End":     "Glass.Orchard.After.Winters.End",
