@@ -160,6 +160,16 @@ func (s *sim) filesStay(before, after snapshot) (string, string) {
 		}
 		for _, e := range episodes {
 			p, ok := after.records[e]
+			// Deleting a show with its files kept drops its records, so a
+			// replacement in the same step shows only on disk: a video of
+			// the episode that arrived in the step. Its tier went with the
+			// record, so quality is not compared here.
+			if ep := s.w.episode(e); !ok && ep != nil && s.deleted[ep.show.id] {
+				if !s.arrived(before, after, e) {
+					return "S2", fmt.Sprintf("video %s of episode %d left the library from %s while its show was deleted with its files kept, and no new video of the episode replaced it", id, e, path)
+				}
+				continue
+			}
 			if v, read := readVideo(s.w.present(p)); !ok || !read || v.ID == id {
 				return "S2", fmt.Sprintf("video %s of episode %d left the library from %s, and no other file replaced it", id, e, path)
 			}
@@ -169,6 +179,21 @@ func (s *sim) filesStay(before, after snapshot) (string, string) {
 		}
 	}
 	return "", ""
+}
+
+// arrived reports whether a video of episode e came into the libraries in
+// the step. One that was there before, such as the user's own copy, does
+// not replace anything.
+func (s *sim) arrived(before, after snapshot, e int64) bool {
+	for _, id := range sortedKeys(after.library) {
+		if _, old := before.library[id]; old {
+			continue
+		}
+		if v, ok := readVideo(s.w.present(after.library[id])); ok && slices.Contains(v.Episodes, e) {
+			return true
+		}
+	}
+	return false
 }
 
 // inFlight reports whether path is where an import that has not ended
