@@ -12,7 +12,7 @@ Every screen has the same skeleton:
 
 1. **Row 1:** the breadcrumb, such as `garner › Library › Show`, with the last part bold. At the right: the counts of work in progress, such as `◐ 3 downloading · ● 1 confirming · ✗ 1 failed`, showing only counts above zero. While the server is unreachable, `✗ offline · reconnecting` in red takes their place.
 2. **Row 2** is blank. Then either the category tabs (Library) or one line of labelled facts, a blank line, the column headers, a rule and the rows.
-3. **Last row:** the key bar, a message after an action, or a prompt such as the `/` filter.
+3. **Last two rows:** a rule in the border colour across the full width, then the key bar, a message after an action, or a prompt such as the `/` filter. The rule keeps a full screen apart from the keys; screens size their tables with `barHeight`.
 
 Columns are three cells apart. Numbers are right-aligned. The first column is a single glyph. Column headers are subtle, except the sorted one, which shows `▾`, or `▴` when reversed. The cursor row has the select background across its full width. Rows that need nothing, such as complete shows or folded seasons, are subtle.
 
@@ -71,6 +71,8 @@ The mark shows only in terminals with 256 colours or more. With 16 colours or `N
 ## Keys
 
 Every screen lists its keys in a `help()` method, and the Help overlay (`?`) shows them with the keys that every screen has. The key bar shows the most important ones. When you add a key, add it to the screen's `help()`.
+
+The key bar stays in place as the cursor moves. A key whose label or action depends on the row, such as `enter` on the Show screen or `x cancel` in Activity, uses `keySlot`: its label keeps the room of the widest one, and a row without the action shows the key greyed out instead of leaving it out.
 
 Some keys mean the same everywhere:
 

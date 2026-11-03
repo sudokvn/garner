@@ -327,7 +327,7 @@ func (s *activityScreen) view(width, height int) string {
 	case len(rows) == 0:
 		b.WriteString("\n   " + sMuted.Render("Nothing running. Finished downloads stay here for a day."))
 	default:
-		page := max(3, height-activityTop-1)
+		page := max(3, height-activityTop-barHeight)
 		cursor := max(0, slices.IndexFunc(rows, func(it api.ActivityItem) bool { return it.Download.EpisodeID == s.selected }))
 		s.offset = min(max(s.offset, cursor-page+1), cursor)
 		now := time.Now()
@@ -390,19 +390,15 @@ func (s *activityScreen) bottom() string {
 	case s.flash.text != "":
 		return s.flash.text
 	}
-	keys := []string{}
+	var parts []string
 	if len(s.items) > 0 {
-		keys = append(keys, "j k", "move", "enter", "episode")
+		// x and c keep their place on rows they do not apply to.
+		it, _ := s.cursor()
+		parts = append(parts, keyBar("j k", "move", "enter", "episode"),
+			keySlot("x", "cancel", cancellable(it.Download)),
+			keySlot("c", "clear failure", it.Download.CanAcknowledge()))
 	}
-	if it, ok := s.cursor(); ok {
-		if cancellable(it.Download) {
-			keys = append(keys, "x", "cancel")
-		}
-		if it.Download.CanAcknowledge() {
-			keys = append(keys, "c", "clear failure")
-		}
-	}
-	return keyBar(append(keys, "?", "help", "esc", "back")...)
+	return joinKeys(append(parts, keyBar("?", "help", "esc", "back"))...)
 }
 
 func (s *activityScreen) flashed() *flash { return &s.flash }

@@ -432,7 +432,7 @@ func (s *showScreen) view(width, height int) string {
 	if len(rows) > 0 && !slices.Contains(rows, s.cursor) {
 		s.cursor = rows[0]
 	}
-	s.page = max(1, height-showTop-1)
+	s.page = max(1, height-showTop-barHeight)
 	// Scroll by display lines, so the cursor stays in view with the gaps.
 	cursor := max(0, slices.Index(lines, s.cursor))
 	s.offset = min(max(s.offset, cursor-s.page+1), cursor)
@@ -494,11 +494,13 @@ func (s *showScreen) bottom() string {
 	if _, ok := s.cursorEpisode(); ok {
 		search = "new search"
 	}
-	keys := []string{"h l", "fold", "tab", "season", "s", search, "S", "search missing", "i", "show details", "A", "activity", "?", "help", "esc", "back"}
-	if label := s.enterLabel(); label != "" {
-		keys = append([]string{"enter", label}, keys...)
-	}
-	return keyBar(keys...)
+	enter := s.enterLabel()
+	return joinKeys(
+		keySlot("enter", enter, enter != "", enterLabels...),
+		keyBar("h l", "fold", "tab", "season"),
+		keySlot("s", search, true, "new search", "search season"),
+		keyBar("S", "search missing", "i", "show details", "A", "activity", "?", "help", "esc", "back"),
+	)
 }
 
 // open is enter on an episode. A missing one opens its releases: the last
@@ -518,11 +520,24 @@ func (s *showScreen) open(e episodeRow) tea.Cmd {
 	return func() tea.Msg { return switchMsg{next} }
 }
 
-// enterLabel is what enter does on the cursor row, for the key bar; empty
-// on a season row, where h l fold, and on an episode not aired yet.
+// enterLabels are all that enterLabel says, so the key bar keeps their
+// room.
+var enterLabels = []string{"fold", "unfold", "search", "releases", "details"}
+
+// enterLabel is what enter does on the cursor row, for the key bar: on a
+// season row it folds or unfolds the season. Empty on an episode not aired
+// yet.
 func (s *showScreen) enterLabel() string {
 	e, ok := s.cursorEpisode()
 	switch {
+	case !ok && s.cursor.episode == 0:
+		switch folded := s.sess.folded[s.id]; {
+		case folded == nil:
+			return ""
+		case folded[s.cursor.season]:
+			return "unfold"
+		}
+		return "fold"
 	case !ok, e.status.State == api.EpisodeUpcoming:
 		return ""
 	case e.status.State == api.EpisodeNotSearched:

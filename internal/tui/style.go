@@ -91,7 +91,27 @@ func keyBar(pairs ...string) string {
 	for i := 0; i+1 < len(pairs); i += 2 {
 		parts = append(parts, sKey.Render(pairs[i])+" "+sMuted.Render(pairs[i+1]))
 	}
-	return strings.Join(parts, keyGap)
+	return joinKeys(parts...)
+}
+
+// joinKeys joins rendered keys and key bars into one key bar.
+func joinKeys(parts ...string) string { return strings.Join(parts, keyGap) }
+
+// keySlot renders a key whose action depends on the row under the cursor,
+// so the keys after it keep their place as the cursor moves: its label is
+// padded to the widest of labels, and a row without the action shows the
+// key greyed out instead of leaving it out. The padding is no-break spaces,
+// as fitKeys splits a key bar at plain ones.
+func keySlot(key, label string, on bool, labels ...string) string {
+	w := ansi.StringWidth(label)
+	for _, l := range labels {
+		w = max(w, ansi.StringWidth(l))
+	}
+	pad := strings.Repeat("\u00a0", w-ansi.StringWidth(label))
+	if !on {
+		return sSubtle.Render(key+" "+label) + pad
+	}
+	return sKey.Render(key) + " " + sMuted.Render(label) + pad
 }
 
 // minName is the room a table's name column keeps on a narrow terminal;
@@ -171,20 +191,27 @@ func breadcrumb(parts ...string) string {
 	return strings.Join(out, sSubtle.Render(" › "))
 }
 
+// barHeight is the rows every screen keeps at the bottom: a rule, then
+// the key bar.
+const barHeight = 2
+
 // screenLayout places body at the top and bottom on the last row, one cell
-// in, cutting the body when the terminal is too short.
+// in, under a rule that keeps a full screen apart from it. It cuts the body
+// when the terminal is too short.
 func screenLayout(width, height int, body, bottom string) string {
+	room := max(0, height-barHeight)
 	lines := strings.Split(body, "\n")
-	if len(lines) > height-1 {
-		lines = lines[:max(0, height-1)]
+	if len(lines) > room {
+		lines = lines[:room]
 	}
-	for len(lines) < height-1 {
+	for len(lines) < room {
 		lines = append(lines, "")
 	}
 	for i, l := range lines {
 		lines[i] = ansi.Truncate(l, width, "")
 	}
-	return strings.Join(append(lines, " "+fitKeys(bottom, width-1)), "\n")
+	rule := sBorder.Render(strings.Repeat("─", max(0, width)))
+	return strings.Join(append(lines, rule, " "+fitKeys(bottom, width-1)), "\n")
 }
 
 func indent(s string, n int) string {
@@ -345,7 +372,7 @@ func (s *scroller) layout(width, height int, body, bottom string) string {
 	lines := strings.Split(strings.TrimRight(body, "\n"), "\n")
 	const fixed = 2
 	if len(lines) > fixed {
-		lines = append(lines[:fixed:fixed], s.window(lines[fixed:], height-1-fixed)...)
+		lines = append(lines[:fixed:fixed], s.window(lines[fixed:], height-barHeight-fixed)...)
 	}
 	return screenLayout(width, height, strings.Join(lines, "\n"), bottom)
 }

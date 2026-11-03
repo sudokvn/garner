@@ -245,7 +245,7 @@ func (s *addScreen) view(width, height int) string {
 		if s.found.Total > len(rs) {
 			more = 2
 		}
-		s.rowsShown = max(1, height-addTop-1-more)
+		s.rowsShown = max(1, height-addTop-barHeight-more)
 		cursor := max(0, slices.IndexFunc(rs, func(r api.FoundShow) bool { return r.ID == s.selected }))
 		s.offset = min(max(s.offset, cursor-s.rowsShown+1), cursor)
 		for i := s.offset; i < min(len(rs), s.offset+s.rowsShown); i++ {

@@ -521,7 +521,7 @@ func (s *profilesScreen) view(width, height int) string {
 		details = s.detailLines(r, min(width, designWidth)-6-6)
 	}
 	// The table gets what the details pane leaves.
-	s.page = max(3, height-1-profilesTop-1-(len(details)+2))
+	s.page = max(3, height-barHeight-profilesTop-1-(len(details)+2))
 	cursor := max(0, slices.IndexFunc(s.rows, func(p profileRow) bool { return p.ID == s.selected }))
 	s.offset = min(max(s.offset, cursor-s.page+1), cursor)
 

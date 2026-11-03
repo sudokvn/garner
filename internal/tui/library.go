@@ -405,7 +405,7 @@ const libraryTop = 6 // rows above the table: header, blank, tabs, blank, column
 
 func (s *libraryScreen) view(width, height int) string {
 	rows, total := s.rows()
-	s.page = max(1, height-libraryTop-1)
+	s.page = max(1, height-libraryTop-barHeight)
 	cursor := max(0, slices.IndexFunc(rows, func(sh api.Show) bool { return sh.ID == s.selected }))
 	if len(rows) > 0 {
 		s.selected = rows[cursor].ID

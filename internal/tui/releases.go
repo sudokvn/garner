@@ -406,7 +406,7 @@ func (s *releasesScreen) table(width, height int) string {
 	}
 
 	why := s.why(tableWidth)
-	page := max(3, height-showTop-1-len(why)-1)
+	page := max(3, height-showTop-barHeight-len(why)-1)
 	cursor := max(0, slices.Index(keys, s.selected))
 	s.offset = min(max(s.offset, cursor-page+1), cursor)
 	if s.offset > 0 && cursor < page {
