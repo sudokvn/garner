@@ -148,6 +148,8 @@ curl -fsSL https://raw.githubusercontent.com/trucke/garner/main/install.sh | bas
 
 With Homebrew, the two channels are separate casks that cannot be installed together. To switch to dev, run `brew uninstall --cask garner`, then `brew install --cask trucke/tap/garner@dev`. To switch back, do the reverse. The terminal interface keeps its connection either way.
 
+The first time a garner installed with Homebrew starts, macOS asks once in a window whether to open it, because it was downloaded from the internet. The terminal waits until you answer. `install.sh` installs it without this question.
+
 Going back from dev to stable means running an older version until the next stable release. If a candidate changed the database, its release notes say so, and the older version refuses to start on it. Going back then needs the backup garner made before that change: `pre-migration-v<version>-<time>.db` in `backups/` in the data folder.
 
 ## Upgrade
