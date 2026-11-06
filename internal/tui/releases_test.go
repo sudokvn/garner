@@ -7,7 +7,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/trucke/garner/internal/api"
+	"github.com/sudokvn/garner/internal/api"
 )
 
 // TestReleasesTried shows which of two postings of the same release garner

@@ -42,7 +42,7 @@ checksum:
   extra_files:
     - glob: THIRD-PARTY-NOTICES.txt
 
-# Homebrew casks in trucke/homebrew-tap, one per channel: garner for the
+# Homebrew casks in sudokvn/homebrew-tap, one per channel: garner for the
 # stable releases, garner@dev for candidates and stable releases alike, so
 # brew upgrade keeps each on its channel. Both install the command garner,
 # so each conflicts with the other. The release workflow sets the tap's
@@ -51,7 +51,7 @@ checksum:
 homebrew_casks:
   - name: garner
     binaries: [garner]
-    homepage: https://github.com/trucke/garner
+    homepage: https://github.com/sudokvn/garner
     description: Terminal interface for garner, a self-hosted TV and anime manager
     license: MIT
     conflicts:
@@ -62,15 +62,15 @@ homebrew_casks:
       email: 41898282+github-actions[bot]@users.noreply.github.com
     skip_upload: '{{ if and (isEnvSet "HOMEBREW_TAP_KEY") (eq (envOrDefault "NEWEST_STABLE" "") "true") }}false{{ else }}true{{ end }}'
     repository:
-      owner: trucke
+      owner: sudokvn
       name: homebrew-tap
       branch: main
       git:
-        url: git@github.com:trucke/homebrew-tap.git
+        url: git@github.com:sudokvn/homebrew-tap.git
         private_key: '{{ envOrDefault "HOMEBREW_TAP_KEY" "" }}'
   - name: garner@dev
     binaries: [garner]
-    homepage: https://github.com/trucke/garner
+    homepage: https://github.com/sudokvn/garner
     description: Terminal interface for garner, a self-hosted TV and anime manager; release candidates and stable releases
     license: MIT
     conflicts:
@@ -81,11 +81,11 @@ homebrew_casks:
       email: 41898282+github-actions[bot]@users.noreply.github.com
     skip_upload: '{{ if and (isEnvSet "HOMEBREW_TAP_KEY") (eq (envOrDefault "NEWEST_RELEASE" "") "true") }}false{{ else }}true{{ end }}'
     repository:
-      owner: trucke
+      owner: sudokvn
       name: homebrew-tap
       branch: main
       git:
-        url: git@github.com:trucke/homebrew-tap.git
+        url: git@github.com:sudokvn/homebrew-tap.git
         private_key: '{{ envOrDefault "HOMEBREW_TAP_KEY" "" }}'
 
 # The release workflow passes the notes of tools/release-notes.sh, which

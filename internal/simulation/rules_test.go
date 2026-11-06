@@ -10,10 +10,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/selection"
-	"github.com/trucke/garner/internal/store"
-	"github.com/trucke/garner/internal/testprofiles"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/selection"
+	"github.com/sudokvn/garner/internal/store"
+	"github.com/sudokvn/garner/internal/testprofiles"
 )
 
 // The rules S1 to S6 from the package comment, and the snapshots they

@@ -18,9 +18,9 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/client"
-	"github.com/trucke/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/client"
+	"github.com/sudokvn/garner/internal/profile"
 )
 
 // Profiles lists the stored profiles with their preferences and the shows

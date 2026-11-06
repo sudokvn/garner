@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/trucke/garner/internal/store/query"
+	"github.com/sudokvn/garner/internal/store/query"
 )
 
 // Backup is a database snapshot.

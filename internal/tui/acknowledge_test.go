@@ -11,9 +11,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/client"
-	"github.com/trucke/garner/internal/connect"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/client"
+	"github.com/sudokvn/garner/internal/connect"
 )
 
 // TestClearFailure checks the same action on both screens, including the

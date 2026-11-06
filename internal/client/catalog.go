@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/trucke/garner/internal/api"
+	"github.com/sudokvn/garner/internal/api"
 )
 
 // Library lists the shows with a summary of each.

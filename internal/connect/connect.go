@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/trucke/garner/internal/token"
+	"github.com/sudokvn/garner/internal/token"
 )
 
 const prefix = "garner1:"

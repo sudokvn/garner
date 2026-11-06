@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/trucke/garner/internal/importer/guard"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/importer/guard"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 var (

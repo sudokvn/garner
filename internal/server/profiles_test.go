@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/config"
-	"github.com/trucke/garner/internal/profile"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/config"
+	"github.com/sudokvn/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 const germanText = `# shared by a friend

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
+	"github.com/sudokvn/garner/internal/api"
 )
 
 // TestActivity lists each episode's latest download: running ones and

@@ -1,4 +1,4 @@
-module github.com/trucke/garner
+module github.com/sudokvn/garner
 
 go 1.27.1
 

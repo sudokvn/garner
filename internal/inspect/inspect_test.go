@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/release"
+	"github.com/sudokvn/garner/internal/release"
 )
 
 func probe(w, h int, minutes float64, audio ...string) Probe {

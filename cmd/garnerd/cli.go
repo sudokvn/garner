@@ -17,8 +17,8 @@ import (
 	charmlog "charm.land/log/v2"
 	"github.com/spf13/cobra"
 
-	"github.com/trucke/garner/internal/config"
-	"github.com/trucke/garner/internal/server"
+	"github.com/sudokvn/garner/internal/config"
+	"github.com/sudokvn/garner/internal/server"
 )
 
 func execute(version string) int {

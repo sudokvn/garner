@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/sabnzbd"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/sabnzbd"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // fakeSAB keeps a queue and a history like SABnzbd 5.1 and answers its API.

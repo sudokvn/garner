@@ -9,7 +9,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
-	"github.com/trucke/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/profile"
 )
 
 func (a *app) profileCmd() *cobra.Command {

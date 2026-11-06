@@ -12,14 +12,14 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/client"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/client"
 )
 
 // About shows the versions, the connection, how the services the server
 // uses are doing, and what the library holds, with TVDB's attribution.
 
-const sourceURL = "https://github.com/trucke/garner"
+const sourceURL = "https://github.com/sudokvn/garner"
 
 type (
 	aboutStatusMsg struct {

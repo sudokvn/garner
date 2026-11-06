@@ -12,9 +12,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/client"
-	"github.com/trucke/garner/internal/connect"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/client"
+	"github.com/sudokvn/garner/internal/connect"
 )
 
 // recorder answers every request with an empty JSON object and remembers

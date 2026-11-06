@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/match"
-	"github.com/trucke/garner/internal/profile"
-	"github.com/trucke/garner/internal/release"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/match"
+	"github.com/sudokvn/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/release"
 )
 
 // Profile states which releases a show accepts: a stored profile applied

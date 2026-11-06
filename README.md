@@ -40,10 +40,10 @@ The server image brings its own TheTVDB key. To use your own, set `TVDB_API_KEY`
 2. Install the terminal interface, `garner`, on your Mac or Linux machine:
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/trucke/garner/main/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/sudokvn/garner/main/install.sh | bash
    ```
 
-   Run it again to update. On a Mac, you can use `brew install trucke/tap/garner` instead; the first time it starts, macOS asks once in a window whether to open it, and the terminal waits until you answer. To get release candidates early, use the [dev channel](docs/install.md#versions-and-channels).
+   Run it again to update. On a Mac, you can use `brew install sudokvn/tap/garner` instead; the first time it starts, macOS asks once in a window whether to open it, and the terminal waits until you answer. To get release candidates early, use the [dev channel](docs/install.md#versions-and-channels).
 
 3. In the server's container, run `garnerd token create <device>`. Then run `garner` and paste the connection code.
 4. Press `a` to add a show. Press `?` on any screen for its keys.

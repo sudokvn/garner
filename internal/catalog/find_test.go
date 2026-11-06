@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/httpx"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/httpx"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // TestFindShowsRanking checks that shows whose name in any language holds

@@ -15,8 +15,8 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/client"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/client"
 )
 
 // Library lists the shows with what garner has of each.

@@ -20,8 +20,8 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"golang.org/x/text/language"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/client"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/client"
 )
 
 // Add show finds shows on TVDB as the user types in the bottom line and

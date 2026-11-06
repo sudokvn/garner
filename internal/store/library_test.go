@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
+	"github.com/sudokvn/garner/internal/api"
 )
 
 // TestLibrary checks each show's summary: episodes counted without specials,

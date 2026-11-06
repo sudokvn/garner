@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/trucke/garner/internal/httpx"
+	"github.com/sudokvn/garner/internal/httpx"
 )
 
 // Client talks to one Jellyfin server. The API key travels in the

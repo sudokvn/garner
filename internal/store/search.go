@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/store/query"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/store/query"
 )
 
 func (s *Store) SeriesOfEpisode(ctx context.Context, episodeID int64) (int64, error) {

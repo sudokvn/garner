@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/httpx"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/httpx"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // TestRefresh loads a show from fake TVDB and TheXEM services, refreshes it

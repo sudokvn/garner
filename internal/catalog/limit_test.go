@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/httpx"
+	"github.com/sudokvn/garner/internal/httpx"
 )
 
 // oversized writes a body just over the limit, enough to trip the check

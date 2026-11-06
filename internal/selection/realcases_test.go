@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/match"
-	"github.com/trucke/garner/internal/release"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/match"
+	"github.com/sudokvn/garner/internal/release"
 )
 
 // TestRealSelectCases checks verdicts on real release names reviewed in

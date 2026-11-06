@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/connect"
-	"github.com/trucke/garner/internal/profile"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/connect"
+	"github.com/sudokvn/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // The admin API is served only on the Unix socket in the data directory.

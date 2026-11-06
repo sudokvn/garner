@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/release"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/release"
 )
 
 // lanternHarbor is a made-up anime: 23 episodes in season 1 with a

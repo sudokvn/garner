@@ -7,9 +7,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/trucke/garner/internal/profile"
-	"github.com/trucke/garner/internal/selection"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/selection"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // German and GermanEnglish are the shipped profiles.

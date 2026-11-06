@@ -14,12 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/config"
-	"github.com/trucke/garner/internal/importer/guard"
-	"github.com/trucke/garner/internal/inspect"
-	"github.com/trucke/garner/internal/jellyfin"
-	"github.com/trucke/garner/internal/store"
-	"github.com/trucke/garner/internal/testprofiles"
+	"github.com/sudokvn/garner/internal/config"
+	"github.com/sudokvn/garner/internal/importer/guard"
+	"github.com/sudokvn/garner/internal/inspect"
+	"github.com/sudokvn/garner/internal/jellyfin"
+	"github.com/sudokvn/garner/internal/store"
+	"github.com/sudokvn/garner/internal/testprofiles"
 )
 
 type fakeProber struct{ probe inspect.Probe }

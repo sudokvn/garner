@@ -16,9 +16,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/client"
-	"github.com/trucke/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/client"
+	"github.com/sudokvn/garner/internal/profile"
 )
 
 // Fixtures: the profiles of a small library.
@@ -488,9 +488,9 @@ func TestFetchProfile(t *testing.T) {
 		}
 	}
 	for link, want := range map[string]string{
-		"https://github.com/trucke/garner/blob/main/internal/profile/shipped/german.toml": "https://raw.githubusercontent.com/trucke/garner/main/internal/profile/shipped/german.toml",
-		"https://github.com/trucke/garner":                                                "https://github.com/trucke/garner",
-		"https://raw.githubusercontent.com/trucke/garner/main/x":                          "https://raw.githubusercontent.com/trucke/garner/main/x",
+		"https://github.com/sudokvn/garner/blob/main/internal/profile/shipped/german.toml": "https://raw.githubusercontent.com/sudokvn/garner/main/internal/profile/shipped/german.toml",
+		"https://github.com/sudokvn/garner":                                                "https://github.com/sudokvn/garner",
+		"https://raw.githubusercontent.com/sudokvn/garner/main/x":                          "https://raw.githubusercontent.com/sudokvn/garner/main/x",
 	} {
 		if got := rawLink(link); got != want {
 			t.Errorf("rawLink(%q) = %q, want %q", link, got, want)

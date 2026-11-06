@@ -125,7 +125,7 @@ jobs:
       - name: Find the inputs earlier nights found
         id: kept
         run: |
-          dir="$(go env GOCACHE)/fuzz/github.com/trucke/garner/internal/$PACKAGE/$TARGET"
+          dir="$(go env GOCACHE)/fuzz/github.com/sudokvn/garner/internal/$PACKAGE/$TARGET"
           echo "dir=$dir" >>"$GITHUB_OUTPUT"
           echo "KEPT=$dir" >>"$GITHUB_ENV"
 

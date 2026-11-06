@@ -4,8 +4,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/trucke/garner/internal/profile"
-	"github.com/trucke/garner/internal/release"
+	"github.com/sudokvn/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/release"
 )
 
 // TestProfileLanguages keeps the languages a profile may name equal to the

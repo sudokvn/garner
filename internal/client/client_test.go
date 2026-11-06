@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/connect"
-	"github.com/trucke/garner/internal/tlsident"
+	"github.com/sudokvn/garner/internal/connect"
+	"github.com/sudokvn/garner/internal/tlsident"
 )
 
 // pinnedServer serves like the real server: garner's own key, no CA.

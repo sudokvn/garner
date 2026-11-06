@@ -13,9 +13,9 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/client"
-	"github.com/trucke/garner/internal/connect"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/client"
+	"github.com/sudokvn/garner/internal/connect"
 )
 
 // screen is one full screen. The app owns the terminal size, the session

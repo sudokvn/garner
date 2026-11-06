@@ -13,14 +13,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/trucke/garner/internal/config"
-	"github.com/trucke/garner/internal/importer/guard"
-	"github.com/trucke/garner/internal/inspect"
-	"github.com/trucke/garner/internal/jellyfin"
-	"github.com/trucke/garner/internal/match"
-	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/selection"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/config"
+	"github.com/sudokvn/garner/internal/importer/guard"
+	"github.com/sudokvn/garner/internal/inspect"
+	"github.com/sudokvn/garner/internal/jellyfin"
+	"github.com/sudokvn/garner/internal/match"
+	"github.com/sudokvn/garner/internal/release"
+	"github.com/sudokvn/garner/internal/selection"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 const (

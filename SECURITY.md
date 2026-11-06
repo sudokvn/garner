@@ -2,7 +2,7 @@
 
 ## Report a vulnerability
 
-Report security problems privately through [GitHub's private vulnerability reporting](https://github.com/trucke/garner/security/advisories/new), not in a public issue. Describe the problem, the version you use and, if you can, the steps to reproduce it.
+Report security problems privately through [GitHub's private vulnerability reporting](https://github.com/sudokvn/garner/security/advisories/new), not in a public issue. Describe the problem, the version you use and, if you can, the steps to reproduce it.
 
 You get an answer within a week. garner is maintained in spare time, so a fix can take longer; the advisory keeps you informed.
 

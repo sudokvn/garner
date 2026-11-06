@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/trucke/garner/internal/api"
+	"github.com/sudokvn/garner/internal/api"
 )
 
 // SearchShow asks the server to search every missing episode of a show

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // TestDeleteFiles checks that deleting a show removes its videos, their

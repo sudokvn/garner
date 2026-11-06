@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/trucke/garner/internal/token"
+	"github.com/sudokvn/garner/internal/token"
 )
 
 // openAt builds a database in dataDir at a migration version, as an older

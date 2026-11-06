@@ -7,7 +7,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/trucke/garner/internal/store/query"
+	"github.com/sudokvn/garner/internal/store/query"
 )
 
 // MarkImportPending queues a completed download for import, once.

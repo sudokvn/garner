@@ -3,7 +3,7 @@ package selection
 import (
 	"fmt"
 
-	"github.com/trucke/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/profile"
 )
 
 // TV and Anime are the shipped profiles "German" and "German, English

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/release"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/release"
 )
 
 // FuzzMatch matches arbitrary names against the made-up shows of the test

@@ -23,9 +23,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/trucke/garner/internal/config"
-	"github.com/trucke/garner/internal/inspect"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/config"
+	"github.com/sudokvn/garner/internal/inspect"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // The world is everything outside garner: the shows, the releases the

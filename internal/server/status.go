@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/catalog"
-	"github.com/trucke/garner/internal/config"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/catalog"
+	"github.com/sudokvn/garner/internal/config"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // checkTimeout bounds each service check, so a hanging service cannot hold

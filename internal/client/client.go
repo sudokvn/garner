@@ -21,9 +21,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/connect"
-	"github.com/trucke/garner/internal/tlsident"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/connect"
+	"github.com/sudokvn/garner/internal/tlsident"
 )
 
 // ErrUnauthorized means the server does not know the token, usually because

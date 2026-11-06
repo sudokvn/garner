@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/match"
-	"github.com/trucke/garner/internal/release"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/match"
+	"github.com/sudokvn/garner/internal/release"
 )
 
 // fixture is a made-up show with three episodes in season 1.

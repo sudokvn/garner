@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 var (

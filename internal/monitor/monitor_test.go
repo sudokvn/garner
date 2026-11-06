@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/download"
-	"github.com/trucke/garner/internal/prowlarr"
-	"github.com/trucke/garner/internal/sabnzbd"
-	"github.com/trucke/garner/internal/search"
-	"github.com/trucke/garner/internal/store"
-	"github.com/trucke/garner/internal/testprofiles"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/download"
+	"github.com/sudokvn/garner/internal/prowlarr"
+	"github.com/sudokvn/garner/internal/sabnzbd"
+	"github.com/sudokvn/garner/internal/search"
+	"github.com/sudokvn/garner/internal/store"
+	"github.com/sudokvn/garner/internal/testprofiles"
 )
 
 // TestDue checks what the monitor searches now, and in which order: new

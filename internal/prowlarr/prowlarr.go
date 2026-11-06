@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/trucke/garner/internal/httpx"
+	"github.com/sudokvn/garner/internal/httpx"
 )
 
 const (

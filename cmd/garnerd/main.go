@@ -5,7 +5,7 @@ package main
 import (
 	"os"
 
-	"github.com/trucke/garner/internal/buildinfo"
+	"github.com/sudokvn/garner/internal/buildinfo"
 )
 
 // version and commit are set for a release with -ldflags "-X

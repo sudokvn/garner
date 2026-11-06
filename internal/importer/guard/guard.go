@@ -30,7 +30,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/trucke/garner/internal/config"
+	"github.com/sudokvn/garner/internal/config"
 )
 
 // Options says what garner owns.

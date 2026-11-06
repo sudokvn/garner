@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/connect"
+	"github.com/sudokvn/garner/internal/connect"
 )
 
 // TestWatch checks that events arrive, that a dropped stream is reported,

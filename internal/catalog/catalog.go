@@ -16,8 +16,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/release"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 var ErrExists = errors.New("already in the catalogue")

@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/release"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/release"
 )
 
 // aired is TVDB's season type for the aired order.

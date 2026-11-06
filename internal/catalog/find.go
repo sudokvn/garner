@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/match"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/match"
 )
 
 // FindShows finds shows on TVDB and marks those already in the catalogue.

@@ -76,7 +76,7 @@ The examples assume these folders on the server. Adjust them to your setup:
    sudo chown "$USER": /srv/garner
    ```
 
-2. Start the container with the newest version from the [releases](https://github.com/trucke/garner/releases). Pick one not marked Pre-release unless you run the [dev channel](#versions-and-channels):
+2. Start the container with the newest version from the [releases](https://github.com/sudokvn/garner/releases). Pick one not marked Pre-release unless you run the [dev channel](#versions-and-channels):
 
    ```bash
    podman run -d --name garner \
@@ -89,7 +89,7 @@ The examples assume these folders on the server. Adjust them to your setup:
      -v /etc/garner/garner.toml:/config/garner.toml:ro \
      -v /srv/garner:/data \
      -v /srv/media:/srv/media \
-     ghcr.io/trucke/garner:<version>
+     ghcr.io/sudokvn/garner:<version>
    ```
 
    With Docker, leave out `--userns=…` and make UID 1000 the owner of `/srv/garner` instead: `sudo chown 1000:1000 /srv/garner`.
@@ -135,18 +135,18 @@ Run it daily, for example from a systemd timer, and delete old copies. garner al
 
 | Channel | Gets | Server image | Terminal interface |
 | --- | --- | --- | --- |
-| stable | stable releases, such as `v0.9.0` | `ghcr.io/trucke/garner:latest`, or the version | `install.sh`, or `brew install trucke/tap/garner` |
-| dev | release candidates, such as `v0.9.0-rc.1`, and every stable release | `ghcr.io/trucke/garner:dev`, or the version | `install.sh --channel dev`, or `brew install trucke/tap/garner@dev` |
+| stable | stable releases, such as `v0.9.0` | `ghcr.io/sudokvn/garner:latest`, or the version | `install.sh`, or `brew install sudokvn/tap/garner` |
+| dev | release candidates, such as `v0.9.0-rc.1`, and every stable release | `ghcr.io/sudokvn/garner:dev`, or the version | `install.sh --channel dev`, or `brew install sudokvn/tap/garner@dev` |
 
 A release candidate is what the next release will be. It runs on the maintainer's own server before it becomes a stable release: at least a week for new features, a day for a release that only fixes. Run the dev channel to get new versions early and to report what breaks; run stable otherwise. Use the same channel for the server and the terminal interface.
 
 To install the terminal interface from the dev channel:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/trucke/garner/main/install.sh | bash -s -- --channel dev
+curl -fsSL https://raw.githubusercontent.com/sudokvn/garner/main/install.sh | bash -s -- --channel dev
 ```
 
-With Homebrew, the two channels are separate casks that cannot be installed together. To switch to dev, run `brew uninstall --cask garner`, then `brew install --cask trucke/tap/garner@dev`. To switch back, do the reverse. The terminal interface keeps its connection either way.
+With Homebrew, the two channels are separate casks that cannot be installed together. To switch to dev, run `brew uninstall --cask garner`, then `brew install --cask sudokvn/tap/garner@dev`. To switch back, do the reverse. The terminal interface keeps its connection either way.
 
 The first time a garner installed with Homebrew starts, macOS asks once in a window whether to open it, because it was downloaded from the internet. The terminal waits until you answer. `install.sh` installs it without this question.
 

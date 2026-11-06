@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/release"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/release"
 )
 
 // probeTimeout bounds one FFprobe run; files are untrusted and may sit on

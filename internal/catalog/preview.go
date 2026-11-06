@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/text/language"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/release"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/release"
 )
 
 // Preview describes a show on TVDB without adding it.

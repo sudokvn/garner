@@ -11,11 +11,11 @@ import (
 
 	"golang.org/x/text/unicode/norm"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/config"
-	"github.com/trucke/garner/internal/inspect"
-	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/config"
+	"github.com/sudokvn/garner/internal/inspect"
+	"github.com/sudokvn/garner/internal/release"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // maxName keeps file names well below the 255-byte limit of most

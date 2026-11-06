@@ -49,7 +49,7 @@ ARG COMMIT=
 # prints; the last line fails the build should that ever change.
 RUN --mount=type=secret,id=tvdb_api_key,required=false \
     CGO_ENABLED=0 go build -tags musl,timetzdata -trimpath \
-      -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X github.com/trucke/garner/internal/config.builtinTVDBKey=$(cat /run/secrets/tvdb_api_key 2>/dev/null)" \
+      -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X github.com/sudokvn/garner/internal/config.builtinTVDBKey=$(cat /run/secrets/tvdb_api_key 2>/dev/null)" \
       -o /out/garnerd ./cmd/garnerd \
  && ! go version -m /out/garnerd | grep -q builtinTVDBKey
 
@@ -58,7 +58,7 @@ ARG VERSION=dev
 ARG COMMIT=
 # The source label links the image on ghcr.io to the repository.
 LABEL org.opencontainers.image.title="garner" \
-      org.opencontainers.image.source="https://github.com/trucke/garner" \
+      org.opencontainers.image.source="https://github.com/sudokvn/garner" \
       org.opencontainers.image.licenses="MIT AND LGPL-2.1-or-later AND Zlib" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${COMMIT}"

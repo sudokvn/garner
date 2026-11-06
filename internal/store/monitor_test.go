@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
+	"github.com/sudokvn/garner/internal/api"
 )
 
 // TestWanted checks which missing episodes and upgrades the monitor gets

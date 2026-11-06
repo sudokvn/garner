@@ -22,7 +22,7 @@ import (
 	"github.com/pressly/goose/v3"
 	turso "turso.tech/database/tursogo"
 
-	"github.com/trucke/garner/internal/store/query"
+	"github.com/sudokvn/garner/internal/store/query"
 )
 
 //go:embed migrations/*.sql

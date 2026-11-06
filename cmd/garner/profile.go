@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/trucke/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/profile"
 )
 
 // checkProfile checks a profile file, or standard input for "-", without a

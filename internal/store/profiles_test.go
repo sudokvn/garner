@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/profile"
 )
 
 // shippedText is a shipped profile's text, as the migration writes it.

@@ -7,12 +7,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/importer"
-	"github.com/trucke/garner/internal/inspect"
-	"github.com/trucke/garner/internal/jellyfin"
-	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/importer"
+	"github.com/sudokvn/garner/internal/inspect"
+	"github.com/sudokvn/garner/internal/jellyfin"
+	"github.com/sudokvn/garner/internal/release"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 func (s *Server) setupImports() error {

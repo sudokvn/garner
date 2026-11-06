@@ -3,8 +3,8 @@ package download
 import (
 	"testing"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 func TestFailureSummary(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/trucke/garner/internal/store/query"
+	"github.com/sudokvn/garner/internal/store/query"
 )
 
 // StoredProfile is a profile as the database keeps it: its text in the

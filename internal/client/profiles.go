@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/trucke/garner/internal/api"
+	"github.com/sudokvn/garner/internal/api"
 )
 
 func profilePath(id int64) string { return "/api/v1/profiles/" + strconv.FormatInt(id, 10) }

@@ -13,9 +13,9 @@ import (
 
 	"github.com/charmbracelet/x/term"
 
-	"github.com/trucke/garner/internal/buildinfo"
-	"github.com/trucke/garner/internal/connect"
-	"github.com/trucke/garner/internal/tui"
+	"github.com/sudokvn/garner/internal/buildinfo"
+	"github.com/sudokvn/garner/internal/connect"
+	"github.com/sudokvn/garner/internal/tui"
 )
 
 // version and commit are set for a release with -ldflags "-X

@@ -6,8 +6,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/store/query"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/store/query"
 )
 
 // SetMonitor changes which of a show's episodes the monitor gets. A mode

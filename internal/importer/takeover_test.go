@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // TestTakeOver takes over a show's files from an older library folder that

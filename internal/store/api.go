@@ -1,6 +1,6 @@
 package store
 
-import "github.com/trucke/garner/internal/api"
+import "github.com/sudokvn/garner/internal/api"
 
 // The store keeps shows, episodes, downloads and searches in the shapes
 // the server sends them in, which package api defines.

@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/trucke/garner/internal/httpx"
+	"github.com/sudokvn/garner/internal/httpx"
 )
 
 // Error is a refusal SABnzbd answered with, as opposed to no answer at

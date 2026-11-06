@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/monitor"
-	"github.com/trucke/garner/internal/prowlarr"
-	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/search"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/monitor"
+	"github.com/sudokvn/garner/internal/prowlarr"
+	"github.com/sudokvn/garner/internal/release"
+	"github.com/sudokvn/garner/internal/search"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 func (s *Server) setupSearch() error {

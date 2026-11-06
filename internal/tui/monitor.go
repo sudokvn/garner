@@ -3,7 +3,7 @@ package tui
 import (
 	"slices"
 
-	"github.com/trucke/garner/internal/api"
+	"github.com/sudokvn/garner/internal/api"
 )
 
 // The monitor question asks which of a show's episodes garner gets on its

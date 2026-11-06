@@ -56,13 +56,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/config"
-	"github.com/trucke/garner/internal/importer/guard"
-	"github.com/trucke/garner/internal/profile"
-	"github.com/trucke/garner/internal/server"
-	"github.com/trucke/garner/internal/store"
-	"github.com/trucke/garner/internal/testprofiles"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/config"
+	"github.com/sudokvn/garner/internal/importer/guard"
+	"github.com/sudokvn/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/server"
+	"github.com/sudokvn/garner/internal/store"
+	"github.com/sudokvn/garner/internal/testprofiles"
 )
 
 var (

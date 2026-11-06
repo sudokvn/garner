@@ -9,8 +9,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/trucke/garner/internal/store/query"
-	"github.com/trucke/garner/internal/token"
+	"github.com/sudokvn/garner/internal/store/query"
+	"github.com/sudokvn/garner/internal/token"
 )
 
 // Token is an authenticated client.

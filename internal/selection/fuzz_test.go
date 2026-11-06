@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/release"
+	"github.com/sudokvn/garner/internal/release"
 )
 
 // FuzzEvaluate judges arbitrary names, with an arbitrary language the

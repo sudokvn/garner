@@ -16,12 +16,12 @@ import (
 	"slices"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/download"
-	"github.com/trucke/garner/internal/match"
-	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/search"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/download"
+	"github.com/sudokvn/garner/internal/match"
+	"github.com/sudokvn/garner/internal/release"
+	"github.com/sudokvn/garner/internal/search"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 const (

@@ -21,10 +21,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/connect"
-	"github.com/trucke/garner/internal/inspect"
-	"github.com/trucke/garner/internal/server"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/connect"
+	"github.com/sudokvn/garner/internal/inspect"
+	"github.com/sudokvn/garner/internal/server"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // The demo serves garner on a fixed world, for recording the terminal

@@ -3,7 +3,7 @@ package tui
 import (
 	"strings"
 
-	"github.com/trucke/garner/internal/api"
+	"github.com/sudokvn/garner/internal/api"
 )
 
 // downloadDetails keeps the original failure and its evidence on the

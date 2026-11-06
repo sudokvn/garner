@@ -4,8 +4,8 @@
 # GitHub, checks it against the release's SHA256SUMS and puts it into
 # ~/.local/bin. It downloads nothing when that version is installed already.
 #
-#   curl -fsSL https://raw.githubusercontent.com/trucke/garner/main/install.sh | bash
-#   curl -fsSL https://raw.githubusercontent.com/trucke/garner/main/install.sh | bash -s -- --channel dev
+#   curl -fsSL https://raw.githubusercontent.com/sudokvn/garner/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/sudokvn/garner/main/install.sh | bash -s -- --channel dev
 #
 # The stable channel has the stable releases; dev has the release
 # candidates as well, such as v0.9.0-rc.1, and always the newest version.
@@ -14,7 +14,7 @@
 # another folder instead of ~/.local/bin.
 set -euo pipefail
 
-repo=https://github.com/trucke/garner
+repo=https://github.com/sudokvn/garner
 # What a failed or cut-short run leaves behind; removed on exit.
 tmp=""
 part=""
@@ -87,7 +87,7 @@ main() {
 			;;
 		dev)
 			# Candidates are pre-releases, which GitHub's latest leaves out.
-			version=$(curl -fsSL "https://api.github.com/repos/trucke/garner/releases?per_page=30" |
+			version=$(curl -fsSL "https://api.github.com/repos/sudokvn/garner/releases?per_page=30" |
 				sed -n 's/^ *"tag_name": *"\([^"]*\)".*/\1/p' | newest) ||
 				fail "could not reach GitHub to find the newest release"
 			;;

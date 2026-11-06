@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 var ErrSearching = errors.New("garner is already searching this show's missing episodes")

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/trucke/garner/internal/token"
+	"github.com/sudokvn/garner/internal/token"
 )
 
 // TestSaveKeepsTokenPrivate checks that the stored code, which holds the

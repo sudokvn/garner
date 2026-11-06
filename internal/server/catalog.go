@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/catalog"
-	"github.com/trucke/garner/internal/importer"
-	"github.com/trucke/garner/internal/selection"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/catalog"
+	"github.com/sudokvn/garner/internal/importer"
+	"github.com/sudokvn/garner/internal/selection"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 func (s *Server) catalogRoutes(mux router) {

@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/profile"
-	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/selection"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/profile"
+	"github.com/sudokvn/garner/internal/release"
+	"github.com/sudokvn/garner/internal/selection"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // profileCache holds the stored profiles parsed, so applying one needs no

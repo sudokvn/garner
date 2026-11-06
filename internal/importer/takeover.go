@@ -16,13 +16,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/importer/guard"
-	"github.com/trucke/garner/internal/inspect"
-	"github.com/trucke/garner/internal/match"
-	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/selection"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/importer/guard"
+	"github.com/sudokvn/garner/internal/inspect"
+	"github.com/sudokvn/garner/internal/match"
+	"github.com/sudokvn/garner/internal/release"
+	"github.com/sudokvn/garner/internal/selection"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // TakeOver looks for a show's video files in the library and records those

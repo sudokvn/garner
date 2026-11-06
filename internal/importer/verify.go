@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // verify checks that Jellyfin lists each file as the intended episode.

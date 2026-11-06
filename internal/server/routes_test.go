@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/trucke/garner/internal/config"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/config"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // patterns lists the routes register adds.

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/sabnzbd"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/sabnzbd"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 func setupSeasonReplacement(t *testing.T) (*store.Store, *Service, *fakeSAB) {

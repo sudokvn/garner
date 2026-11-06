@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/trucke/garner/internal/importer/guard"
-	"github.com/trucke/garner/internal/match"
-	"github.com/trucke/garner/internal/release"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/importer/guard"
+	"github.com/sudokvn/garner/internal/match"
+	"github.com/sudokvn/garner/internal/release"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 // tidy runs after the videos were moved: it puts the release's subtitle

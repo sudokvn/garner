@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/httpx"
+	"github.com/sudokvn/garner/internal/httpx"
 )
 
 // testTVDB is a client whose pacing does not wait, for tests about other

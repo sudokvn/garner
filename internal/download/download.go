@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/httpx"
-	"github.com/trucke/garner/internal/sabnzbd"
-	"github.com/trucke/garner/internal/store"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/httpx"
+	"github.com/sudokvn/garner/internal/sabnzbd"
+	"github.com/sudokvn/garner/internal/store"
 )
 
 const (

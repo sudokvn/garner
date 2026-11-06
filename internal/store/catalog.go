@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/trucke/garner/internal/store/query"
+	"github.com/sudokvn/garner/internal/store/query"
 )
 
 // SaveSeries stores a show, replacing its orders, titles, numbering and

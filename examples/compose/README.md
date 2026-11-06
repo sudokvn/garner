@@ -12,7 +12,7 @@ SABnzbd, garner and Jellyfin see the media at `/srv/media`. SABnzbd downloads in
 
    ```bash
    mkdir garner-stack && cd garner-stack
-   curl -fsSL --remote-name-all "https://raw.githubusercontent.com/trucke/garner/main/examples/compose/{compose.yaml,garner.toml,.env.example}"
+   curl -fsSL --remote-name-all "https://raw.githubusercontent.com/sudokvn/garner/main/examples/compose/{compose.yaml,garner.toml,.env.example}"
    ```
 
 2. Create the folders and make UID 1000, which the services run as, their owner. Then create `.env` from the example and let only your user read it:
@@ -84,7 +84,7 @@ docker compose pull
 docker compose up -d
 ```
 
-`compose.yaml` follows the stable channel, `ghcr.io/trucke/garner:latest`. For release candidates, use `:dev`; see [Versions and channels](../../docs/install.md#versions-and-channels).
+`compose.yaml` follows the stable channel, `ghcr.io/sudokvn/garner:latest`. For release candidates, use `:dev`; see [Versions and channels](../../docs/install.md#versions-and-channels).
 
 ## Other setups
 

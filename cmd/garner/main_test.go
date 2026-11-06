@@ -17,7 +17,7 @@ func TestNoServerCode(t *testing.T) {
 	}
 	allowed := []string{"api", "buildinfo", "client", "connect", "profile", "tlsident", "token", "tui"}
 	for _, pkg := range strings.Fields(string(out)) {
-		if name, ok := strings.CutPrefix(pkg, "github.com/trucke/garner/internal/"); ok && !slices.Contains(allowed, name) {
+		if name, ok := strings.CutPrefix(pkg, "github.com/sudokvn/garner/internal/"); ok && !slices.Contains(allowed, name) {
 			t.Errorf("garner depends on internal/%s, which is server code", name)
 		}
 	}

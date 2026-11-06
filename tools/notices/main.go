@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	mainModule = "github.com/trucke/garner"
+	mainModule = "github.com/sudokvn/garner"
 	notices    = "THIRD-PARTY-NOTICES.txt"
 
 	// go-licenses prints one line per library and license with this

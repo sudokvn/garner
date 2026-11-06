@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/trucke/garner/internal/config"
+	"github.com/sudokvn/garner/internal/config"
 )
 
 // share is a temporary share with SABnzbd's folders, a TV library and

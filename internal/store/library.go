@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/trucke/garner/internal/api"
-	"github.com/trucke/garner/internal/store/query"
+	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/store/query"
 )
 
 var urgency = map[api.EpisodeState]int{

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/trucke/garner/internal/release"
+	"github.com/sudokvn/garner/internal/release"
 )
 
 // Kind is what a release turned out to hold.
