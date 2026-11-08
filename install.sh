@@ -2,7 +2,9 @@
 # Installs or updates `garner`, garner's terminal interface, on macOS or
 # Linux: downloads the newest release of a channel for this machine from
 # GitHub, checks it against the release's SHA256SUMS and puts it into
-# ~/.local/bin. It downloads nothing when that version is installed already.
+# ~/.local/bin. Packaged releases keep their licence files alongside the
+# binary in garner-licenses/. It downloads no release files when that
+# version is installed already.
 #
 #   curl -fsSL https://raw.githubusercontent.com/sudokvn/garner/main/install.sh | bash
 #   curl -fsSL https://raw.githubusercontent.com/sudokvn/garner/main/install.sh | bash -s -- --channel dev
@@ -102,28 +104,53 @@ main() {
 		printf '✓ garner %s is installed already in %s\n' "$version" "$dir"
 		return
 	fi
-	mkdir -p "$dir"
+	local licences="$dir/garner-licenses"
+	local packaged=false notice
 	tmp=$(mktemp -d)
-	# Next to its target, so the rename below replaces it in one step, even
-	# while garner runs.
-	part="$dir/.garner-$version.$$"
-
-	printf 'Downloading garner %s for %s on %s...\n' "$version" "$os" "$arch"
-	curl -fsSL -o "$part" "$repo/releases/download/$version/$file" ||
-		fail "could not download $file from $repo/releases/tag/$version"
 	curl -fsSL -o "$tmp/SHA256SUMS" "$repo/releases/download/$version/SHA256SUMS" ||
 		fail "could not download the checksums of $version"
+	# Old MIT releases shipped bare binaries. Choose from the checksum list,
+	# never fall back to a bare binary after an archive download fails.
+	if awk -v f="$file.tar.gz" '$2 == f { found = 1 } END { exit !found }' "$tmp/SHA256SUMS"; then
+		file="$file.tar.gz"
+		packaged=true
+	fi
 
 	local want got
 	want=$(awk -v f="$file" '$2 == f { print $1 }' "$tmp/SHA256SUMS")
 	[ -n "$want" ] || fail "SHA256SUMS of $version lists no $file"
+
+	printf 'Downloading garner %s for %s on %s...\n' "$version" "$os" "$arch"
+	curl -fsSL -o "$tmp/download" "$repo/releases/download/$version/$file" ||
+		fail "could not download $file from $repo/releases/tag/$version"
 	if command -v sha256sum >/dev/null; then
-		got=$(sha256sum "$part" | awk '{ print $1 }')
+		got=$(sha256sum "$tmp/download" | awk '{ print $1 }')
 	else
-		got=$(shasum -a 256 "$part" | awk '{ print $1 }')
+		got=$(shasum -a 256 "$tmp/download" | awk '{ print $1 }')
 	fi
 	[ "$got" = "$want" ] || fail "$file does not match its checksum; nothing was installed"
 
+	if [ "$packaged" = true ]; then
+		command -v tar >/dev/null || fail "garner's installer needs tar"
+		# Read only the expected files to stdout. Archive paths and symlinks
+		# are never extracted into the installation or temporary directories.
+		for notice in garner LICENSE NOTICE THIRD-PARTY-NOTICES.txt; do
+			tar -xOzf "$tmp/download" "$notice" >"$tmp/$notice" || fail "$file is missing $notice"
+			[ -s "$tmp/$notice" ] || fail "$file has an empty $notice"
+		done
+		mkdir -p "$licences"
+		for notice in LICENSE NOTICE THIRD-PARTY-NOTICES.txt; do
+			cp "$tmp/$notice" "$licences/$notice"
+			chmod 644 "$licences/$notice"
+		done
+	else
+		mv "$tmp/download" "$tmp/garner"
+	fi
+	mkdir -p "$dir"
+	# Next to its target, so the rename below replaces it in one step, even
+	# while garner runs. Install notices before making a new binary visible.
+	part="$dir/.garner-$version.$$"
+	cp "$tmp/garner" "$part"
 	chmod 755 "$part"
 	mv -f "$part" "$dir/garner"
 	part=""

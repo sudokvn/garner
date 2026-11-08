@@ -56,8 +56,9 @@ jobs:
 
       - name: Shell scripts
         run: |
-          shellcheck -x install.sh tools/*.sh
+          shellcheck -x install.sh tools/*.sh tools/turso/*.sh
           bash tools/versions_test.sh
+          bash tools/install_test.sh
 
       - name: Links in the Markdown files
         run: bash tools/links.sh

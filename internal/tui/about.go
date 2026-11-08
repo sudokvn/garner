@@ -10,16 +10,14 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/x/ansi"
 
 	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/buildinfo"
 	"github.com/sudokvn/garner/internal/client"
 )
 
 // About shows the versions, the connection, how the services the server
 // uses are doing, and what the library holds, with TVDB's attribution.
-
-const sourceURL = "https://github.com/sudokvn/garner"
 
 type (
 	aboutStatusMsg struct {
@@ -44,6 +42,7 @@ type aboutScreen struct {
 	err      error // of the services check
 	flash    flash
 	scroll   scroller
+	sources  *pickList
 }
 
 func newAbout(sess *session, back screen, path, version string) *aboutScreen {
@@ -81,6 +80,11 @@ func (s *aboutScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		}
 		if msg.err == nil {
 			s.status = &msg.status
+			if s.sources != nil {
+				chosen := s.sources.choice
+				s.sources = sourceChoices(s.version, buildinfo.SourceURL(), s.status)
+				s.sources.choice = chosen
+			}
 		}
 	case aboutServicesMsg:
 		if msg.from != s {
@@ -96,6 +100,16 @@ func (s *aboutScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		}
 	case tea.KeyPressMsg:
 		s.flash.clear()
+		if s.sources != nil {
+			if done, chosen := s.sources.key(msg.String()); done {
+				p := s.sources
+				s.sources = nil
+				if chosen >= 0 {
+					return s, browse(p.items[chosen].value.(string))
+				}
+			}
+			return s, nil
+		}
 		if s.scroll.key(msg.String()) {
 			return s, nil
 		}
@@ -103,7 +117,7 @@ func (s *aboutScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		case "esc":
 			return s, func() tea.Msg { return switchMsg{s.back} }
 		case "o":
-			return s, browse(sourceURL)
+			s.sources = sourceChoices(s.version, buildinfo.SourceURL(), s.status)
 		}
 	}
 	return s, nil
@@ -223,26 +237,31 @@ func (s *aboutScreen) view(width, height int) string {
 		b.WriteString(indent(frame("library", rows, w), 3) + "\n")
 	}
 
-	b.WriteString("\n   " + sSubtle.Render(fmt.Sprintf("%-12s", "Source")) + sNormal.Render(sourceURL) + "\n")
-	// TheTVDB's terms ask for this attribution wherever its data shows.
-	credit := "Metadata provided by TheTVDB (https://thetvdb.com). Please consider adding missing information or subscribing."
-	for _, l := range strings.Split(ansi.Wrap(credit, w, ""), "\n") {
-		b.WriteString("   " + sMuted.Render(l) + "\n")
+	link := sNormal.Foreground(cIris).Underline(true)
+	b.WriteString("\n   " + sNormal.Render("AGPLv3") + sMuted.Render(" · ") + link.Render("source and licence") + "\n")
+	b.WriteString("   " + sMuted.Render("Metadata: ") + link.Hyperlink("https://thetvdb.com").Render("TheTVDB") + "\n")
+	base := s.scroll.layout(width, height, b.String(), s.bottom())
+	if s.sources != nil {
+		s.sources.width = max(12, min(100, width-12))
+		lines := s.sources.lines(sBold.Render("Source and licence"), height)
+		lines[len(lines)-1] = keyBar("j k", "choose", "enter", "open", "esc", "back")
+		return overlay(base, lines, width, height)
 	}
-	return s.scroll.layout(width, height, b.String(), s.bottom())
+	return base
 }
 
 func (s *aboutScreen) bottom() string {
 	if s.flash.text != "" {
 		return s.flash.text
 	}
-	return keyBar("o", "open on GitHub", "esc", "back")
+	return keyBar("o", "source and licence", "esc", "back")
 }
 
 func (s *aboutScreen) flashed() *flash { return &s.flash }
+func (s *aboutScreen) captures() bool  { return s.sources != nil }
 
 func (s *aboutScreen) help() (string, []string) {
-	return "About", []string{"o", "open the source on GitHub"}
+	return "About", []string{"o", "source and licence"}
 }
 
 // platform names the system this program runs on, as in "macOS arm64".

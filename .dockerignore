@@ -1,9 +1,12 @@
 # Allowlist: only what the image build needs. Keeps local data, config and
-# version control out of the build context.
+# version control out of the build context. vendor/ exists only in the
+# release's source archive (tools/source.sh).
 *
 !go.mod
 !go.sum
 !cmd/
 !internal/
+!vendor/
 !LICENSE
+!NOTICE
 !THIRD-PARTY-NOTICES.txt

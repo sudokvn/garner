@@ -5,7 +5,10 @@ import "time"
 // Status is what the server reports about itself and the token in use.
 type Status struct {
 	Version string `json:"version"`
-	Token   string `json:"token"`
+	// SourceURL identifies this server build's corresponding-source archive.
+	// Older servers and builds without a source offer leave it empty.
+	SourceURL string `json:"source_url,omitempty"`
+	Token     string `json:"token"`
 	// TokenCreated is unset when the token's record was not found.
 	TokenCreated time.Time `json:"token_created,omitzero"`
 	Started      time.Time `json:"started"`

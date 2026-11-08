@@ -3,6 +3,11 @@
 #
 # Base images are pinned by index digest and FFmpeg by checksum; update them
 # deliberately. The image runs as UID 1000 on a read-only root filesystem.
+#
+# The release builds the image from garner/ in its source archive
+# (tools/source.sh), where vendor/ holds the Go modules; a checkout without
+# vendor/ downloads them. SOURCE_URL names the release's source archive;
+# other builds leave it empty and say so in the image.
 
 ARG ALPINE=docker.io/library/alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 ARG GOLANG=docker.io/library/golang:1.27.3-alpine3.24@sha256:f2c872bcee949b7be9c490efd02b48a8a2fbf947cdf533f1c58525ec9d8170fd
@@ -11,9 +16,11 @@ ARG GOLANG=docker.io/library/golang:1.27.3-alpine3.24@sha256:f2c872bcee949b7be9c
 # readers and stream parsers the file check needs: no decoders, no network
 # and no devices. Less code faces untrusted downloads, and the binary is a
 # few MB instead of a full FFmpeg. Without --enable-gpl, this build is under
-# the LGPL 2.1 or later, with zlib linked in under the zlib license. The
-# LGPL text ships in the image; the source is the release named below,
-# built with these options.
+# the LGPL 2.1 or later, with zlib linked in under the zlib license and
+# Alpine's musl C library under the MIT license. The LGPL text and the
+# musl notice ship in the image; the source is the release named below,
+# built with these options, which the release's source archive carries.
+# zlib and musl come from Alpine's packages.
 FROM ${ALPINE} AS ffprobe
 RUN apk add --no-cache build-base xz zlib-dev zlib-static
 WORKDIR /src
@@ -21,6 +28,10 @@ WORKDIR /src
 # the signature was checked when this checksum was pinned.
 ADD --checksum=sha256:8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e \
     https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz /ffmpeg.tar.xz
+# musl's copyright notice, of the musl version in this Alpine release;
+# the build fails once Alpine moves to another one.
+ADD --checksum=sha256:b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e97b \
+    https://git.musl-libc.org/cgit/musl/plain/COPYRIGHT?h=v1.2.6 /musl-COPYRIGHT
 RUN tar -xJf /ffmpeg.tar.xz --strip-components=1 \
  && ./configure \
       --disable-everything --disable-autodetect --disable-programs --enable-ffprobe \
@@ -31,16 +42,19 @@ RUN tar -xJf /ffmpeg.tar.xz --strip-components=1 \
       --enable-demuxer=matroska,mov,avi,mpegts,asf \
       --enable-parser=h264,hevc,av1,vp8,vp9,mpeg4video,mpegvideo,vc1,aac,ac3,dca,mlp,mpegaudio,opus,vorbis,flac \
  && make -j"$(nproc)" \
- && strip ffprobe
+ && strip ffprobe \
+ && apk list --installed musl-dev | grep -q '^musl-dev-1\.2\.6-' \
+ && chmod 644 /musl-COPYRIGHT
 
 FROM ${GOLANG} AS build
 WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
-COPY cmd cmd
-COPY internal internal
+# .dockerignore lets only the module files, cmd, internal and, in the
+# source archive, vendor/ through. With vendor/ the go tool builds from it,
+# without it downloads the modules into the cache mount.
+COPY . .
 ARG VERSION=dev
 ARG COMMIT=
+ARG SOURCE_URL=
 # musl selects Turso's library for Alpine; timetzdata embeds time zones.
 # The release passes garner's TheTVDB key as the build secret tvdb_api_key,
 # so the key reaches the binary but not the image's metadata, as a build
@@ -48,25 +62,31 @@ ARG COMMIT=
 # and with them the key, out of the build information `go version -m`
 # prints; the last line fails the build should that ever change.
 RUN --mount=type=secret,id=tvdb_api_key,required=false \
+    --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 go build -tags musl,timetzdata -trimpath \
-      -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X github.com/sudokvn/garner/internal/config.builtinTVDBKey=$(cat /run/secrets/tvdb_api_key 2>/dev/null)" \
+      -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X github.com/sudokvn/garner/internal/buildinfo.sourceURL=${SOURCE_URL} -X github.com/sudokvn/garner/internal/config.builtinTVDBKey=$(cat /run/secrets/tvdb_api_key 2>/dev/null)" \
       -o /out/garnerd ./cmd/garnerd \
  && ! go version -m /out/garnerd | grep -q builtinTVDBKey
 
 FROM ${ALPINE}
 ARG VERSION=dev
 ARG COMMIT=
-# The source label links the image on ghcr.io to the repository.
+ARG SOURCE_URL=
+# The source label links the image on ghcr.io to the repository; ghcr.io
+# shows the description, which names the corresponding source of garnerd
+# and FFprobe.
 LABEL org.opencontainers.image.title="garner" \
+      org.opencontainers.image.description="garner's server, garnerd, with FFprobe. Corresponding source: ${SOURCE_URL:-not published, built from a local working folder}" \
       org.opencontainers.image.source="https://github.com/sudokvn/garner" \
-      org.opencontainers.image.licenses="MIT AND LGPL-2.1-or-later AND Zlib" \
+      org.opencontainers.image.licenses="AGPL-3.0-only AND LGPL-2.1-or-later AND Zlib AND MIT" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${COMMIT}"
 # Turso's library needs libgcc_s.
 RUN apk add --no-cache libgcc
 COPY --from=ffprobe /src/ffprobe /usr/local/bin/ffprobe
 COPY --from=ffprobe /src/COPYING.LGPLv2.1 /usr/share/licenses/ffprobe/COPYING.LGPLv2.1
-COPY LICENSE THIRD-PARTY-NOTICES.txt /usr/share/licenses/garner/
+COPY --from=ffprobe /musl-COPYRIGHT /usr/share/licenses/ffprobe/
+COPY LICENSE NOTICE THIRD-PARTY-NOTICES.txt /usr/share/licenses/garner/
 COPY --from=build /out/garnerd /usr/local/bin/garnerd
 # garnerd unpacks Turso's library into the data directory on first start.
 ENV GARNER_CONFIG=/config/garner.toml

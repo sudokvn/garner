@@ -55,8 +55,9 @@ step "Vet"
 go vet ./... || fail "vet found problems"
 
 step "Shell scripts"
-shellcheck -x install.sh tools/*.sh || fail "shellcheck found problems"
+shellcheck -x install.sh tools/*.sh tools/turso/*.sh || fail "shellcheck found problems"
 bash tools/versions_test.sh || fail "the release scripts order versions wrongly"
+bash tools/install_test.sh || fail "install.sh does not install releases as it should"
 
 step "Links in the Markdown files"
 bash tools/links.sh || fail "the docs link to a file or heading that does not exist; see above"

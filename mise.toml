@@ -55,8 +55,10 @@ run = "bash tools/links.sh"
 description = "Remove the build output and the dev stack's scratch folder (~/garner-dev/scratch)"
 run = "bash tools/clean.sh"
 
+# Turso's native library's part comes from the reviewed snapshot in
+# tools/turso/NOTICES.txt, checked against the binary and source pins.
 [tasks.notices]
-description = "Regenerate THIRD-PARTY-NOTICES.txt from the Go modules the release platforms compile in"
+description = "Regenerate THIRD-PARTY-NOTICES.txt from the Go modules the release platforms compile in and Turso's native library"
 run = "go run ./tools/notices"
 
 [tasks.generate]

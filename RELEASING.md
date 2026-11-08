@@ -39,8 +39,9 @@ There is no fixed release day.
 
 `mise run release VERSION [revision] [--note TEXT] [--hotfix]` tags a commit of `main` and pushes the tag. A candidate defaults to the newest commit of `main`; stable defaults to the newest candidate's commit. The commit must be on `main` on GitHub. A candidate must bring a commit not already included in the newest published release. A stable release must bring a commit not already included in the newest published stable release. Before it tags, the task shows the release notes the workflow will write. Use `--note` for what users must do or know before upgrading, such as a setting that is no longer accepted. GitHub's release workflow (`.github/workflows/release.yml`) then builds:
 
-- the server image, `ghcr.io/sudokvn/garner:VERSION`, with garner's TheTVDB key from the repository secret `TVDB_API_KEY` built in; the workflow fails without it. Once the release is out, the newest version also gets the tag `dev`, and the newest stable one `latest`, which the Compose example in `examples/compose` pulls. The workflow moves these channel tags only after GoReleaser succeeds. Its build cache lives on `ghcr.io` too, so FFprobe is compiled only when the Dockerfile's FFmpeg changes.
-- with GoReleaser (`.goreleaser.yaml`), the terminal interface for macOS and Linux, on ARM and x86, with SHA-256 sums, and the GitHub release with the image reference, `THIRD-PARTY-NOTICES.txt` and its notes.
+- the source archive, `garner-VERSION-source.tar.gz`, with `tools/source.sh`: the tag's files with the Go modules, the FFmpeg release FFprobe is built from, and the source of Turso's native library with its Rust crates. [Build garner from its source archive](docs/source.md#build-garner-from-its-source-archive) describes it.
+- the server image from the source archive's `garner/` folder, with garner's TheTVDB key from the repository secret `TVDB_API_KEY` built in; the workflow fails without it. The image names its source archive in its description and to the terminal interface. The workflow keeps the image on the runner until GoReleaser has published the release with the source archive, then pushes it as `ghcr.io/sudokvn/garner:VERSION` and names its digest in the release. The newest version also gets the tag `dev`, and the newest stable one `latest`, which the Compose example in `examples/compose` pulls. Intermediate layers stay in GitHub Actions' cache rather than the public registry. Caches are scoped to a tag: a rerun may reuse them, but each new version rebuilds FFprobe.
+- with GoReleaser (`.goreleaser.yaml`), the terminal interface for macOS and Linux, on ARM and x86: one `garner-VERSION-OS-ARCH.tar.gz` per platform with `garner`, `LICENSE`, `NOTICE` and `THIRD-PARTY-NOTICES.txt`. It publishes them with SHA-256 sums and the source archive in the GitHub release, with the image's tag and the notes. The binaries name the source archive, as the image does.
 
 `tools/release-notes.sh` writes the notes: the commits since the last published stable release that change garner itself, then an Upgrading section when the version changes the database or the tag carries a note. Commits that only change the documentation, the tests, CI or the scripts in `tools/` are left out; the build files, such as `.goreleaser.yaml`, count.
 
@@ -48,16 +49,38 @@ GoReleaser signs the macOS binaries with garner's Developer ID certificate and h
 
 GoReleaser also updates the Homebrew casks in [`sudokvn/homebrew-tap`](https://github.com/sudokvn/homebrew-tap), `garner` for a stable release and `garner@dev` for every newest version, with that repository's deploy key from the secret `HOMEBREW_TAP_KEY`; Infisical keeps a base64 copy in `/homebrew-tap`. The [install guide](docs/install.md#versions-and-channels) describes the installer and Homebrew channels.
 
-`goreleaser release --snapshot --clean` runs GoReleaser's part locally into `dist/` without publishing anything. The workflow keeps the twenty newest image versions, build cache included.
+To run GoReleaser's part locally into `dist/` without publishing anything, build a source archive first:
+
+```bash
+bash tools/source.sh v0.0.0 /tmp/garner-source
+SOURCE_ARCHIVE=/tmp/garner-source/garner-v0.0.0-source.tar.gz goreleaser release --snapshot --clean
+```
+
+A snapshot's binaries name no source archive. The workflow keeps the twenty newest image versions.
+
+### Third-party notices and Turso's library
+
+Every release ships `THIRD-PARTY-NOTICES.txt`: the licence texts of the Go modules compiled into `garner` and `garnerd`, then those of Turso's native library, which `garnerd` embeds. `mise run notices` regenerates it, as [Generated files](CONTRIBUTING.md#generated-files) describes. The native part comes from the reviewed snapshot `tools/turso/NOTICES.txt`. That snapshot records the packages, licence texts and provenance of supplemental texts for one native binary. Ordinary garner releases reuse it without downloading or rescanning Rust's dependency graph.
+
+Turso's Go module `github.com/tursodatabase/turso-go-platform-libs` holds the native library compiled, not its source. `tools/turso/turso.env` pins where it comes from: the module's commit, the Turso commit it was built from, the library's checksum, the Rust version and the build settings. `tools/source.sh` fetches that source into the source archive, and `mise run notices` fails while go.mod and the pins disagree. When go.mod moves to another `tursogo` version:
+
+1. Find the platform module's commit that adds the libraries for the new version; its message names the Turso tag. Find the commit that tag points to in Turso's repository.
+2. Update the source and build pins in `tools/turso/turso.env`, including the checksum of the embedded library. Check that Turso's `rust-toolchain.toml` still asks for the pinned Rust version; otherwise update `RUST_VERSION`, `RUST_COMMIT` and `RUST_IMAGE`.
+3. Review `tools/turso/NOTICES.txt` against the new library's dependencies, bundled code and Rust runtime. In the unpacked Turso source, use `cargo tree --locked --package turso_sync_sdk_kit --target x86_64-unknown-linux-musl --edges normal,no-proc-macro` to identify the runtime crates. Read their licence files in `vendor/<crate>-<version>/`, Turso's `LICENSE.md`, `NOTICE.md` and `licenses/core/`, and Rust's licence files and `library/Cargo.lock` at `RUST_COMMIT`. Include notices from generated code where applicable, not just linked crates. Preserve applicable notices and add those of new components. Record the new build identity and library checksum only after that review; relabelling the old inventory is not a review. New licences need the maintainer's approval. Unicode-3.0 and Apache-2.0 WITH LLVM-exception were approved for the existing inventory, alongside the permissive licences in `tools/notices`.
+4. Run `mise run notices`. It refuses a mismatch between the module versions, source pins, actual native binary and reviewed inventory.
+5. Build a source archive. Check that it contains the pinned source, dependency sources and build scripts for the library being distributed.
+
+[Build Turso's native library](docs/source.md#build-tursos-native-library) provides an additional check when investigating the source mapping or build inputs. A local rebuild is not a release gate, and byte-identical output is not required. The archive must still contain the actual corresponding source; an unexplained source-version mismatch must be resolved before releasing.
 
 ## If a release fails
 
 Version tags cannot be deleted or moved. A failed workflow leaves its version taken, but it does not undo what was published:
 
-- The version's server image may already exist on `ghcr.io`, because the workflow pushes it before running GoReleaser.
+- The workflow pushes the version's server image only once the GitHub release, with its source archive, is published. Without a published release, neither the image of that version nor its intermediate layers are published on `ghcr.io`.
 - Before GoReleaser starts publishing, no GitHub release or Homebrew cask has been published for that version by the run. The image channel tags have not moved.
-- During publishing, GoReleaser may leave a draft release with some assets uploaded. It publishes the GitHub release before updating the Homebrew casks, so a cask failure can leave a published release and some casks already updated.
-- If GoReleaser fails, the workflow does not run the step that moves the image channel tags. If that later step itself fails, a channel tag may already have moved.
+- During publishing, GoReleaser may leave a draft release with some assets uploaded. It publishes the GitHub release only with all its assets, then updates the Homebrew casks, so a cask failure can leave a published release and some casks already updated. The workflow still pushes that release's image and names its digest in the release.
+- If pushing the image fails after the release was published, the release names an image tag that does not exist.
+- If GoReleaser or the push fails, the workflow does not run the step that moves the image channel tags. If that later step itself fails, a channel tag may already have moved.
 
 The steps after GoReleaser builds depend on outside services: the Homebrew tap's deploy key, `ghcr.io` and GitHub itself. They rarely fail on their own.
 
@@ -65,4 +88,4 @@ After a failure, read the workflow run and check what was published. Fix the cau
 
 - A candidate that was not published: the next candidate number.
 - A stable release that was not published: a later patch of the same minor version, which may reuse the newest candidate under the rules above.
-- A release that was published, but whose Homebrew casks or image channel tags were not updated: the next version, as usual. Its release updates them.
+- A release that was published, but whose Homebrew casks or image tags were not updated: the next version, as usual. Its release updates them.

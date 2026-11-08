@@ -78,4 +78,8 @@ Scene numbering and alternative titles come from [TheXEM](https://thexem.info). 
 
 ## Licence
 
-garner is released under the [MIT License](LICENSE). The Go modules the released binaries are built with are listed with their licences in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), which ships with them. The container image also contains an FFprobe built from [FFmpeg](https://ffmpeg.org) under the LGPL 2.1 or later, with zlib under the zlib licence; the LGPL text is in the image at `/usr/share/licenses/ffprobe`.
+garner is free software under the [GNU Affero General Public License, version 3 only](LICENSE) (AGPL-3.0-only). You may use, modify and redistribute it under that licence, including commercially. It comes without any warranty; see [NOTICE](NOTICE). Earlier versions released under MIT remain available under that licence.
+
+AGPL releases provide a [corresponding-source archive](docs/source.md) alongside their binaries. In About, press `o` for the licence and source links for your server and terminal interface. For a modified build you distribute or expose over a network, offer its matching source, not an unrelated upstream version.
+
+Third-party components keep their own licences. [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt) lists the Go modules and Turso's native code built into the programs. The container also includes an FFprobe built from [FFmpeg](https://ffmpeg.org) under LGPL 2.1 or later, with its licence and notices. The source archive covers these programs, not the Alpine base image.

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/buildinfo"
 	"github.com/sudokvn/garner/internal/store"
 )
 
@@ -66,7 +67,7 @@ func (s *Server) auth(next http.Handler) http.Handler {
 
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	tok := r.Context().Value(tokenKey{}).(store.Token)
-	out := api.Status{Version: s.version, Token: tok.Name, Started: s.started}
+	out := api.Status{Version: s.version, SourceURL: buildinfo.SourceURL(), Token: tok.Name, Started: s.started}
 	if tokens, err := s.store.Tokens(r.Context()); err == nil {
 		for _, t := range tokens {
 			if t.Name == tok.Name {

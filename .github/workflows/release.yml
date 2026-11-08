@@ -1,7 +1,8 @@
-# Builds a release when `mise run release vX.Y.Z` pushes its tag: the server
-# image on ghcr.io, then, with GoReleaser, the terminal interface for macOS
-# and Linux and the GitHub release. The tag's commit passed
-# `mise run check` before it was pushed, so nothing is tested here.
+# Builds a release when `mise run release vX.Y.Z` pushes its tag: the source
+# archive, the server image on ghcr.io from it, then, with GoReleaser, the
+# terminal interface for macOS and Linux and the GitHub release with the
+# source archive. The tag's commit passed `mise run check` before it was
+# pushed, so nothing is tested here.
 name: Release
 
 on:
@@ -16,11 +17,12 @@ concurrency: release
 jobs:
   release:
     runs-on: ubuntu-24.04
-    # The image takes a few minutes, notarizing each macOS binary up to 20.
-    timeout-minutes: 75
+    # The source archive and the image take a few minutes each, notarizing
+    # each macOS binary up to 20.
+    timeout-minutes: 90
     permissions:
       contents: write # the GitHub release
-      packages: write # the image and its build cache, and removing old ones
+      packages: write # publishing the image and removing old versions
     env:
       TAG: ${{ github.ref_name }}
       IMAGE: ghcr.io/${{ github.repository }}
@@ -107,6 +109,19 @@ jobs:
           go-version: ${{ steps.tools.outputs.go }}
           cache: false
 
+      # The release's corresponding source: the tag's files with the Go
+      # modules, the FFmpeg release FFprobe is built from and the source of
+      # Turso's native library with its crates. The image is built from it.
+      - name: Build the source archive
+        id: source
+        run: |
+          bash tools/source.sh "$TAG" "$RUNNER_TEMP/source"
+          {
+            echo "archive=$RUNNER_TEMP/source/garner-$TAG-source.tar.gz"
+            echo "context=$RUNNER_TEMP/source/garner-$TAG-source/garner"
+            echo "url=https://github.com/${{ github.repository }}/releases/download/$TAG/garner-$TAG-source.tar.gz"
+          } >>"$GITHUB_OUTPUT"
+
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
@@ -115,25 +130,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      # The build cache lives on ghcr.io, so FFprobe is compiled only when
-      # the Dockerfile's FFmpeg changes; GitHub's own cache expires after a
-      # week without use. One image, no attestations, so the digest names
-      # exactly what a server runs.
-      - name: Build and push the server image
+      # Cache intermediate layers through Actions, not the public registry:
+      # they contain binaries whose source archive is not published yet.
+      # Actions caches are scoped to a tag, so new releases rebuild FFprobe.
+      # One image, no attestations, so the digest names exactly what a server
+      # runs. It stays on the runner until its source archive is published.
+      - name: Build the server image
         id: image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          context: .
+          context: ${{ steps.source.outputs.context }}
           platforms: linux/amd64
-          push: true
+          load: true
+          push: false
           tags: ${{ env.IMAGE }}:${{ env.TAG }}
           build-args: |
             VERSION=${{ env.TAG }}
             COMMIT=${{ github.sha }}
+            SOURCE_URL=${{ steps.source.outputs.url }}
           secrets: |
             tvdb_api_key=${{ secrets.TVDB_API_KEY }}
-          cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
-          cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache,mode=max
+          cache-from: type=gha,scope=garner-release
+          cache-to: type=gha,scope=garner-release,mode=max
           provenance: false
           sbom: false
 
@@ -164,7 +182,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           # Stable and its candidate share a commit; do not let tag sorting pick the candidate.
           GORELEASER_CURRENT_TAG: ${{ env.TAG }}
-          IMAGE_REF: ${{ env.IMAGE }}:${{ env.TAG }}@${{ steps.image.outputs.digest }}
+          IMAGE_REF: ${{ env.IMAGE }}:${{ env.TAG }}
+          SOURCE_ARCHIVE: ${{ steps.source.outputs.archive }}
           MACOS_SIGN_P12: ${{ secrets.MACOS_SIGN_P12 }}
           MACOS_SIGN_PASSWORD: ${{ secrets.MACOS_SIGN_PASSWORD }}
           MACOS_NOTARY_KEY: ${{ secrets.MACOS_NOTARY_KEY }}
@@ -174,6 +193,42 @@ jobs:
           NEWEST_RELEASE: ${{ steps.tags.outputs.newest }}
           NEWEST_STABLE: ${{ steps.tags.outputs.newest_stable }}
 
+      # The image goes public only with its source: once GoReleaser has
+      # published the release, which it does only with every asset, the
+      # source archive among them. It is pushed then even if GoReleaser
+      # failed afterwards, at a Homebrew cask, so a published release has its
+      # image; a release that was not published leaves no image behind.
+      - name: Push the server image
+        id: push
+        if: ${{ !cancelled() && steps.image.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          published=$(gh release view "$TAG" --json isDraft,assets \
+            --jq "(.isDraft | not) and any(.assets[]; .name == \"garner-$TAG-source.tar.gz\")" || echo false)
+          [ "$published" = true ] || {
+            echo "::error::the release of $TAG with its source archive is not published; the image stays unpublished"
+            exit 1
+          }
+          docker push --quiet "$IMAGE:$TAG"
+          digest=$(docker buildx imagetools inspect "$IMAGE:$TAG" --format '{{.Manifest.Digest}}')
+          echo "digest=$digest" >>"$GITHUB_OUTPUT"
+
+      # GoReleaser named the image by its tag; the digest, known only once
+      # it is pushed, names exactly what a server runs.
+      - name: Name the image's digest in the release
+        if: ${{ !cancelled() && steps.push.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          gh release view "$TAG" --json body --jq .body |
+            awk -v old="Server image: \`$IMAGE:$TAG\`" -v new="Server image: \`$IMAGE:$TAG@$DIGEST\`" \
+              '{ sub(/\r$/, "") } $0 == old { $0 = new; found = 1 } { print } END { exit !found }' >"$RUNNER_TEMP/body.md"
+          gh release edit "$TAG" --notes-file "$RUNNER_TEMP/body.md"
+
       # Only now, with the release out, do the channels' image tags point to
       # this image, so a failed release leaves them where they were. The
       # image is tagged again, not built again, and copied as it is: by
@@ -182,7 +237,7 @@ jobs:
         if: steps.tags.outputs.channels != ''
         env:
           CHANNELS: ${{ steps.tags.outputs.channels }}
-          DIGEST: ${{ steps.image.outputs.digest }}
+          DIGEST: ${{ steps.push.outputs.digest }}
         run: |
           args=()
           for channel in $CHANNELS; do
@@ -190,8 +245,8 @@ jobs:
           done
           docker buildx imagetools create --prefer-index=false "${args[@]}" "$IMAGE@$DIGEST"
 
-      # The container registry is free for now; keeping twenty versions
-      # (images and their build cache) stays small if that changes. The
+      # The container registry is free for now; keeping twenty image
+      # versions stays small if that changes. The
       # release is out by now, so a failure here must not fail it.
       - name: Remove old images
         continue-on-error: true

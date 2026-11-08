@@ -121,6 +121,8 @@ To start garner with the server, run the container from a systemd unit, such as 
 
 `garnerd token list` lists the tokens, and `garnerd token revoke <device>` disconnects a device.
 
+In About, press `o` for the licence and source links for the server and terminal interface. The installer keeps the licence and notices beside the executable in `garner-licenses/` (normally `~/.local/bin/garner-licenses/`). Homebrew keeps them in the installed cask. Each release also provides a source archive with build instructions; you do not need it to run garner.
+
 ## Back up the database
 
 `garnerd backup` writes a consistent copy of the database to `backups/` in the data folder while garner keeps running:

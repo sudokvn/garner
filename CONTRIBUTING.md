@@ -2,6 +2,8 @@
 
 Bug reports, ideas and pull requests are welcome. For a larger change, open an issue first, so we can agree on the approach before you build it.
 
+Contributions use garner's [AGPL-3.0-only licence](LICENSE). Submit only work you have the right to contribute, and preserve any third-party copyright and licence notices. You retain the copyright in your contributions.
+
 ## Ground rules
 
 - Develop and test against the development stack below, never against a library you care about.
@@ -61,9 +63,11 @@ Other tasks:
 
 After changing `internal/store/*.sql` or the migrations, run `mise run generate`. It runs `sqlc` through `go generate ./...`. Never edit the generated code in `internal/store/query` by hand. Include the regenerated files with the SQL changes.
 
-After changing a dependency, run `mise run notices`. The generator reads the Go modules compiled into the released binaries. Read its summary of modules, versions and licences. Include the generated `THIRD-PARTY-NOTICES.txt` with the dependency change. Never edit that file by hand.
+After changing a dependency, run `mise run notices`. The generator reads the Go modules compiled into the released binaries and includes the native notices from `tools/turso/NOTICES.txt`. Read its summary of modules, versions and licences. Include the generated `THIRD-PARTY-NOTICES.txt` with the dependency change. Never edit that file by hand.
 
-A missing licence or one outside the allowlist in `tools/notices` stops generation. If a licence is missing, find its text before proceeding. If a licence is outside the allowlist, have the maintainer review whether garner may redistribute it before changing the allowlist or shipping the dependency. Do not bypass the check.
+Turso's native notices are a reviewed snapshot, not a second generated dependency report. When changing Turso, follow [Third-party notices and Turso's library](RELEASING.md#third-party-notices-and-tursos-library), update `tools/turso/NOTICES.txt` and the source pins, then run `mise run notices`. The generator checks the snapshot against the native binary's checksum and build identity.
+
+A missing Go-module licence or one outside the allowlist in `tools/notices` stops generation. If a licence is missing, find its text before proceeding. If a licence is outside the allowlist, have the maintainer review whether garner may redistribute it before changing the allowlist or shipping the dependency. Do not bypass the check.
 
 ### Writing tests
 
@@ -118,11 +122,13 @@ Name garner and its programs as the [ground rules](#ground-rules) say. Use Briti
 | `internal/inspect` | Reading video files with FFprobe and comparing them with their release |
 | `internal/prowlarr`, `internal/sabnzbd`, `internal/jellyfin` | Clients for the services garner uses |
 | `internal/httpx` | The HTTP clients for those services, and hiding credentials in URLs |
-| `internal/buildinfo` | The version both programs report |
+| `internal/buildinfo` | The version and explicit source URL each program reports |
 | `internal/simulation` | Tests only: the simulation, and the demo world `mise run demo` records |
 | `internal/testprofiles` | Tests only: shipped profiles as defaults, and a helper that installs them into a store |
 | `tools/devstack` | `mise run devstack`: the local development stack |
 | `tools/notices` | `mise run notices`: generates `THIRD-PARTY-NOTICES.txt` |
+| `tools/turso` | Pinned native source, build scripts and reviewed native notices |
+| `tools/source.sh` | Packages the corresponding-source archive for a release |
 | `tools/*.sh` | The scripts behind `mise run check`, `links`, `clean`, `demo` and `release`; `nightly-report.sh` files nightly failures as issues |
 
 ## Releases

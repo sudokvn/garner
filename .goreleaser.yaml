@@ -1,8 +1,10 @@
 # GoReleaser builds a release's terminal interface for macOS and Linux, on
 # ARM and x86, and creates the GitHub release with it. The release workflow
-# builds the server image first and passes its reference as IMAGE_REF. Try
-# a release without publishing anything:
-#   goreleaser release --snapshot --clean
+# builds the source archive (tools/source.sh) and the server image first,
+# and passes them as SOURCE_ARCHIVE and IMAGE_REF. Try a release without
+# publishing anything:
+#   bash tools/source.sh v0.0.0 /tmp/garner-source
+#   SOURCE_ARCHIVE=/tmp/garner-source/garner-v0.0.0-source.tar.gz goreleaser release --snapshot --clean
 version: 2
 project_name: garner
 
@@ -12,7 +14,11 @@ builds:
     binary: garner
     env: [CGO_ENABLED=0]
     flags: [-trimpath]
-    ldflags: ["-s -w -X main.version={{ .Tag }} -X main.commit={{ .FullCommit }}"]
+    # A release names its source archive, which it publishes with the
+    # binaries; a snapshot publishes none, so it names none.
+    ldflags:
+      - "-s -w -X main.version={{ .Tag }} -X main.commit={{ .FullCommit }}"
+      - "{{ if not .IsSnapshot }}-X github.com/sudokvn/garner/internal/buildinfo.sourceURL=https://github.com/sudokvn/garner/releases/download/{{ .Tag }}/garner-{{ .Tag }}-source.tar.gz{{ end }}"
     targets: [darwin_arm64, darwin_amd64_v1, linux_amd64_v1, linux_arm64_v8.0]
 
 # Signs and notarizes the macOS binaries with garner's Developer ID, so
@@ -32,15 +38,19 @@ notarize:
         wait: true
         timeout: 20m
 
+# One archive per platform, the license and notices next to the binary at
+# its root; install.sh and the Homebrew casks unpack it.
 archives:
-  - formats: [binary]
+  - formats: [tar.gz]
     name_template: "garner-{{ .Tag }}-{{ .Os }}-{{ .Arch }}"
+    files: [LICENSE, NOTICE, THIRD-PARTY-NOTICES.txt]
 
 checksum:
   name_template: SHA256SUMS
-  # The notices file travels with the binaries, so its sum is in here too.
+  # The source archive is published with the binaries, so its sum is in
+  # here too.
   extra_files:
-    - glob: THIRD-PARTY-NOTICES.txt
+    - glob: "{{ .Env.SOURCE_ARCHIVE }}"
 
 # Homebrew casks in sudokvn/homebrew-tap, one per channel: garner for the
 # stable releases, garner@dev for candidates and stable releases alike, so
@@ -53,7 +63,7 @@ homebrew_casks:
     binaries: [garner]
     homepage: https://github.com/sudokvn/garner
     description: Terminal interface for garner, a self-hosted TV and anime manager
-    license: MIT
+    license: AGPL-3.0-only
     conflicts:
       - cask: garner@dev
     commit_msg_template: "Update garner to {{ .Tag }}"
@@ -72,7 +82,7 @@ homebrew_casks:
     binaries: [garner]
     homepage: https://github.com/sudokvn/garner
     description: Terminal interface for garner, a self-hosted TV and anime manager; release candidates and stable releases
-    license: MIT
+    license: AGPL-3.0-only
     conflicts:
       - cask: garner
     commit_msg_template: "Update garner@dev to {{ .Tag }}"
@@ -97,12 +107,15 @@ changelog:
 
 # A candidate, such as v0.9.0-rc.1, is a pre-release on GitHub: the dev
 # channel. GitHub's latest release, which install.sh follows by default,
-# is the newest stable one.
+# is the newest stable one. The header names the image, which holds the
+# same source as the binaries, and the source archive both are built from.
 release:
   prerelease: auto
   make_latest: '{{ envOrDefault "NEWEST_STABLE" "false" }}'
   name_template: "garner {{ .Tag }}"
   header: |
     Server image: `{{ envOrDefault "IMAGE_REF" "not built in this run" }}`
+
+    garner is licensed under the [GNU AGPL version 3 only](https://github.com/sudokvn/garner/blob/{{ .Tag }}/LICENSE); third-party code keeps its own licence, listed in `THIRD-PARTY-NOTICES.txt` in every archive. The corresponding source of these binaries and of the server image's `garnerd` and FFprobe, Turso's native library included, is `garner-{{ .Tag }}-source.tar.gz` below; [docs/source.md](https://github.com/sudokvn/garner/blob/{{ .Tag }}/docs/source.md) describes how to build from it.
   extra_files:
-    - glob: THIRD-PARTY-NOTICES.txt
+    - glob: "{{ .Env.SOURCE_ARCHIVE }}"

@@ -68,6 +68,10 @@ garner's mark, the logo from `docs/brand` drawn with half blocks in mint (`markL
 
 The mark shows only in terminals with 256 colours or more. With 16 colours or `NO_COLOR`, both screens look as they would without it. Keep the mark to these two places.
 
+## About
+
+About keeps licence access to one line, `AGPLv3 · source and licence`, followed by the linked `Metadata: TheTVDB` credit. Press `o` to open the licence and source lookup. It offers the AGPLv3 text and the corresponding-source archive for each build: the connected server and the terminal interface. Missing source locations are stated, not guessed from the upstream repository.
+
 ## Keys
 
 Every screen lists its keys in a `help()` method, and the Help overlay (`?`) shows them with the keys that every screen has. The key bar shows the most important ones. When you add a key, add it to the screen's `help()`.
