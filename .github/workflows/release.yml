@@ -162,6 +162,8 @@ jobs:
           args: release --clean ${{ steps.notes.outputs.args }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          # Stable and its candidate share a commit; do not let tag sorting pick the candidate.
+          GORELEASER_CURRENT_TAG: ${{ env.TAG }}
           IMAGE_REF: ${{ env.IMAGE }}:${{ env.TAG }}@${{ steps.image.outputs.digest }}
           MACOS_SIGN_P12: ${{ secrets.MACOS_SIGN_P12 }}
           MACOS_SIGN_PASSWORD: ${{ secrets.MACOS_SIGN_PASSWORD }}
