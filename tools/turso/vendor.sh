@@ -77,9 +77,9 @@ tar -xzf "$out/$archive" -C "$work"
 "$engine" run --rm --security-opt label=disable \
 	-v "$out:/out" -w "/out/${work##*/}/turso-$TURSO_COMMIT" \
 	-e CARGO_HOME="/out/${work##*/}/cargo-home" -e RUSTUP_TOOLCHAIN="$RUST_VERSION" \
-	-e OWNER="$(id -u):$(id -g)" \
 	"$RUST_IMAGE" sh -euc '
 		cargo vendor --locked --versioned-dirs /out/vendor >/dev/null
-		chown -R "$OWNER" /out/vendor
+		# Rootless Podman remaps host IDs; read the mount owner here.
+		chown -R "$(stat -c %u:%g /out)" /out/vendor
 	'
 printf '✓ Turso %s source and %s vendored crates in %s\n' "$TURSO_VERSION" "$(find "$out/vendor" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" "$out"
