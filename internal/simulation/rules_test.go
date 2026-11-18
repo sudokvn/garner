@@ -247,6 +247,24 @@ func (s *sim) worse(before, after snapshot, e int64) string {
 	return fmt.Sprintf("episode %d's file %s (%s) was replaced by a worse one, %s (%s)", e, before.records[e], cmp.Or(old, "tier unknown"), after.records[e], cmp.Or(now, "tier unknown"))
 }
 
+// filesHold is S7: a file garner records for an episode holds that
+// episode. Once the catalogue swapped or dropped a show's episodes, the
+// names of its releases posted before no longer tell the truth about
+// them, so the rule lets go of that show.
+func (s *sim) filesHold(_, after snapshot) (string, string) {
+	for _, e := range sortedKeys64(after.records) {
+		ep := s.w.episode(e)
+		if ep == nil || ep.show.renumbered {
+			continue
+		}
+		v, ok := readVideo(s.w.present(after.records[e]))
+		if ok && !slices.Contains(v.Episodes, e) {
+			return "S7", fmt.Sprintf("episode %d records %s, which holds %v", e, after.records[e], v.Episodes)
+		}
+	}
+	return "", ""
+}
+
 // recordsMatch is S4: every recorded file exists.
 func (s *sim) recordsMatch(_, after snapshot) (string, string) {
 	for _, e := range sortedKeys64(after.records) {

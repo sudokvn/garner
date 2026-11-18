@@ -22,6 +22,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unicode"
 
 	"github.com/sudokvn/garner/internal/config"
 	"github.com/sudokvn/garner/internal/inspect"
@@ -94,8 +95,11 @@ type faults struct {
 	jfDown, jfIgnoreHints, jfLate, jfNever     bool
 	jfWrong                                    bool
 	mislabeled, wrongRuntime, corrupt          bool
-	unplug, readOnly, catalogue, strays        bool
-	restarts                                   bool
+	// misfiled has indexers file some releases that number a whole show
+	// under another show of the same name.
+	misfiled                            bool
+	unplug, readOnly, catalogue, strays bool
+	restarts                            bool
 	// crashes ends garner at a change to a file now and then; between
 	// lets another step run first, as another goroutine or request may.
 	crashes, between bool
@@ -107,7 +111,7 @@ func randomFaults(r *rand.Rand) faults {
 		prowlarrDown: on(), indexerErrors: on(),
 		sabDown: on(), sabLoseAnswer: on(), sabHide: on(), sabVanish: on(), sabFail: on(),
 		jfDown: on(), jfIgnoreHints: on(), jfLate: on(), jfNever: on(), jfWrong: on(),
-		mislabeled: on(), wrongRuntime: on(), corrupt: on(),
+		mislabeled: on(), wrongRuntime: on(), corrupt: on(), misfiled: on(),
 		unplug: on(), readOnly: on(), catalogue: on(), strays: on(),
 		restarts: on(),
 		crashes:  on(), between: on(),
@@ -120,7 +124,7 @@ func (f faults) String() string {
 		"prowlarr-down": f.prowlarrDown, "indexer-errors": f.indexerErrors,
 		"sab-down": f.sabDown, "sab-lose-answer": f.sabLoseAnswer, "sab-hide": f.sabHide, "sab-vanish": f.sabVanish, "sab-fail": f.sabFail,
 		"jf-down": f.jfDown, "jf-ignore-hints": f.jfIgnoreHints, "jf-late": f.jfLate, "jf-never": f.jfNever, "jf-wrong": f.jfWrong,
-		"mislabeled": f.mislabeled, "wrong-runtime": f.wrongRuntime, "corrupt": f.corrupt,
+		"mislabeled": f.mislabeled, "wrong-runtime": f.wrongRuntime, "corrupt": f.corrupt, "misfiled": f.misfiled,
 		"unplug": f.unplug, "read-only": f.readOnly, "catalogue": f.catalogue, "strays": f.strays, "restarts": f.restarts,
 		"crashes": f.crashes, "between": f.between,
 	} {
@@ -145,6 +149,24 @@ type show struct {
 	// language and status are TheTVDB's original language and status;
 	// empty means "eng" and "Continuing".
 	language, status string
+	// genre is TheTVDB's: the type, tv or anime, the show gets when it is
+	// added. Empty means tv.
+	genre string
+	// renumbered means the catalogue swapped or dropped episodes, so the
+	// names of releases posted before may no longer tell which they hold.
+	renumbered bool
+}
+
+// absolute is an episode's number among all of the show's, in TheTVDB's
+// order: the number groups give it that number the whole show.
+func (s *show) absolute(e *episode) int {
+	n := 1
+	for _, o := range s.episodes {
+		if o.season < e.season || o.season == e.season && o.number < e.number {
+			n++
+		}
+	}
+	return n
 }
 
 func (s *show) dotted() string { return strings.ReplaceAll(s.name, " ", ".") }
@@ -183,6 +205,13 @@ type posting struct {
 	height    int
 	longer    int  // the files run this many times their episodes' length
 	corrupt   bool // FFprobe cannot read the files
+	// absolute are the episodes' numbers when the name numbers the whole
+	// show, as E05 or S01E05, whatever TheTVDB's season; nil otherwise.
+	// Indexers file such releases under season 1.
+	absolute []int
+	// filed is the show the indexers file the release under; 0 means its
+	// own.
+	filed int64
 }
 
 // video is what a simulated video file holds: who it is, what it holds and
@@ -235,8 +264,9 @@ func newWorld(seed uint64, root string) (*world, error) {
 	names := slices.Clone(showNames)
 	w.rnd.Shuffle(len(names), func(i, j int) { names[i], names[j] = names[j], names[i] })
 	for i, name := range names[:2+w.rnd.IntN(2)] {
-		s := &show{id: int64(7001 + i), name: name, year: 2010 + w.rnd.IntN(15),
-			monitor: []string{"all", "new", "off"}[w.rnd.IntN(3)], profile: "tv", added: i == 0 || w.rnd.IntN(2) == 0}
+		genre := []string{store.TypeTV, store.TypeAnime}[w.rnd.IntN(2)]
+		s := &show{id: int64(7001 + i), name: name, year: 2010 + w.rnd.IntN(15), genre: genre,
+			monitor: []string{"all", "new", "off"}[w.rnd.IntN(3)], profile: genre, added: i == 0 || w.rnd.IntN(2) == 0}
 		seasons := 1 + w.rnd.IntN(2)
 		// One episode a week, from 3 to 13 weeks ago: some aired long ago,
 		// the last ones may still be to come.
@@ -246,6 +276,9 @@ func newWorld(seed uint64, root string) (*world, error) {
 				w.newEpisode(s, season, number, first.AddDate(0, 0, 7*len(s.episodes)))
 			}
 			w.postPack(s, season)
+		}
+		if genre == store.TypeAnime && seasons > 1 && w.rnd.IntN(2) == 0 {
+			w.postWholeShow(s)
 		}
 		w.shows = append(w.shows, s)
 		if err := w.libraryFiles(s); err != nil {
@@ -302,10 +335,54 @@ func (w *world) post(e *episode) {
 		if i > 0 {
 			k = kinds[0] // a later, better release
 		}
-		title := fmt.Sprintf("%s.S%02dE%02d.%s-%s", e.show.dotted(), e.season, e.number, k.tags, groups[w.rnd.IntN(len(groups))])
+		group := groups[w.rnd.IntN(len(groups))]
 		posted := e.aired.Add(time.Duration(1+w.rnd.IntN(30))*time.Hour + time.Duration(i*(3+w.rnd.IntN(6)))*24*time.Hour)
-		w.addPosting(&posting{title: title, show: e.show, season: e.season, episodes: []*episode{e}, posted: posted}, k, true)
+		p := &posting{title: fmt.Sprintf("%s.S%02dE%02d.%s-%s", e.show.dotted(), e.season, e.number, k.tags, group),
+			show: e.show, season: e.season, episodes: []*episode{e}, posted: posted}
+		if e.show.genre == store.TypeAnime && w.rnd.IntN(3) == 0 {
+			w.numberWhole(p, k, group)
+		}
+		w.addPosting(p, k, true)
 	}
+}
+
+// numberWhole names a release of an anime episode the way groups do that
+// number the whole show: E05 or S01E05 for its fifth episode, whatever
+// TheTVDB's season. With the misfiled fault, indexers file some of them
+// under another show of the same name; the name may then give this show's
+// year, which tells them apart, the other show's or none.
+func (w *world) numberWhole(p *posting, k kind, group string) {
+	s := p.show
+	n := s.absolute(p.episodes[0])
+	p.absolute = []int{n}
+	name := s.dotted()
+	if w.faults.misfiled && w.rnd.IntN(2) == 0 {
+		p.filed = s.id + 1000
+		switch w.rnd.IntN(3) {
+		case 0:
+			name += fmt.Sprintf(".%d", s.year)
+		case 1:
+			name += fmt.Sprintf(".%d", s.year-12)
+		}
+	}
+	number := fmt.Sprintf("E%02d", n)
+	if w.rnd.IntN(2) == 0 {
+		number = "S01" + number
+	}
+	p.title = fmt.Sprintf("%s.%s.%s-%s", name, number, k.tags, group)
+}
+
+// postWholeShow puts a pack of a whole anime on the indexers the way
+// groups name it that number the show absolutely: season 1, all of it.
+func (w *world) postWholeShow(s *show) {
+	k := kinds[w.rnd.IntN(3)]
+	eps := slices.Clone(s.episodes)
+	p := &posting{title: fmt.Sprintf("%s.S01.%s-%s", s.dotted(), k.tags, groups[w.rnd.IntN(len(groups))]), show: s, season: 1,
+		episodes: eps, pack: true, extra: w.rnd.IntN(2) == 0, posted: eps[len(eps)-1].aired.AddDate(0, 0, 1+w.rnd.IntN(4))}
+	for _, e := range eps {
+		p.absolute = append(p.absolute, s.absolute(e))
+	}
+	w.addPosting(p, k, true)
 }
 
 // postPack puts a season pack on the indexers some days after the season's
@@ -365,7 +442,7 @@ func (w *world) libraryFiles(s *show) error {
 				continue
 			}
 			p := same[w.rnd.IntN(len(same))]
-			dir := filepath.Join(w.root, "library/tv", fmt.Sprintf("%s.[tvdbid-%d]", s.garnerName(), s.id), fmt.Sprintf("Season.%02d", e.season))
+			dir := filepath.Join(w.root, "library", s.profile, fmt.Sprintf("%s.[tvdbid-%d]", s.garnerName(), s.id), fmt.Sprintf("Season.%02d", e.season))
 			if err := w.newVideo(filepath.Join(dir, garnerFileName(e, p)), p, []*episode{e}, false); err != nil {
 				return err
 			}
@@ -687,7 +764,9 @@ func writeJSON(rw http.ResponseWriter, v any) {
 
 // prowlarr answers Prowlarr's indexer list and each indexer's Newznab feed.
 // A query for an episode finds single episodes, a query for a season also
-// the season's packs.
+// the season's packs. Both find releases by the show the indexers file
+// them under. A text search finds releases by their names, as textMatch
+// says.
 func (w *world) prowlarr(rw http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/api/v1/indexer" {
 		writeJSON(rw, []map[string]any{
@@ -713,10 +792,23 @@ func (w *world) prowlarr(rw http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(q.Get("limit"))
 	var found []*posting
 	for _, p := range w.postings {
-		if p.posted.After(w.now) || !slices.Contains(p.indexers, n) || p.show.id != tvdb || p.season != season {
+		if p.posted.After(w.now) || !slices.Contains(p.indexers, n) {
 			continue
 		}
-		if ep > 0 && (p.pack || p.episodes[0].number != ep) {
+		if q.Get("t") == "search" {
+			if textMatch(p.title, q.Get("q")) {
+				found = append(found, p)
+			}
+			continue
+		}
+		pSeason, pNumber := p.season, p.episodes[0].number
+		if p.absolute != nil {
+			pSeason, pNumber = 1, p.absolute[0]
+		}
+		if cmp.Or(p.filed, p.show.id) != tvdb || pSeason != season {
+			continue
+		}
+		if ep > 0 && (p.pack || pNumber != ep) {
 			continue
 		}
 		found = append(found, p)
@@ -727,7 +819,7 @@ func (w *world) prowlarr(rw http.ResponseWriter, r *http.Request) {
 	for _, p := range found {
 		link := fmt.Sprintf("http://%s/%d/download?id=%d&apikey=%s", prowlarrHost, n, p.id, apiKey)
 		fmt.Fprintf(&b, "<item><title>%s</title><link>%s</link><size>%d</size><pubDate>%s</pubDate>", esc(p.title), esc(link), p.size, p.posted.Format(time.RFC1123Z))
-		fmt.Fprintf(&b, `<newznab:attr name="tvdbid" value="%d"/>`, p.show.id)
+		fmt.Fprintf(&b, `<newznab:attr name="tvdbid" value="%d"/>`, cmp.Or(p.filed, p.show.id))
 		for _, l := range p.languages {
 			fmt.Fprintf(&b, `<newznab:attr name="language" value="%s"/>`, l)
 		}
@@ -735,6 +827,37 @@ func (w *world) prowlarr(rw http.ResponseWriter, r *http.Request) {
 	}
 	b.WriteString("</channel></rss>")
 	fmt.Fprint(rw, b.String())
+}
+
+// wholeShowName reports whether a video's file name, as SABnzbd unpacked
+// it, numbers its episode through the whole show instead of by TheTVDB's
+// season, as S01E05 for the second episode of season 2.
+func (w *world) wholeShowName(v video) bool {
+	if v.Posting < 1 || v.Posting > len(w.postings) || len(v.Episodes) != 1 {
+		return false
+	}
+	p, e := w.postings[v.Posting-1], w.episode(v.Episodes[0])
+	return p.pack && p.absolute != nil && e != nil && e.season != 1
+}
+
+// textMatch is how indexers answer a text search such as "Night Ferry
+// 05": every word is a word of the name, and the number stands in it
+// between other characters than digits, so 05 finds E05 and S01E05 but
+// not E005.
+func textMatch(title, query string) bool {
+	words := strings.FieldsFunc(strings.ToLower(title), func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) })
+	for _, q := range strings.Fields(strings.ToLower(query)) {
+		if strings.Trim(q, "0123456789") != "" {
+			if !slices.Contains(words, q) {
+				return false
+			}
+			continue
+		}
+		if !regexp.MustCompile(`(^|[^0-9])` + q + `([^0-9]|$)`).MatchString(title) {
+			return false
+		}
+	}
+	return true
 }
 
 func esc(s string) string {
@@ -898,8 +1021,11 @@ func (w *world) complete(j *job) error {
 	name := fmt.Sprintf("%08x", w.rnd.Uint32())
 	if p.pack {
 		tags := strings.TrimPrefix(p.title, fmt.Sprintf("%s.S%02d.", p.show.dotted(), p.season))
-		for _, e := range p.episodes {
+		for i, e := range p.episodes {
 			n := fmt.Sprintf("%s.S%02dE%02d.%s.mkv", p.show.dotted(), e.season, e.number, tags)
+			if p.absolute != nil {
+				n = fmt.Sprintf("%s.S01E%02d.%s.mkv", p.show.dotted(), p.absolute[i], tags)
+			}
 			if err := w.newVideo(filepath.Join(dir, n), p, []*episode{e}, false); err != nil {
 				return err
 			}

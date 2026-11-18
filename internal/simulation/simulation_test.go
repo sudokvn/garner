@@ -16,6 +16,9 @@
 //     the download.
 //   - S6: downloads and imports change state only along the allowed
 //     transitions.
+//   - S7: a file garner records for an episode holds that episode,
+//     whether the release named it by season or through the whole show,
+//     and whichever show the indexers filed it under.
 //
 // Before every rule, the test compares its own notes of what it told
 // garner with garner's database; a difference is the simulation's mistake,
@@ -49,9 +52,11 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -84,12 +89,17 @@ func init() { time.Local = time.UTC }
 // fixedSeeds run with every go test. Together, every event changes
 // something in them (a refused request does not count), a crash and
 // another step meet each step that changes files, they cover both path
-// setups and the three disk setups, and they catch the bugs built into
-// garner on purpose to test the simulation: overwriting a file garner does
-// not own, removing SABnzbd's whole folder, never giving up on Jellyfin,
-// downloading again while an import waits for the user, not finishing the
-// changes a crash left and creating a library folder that went. Rarer bugs
-// have focused tests instead: an import's move without the lock on the
+// setups and the three disk setups, garner records the files of releases
+// numbered through the whole show and of a whole-show pack (in two seeds,
+// as 6 of 800 reach it), and it accepts a release the indexers filed
+// under another show (outcomes), and they catch the bugs built into garner on purpose to
+// test the simulation: overwriting a file garner does not own (without the
+// importer's check and the guard's), removing SABnzbd's whole folder,
+// never giving up on Jellyfin, downloading again while an import waits for
+// the user and not finishing the changes a crash left. Rarer bugs have
+// focused tests instead: creating a library folder that went between the
+// guard's check and its MkdirAll, which no seed of 800 caught
+// (TestMkdirRootGoes), an import's move without the lock on the
 // library's files, which no seed of 240 caught (TestImportDuringRename),
 // and two the burn-in of 20,000 seeds found once or twice: adopting
 // another download's SABnzbd job (TestConfirmLeavesOtherJobs) and
@@ -102,7 +112,7 @@ func init() { time.Local = time.UTC }
 // replayed with -v shows what it does and what it covered. Whether they
 // still catch the bugs takes building them in again by hand. A bug a seed
 // found gets a focused test of its own.
-var fixedSeeds = []uint64{7, 26, 35, 64, 87}
+var fixedSeeds = []uint64{13, 69, 292, 383, 644, 732}
 
 // TestSimulation runs each seed twice: the rules must hold in the first
 // run, and the second must tell the same story. The fixed seeds, all run
@@ -323,7 +333,7 @@ func run(t *testing.T, seed uint64, steps int) outcome {
 	}
 	s.note("setup", fmt.Sprintf("paths mapped %v, other disk %q; faults: %s", w.mapped, w.disks, w.faults))
 	for _, sh := range w.shows {
-		s.note("setup", fmt.Sprintf("show %d %q, added %v, monitor %s, %d episodes from %s", sh.id, sh.name, sh.added, sh.monitor, len(sh.episodes), sh.episodes[0].aired.Format(time.DateOnly)))
+		s.note("setup", fmt.Sprintf("show %d %q, %s, added %v, monitor %s, %d episodes from %s", sh.id, sh.name, cmp.Or(sh.genre, store.TypeTV), sh.added, sh.monitor, len(sh.episodes), sh.episodes[0].aired.Format(time.DateOnly)))
 	}
 
 	var events, all []event
@@ -359,8 +369,51 @@ func run(t *testing.T, seed uint64, steps int) outcome {
 		o.all = append(o.all, "crash during "+p, "step inside "+p)
 	}
 	o.all = append(o.all, setups...)
+	o.all = append(o.all, outcomes...)
 	o.covered = append(sortedKeys(s.covered), setup(w)...)
 	return o
+}
+
+// outcomes are what garner must get done in some fixed seed, beyond the
+// events: the files of releases that need more than TheTVDB's numbering
+// and the indexers' word.
+var outcomes = []string{
+	"recorded a release numbered through the whole show",
+	"recorded a file of a whole-show pack",
+	"accepted a release filed under another show",
+}
+
+// reached notes the outcomes the episodes' files show.
+func (s *sim) reached(sn snapshot) {
+	for _, e := range sortedKeys64(sn.records) {
+		v, ok := readVideo(s.w.present(sn.records[e]))
+		ep := s.w.episode(e)
+		if !ok || ep == nil || v.Posting < 1 || v.Posting > len(s.w.postings) {
+			continue
+		}
+		p := s.w.postings[v.Posting-1]
+		switch {
+		case p.absolute != nil && p.pack && ep.season != 1:
+			s.covered[outcomes[1]] = true
+		case p.absolute != nil && ep.season != 1:
+			s.covered[outcomes[0]] = true
+		}
+	}
+	// Accepted, not only downloaded: the user may choose a rejected one.
+	for _, id := range sortedKeys64(sn.downloads) {
+		d := sn.downloads[id]
+		if d.Verdict != api.Accept {
+			continue
+		}
+		// The link names the posting; names may repeat across postings.
+		u, err := url.Parse(d.Link)
+		if err != nil {
+			continue
+		}
+		if n, err := strconv.Atoi(u.Query().Get("id")); err == nil && n >= 1 && n <= len(s.w.postings) && s.w.postings[n-1].filed != 0 {
+			s.covered[outcomes[2]] = true
+		}
+	}
 }
 
 // setups are the ways the share can be set up: whether SABnzbd and
@@ -501,6 +554,7 @@ func (s *sim) do(actor, name string, f func() string) {
 	}
 	s.last = &after
 	s.hold(after)
+	s.reached(after)
 	// The rules judge garner by the simulation's notes, so those are checked
 	// first. What the user sets changes only before the calm period, which
 	// checks it once at its end, with the episodes, which only the
@@ -511,7 +565,7 @@ func (s *sim) do(actor, name string, f func() string) {
 			return
 		}
 	}
-	for _, rule := range []func(snapshot, snapshot) (string, string){s.foreignStays, s.filesStay, s.recordsMatch, s.outsideStays, s.statesMove} {
+	for _, rule := range []func(snapshot, snapshot) (string, string){s.foreignStays, s.filesStay, s.recordsMatch, s.outsideStays, s.statesMove, s.filesHold} {
 		if id, msg := rule(before, after); msg != "" {
 			s.fail(id, msg)
 			return
@@ -821,12 +875,14 @@ func (s *sim) catalogue() string {
 		dropped := sh.episodes[i].id
 		s.removed[dropped] = true
 		sh.episodes = slices.Delete(sh.episodes, i, i+1)
+		sh.renumbered = true // the later episodes' absolute numbers moved up
 		what = fmt.Sprintf("episode %d dropped", dropped)
 	default:
 		a := sh.episodes[w.rnd.IntN(len(sh.episodes))]
 		for _, b := range sh.episodes {
 			if b != a && b.season == a.season {
 				a.number, b.number = b.number, a.number
+				sh.renumbered = true
 				what = fmt.Sprintf("episodes %d and %d swap numbers", a.id, b.id)
 				break
 			}
@@ -862,7 +918,10 @@ func (s *sim) stray() string {
 		return "" // the user cannot reach it while it is unplugged
 	}
 	s.strays++
-	if !s.w.addForeign(rel, fmt.Sprintf(`{"id":"stray-%d"}`, s.strays)) {
+	// The user's own copy of the episodes the file there would hold, so
+	// taking it over later records what it holds.
+	content, _ := json.Marshal(video{ID: fmt.Sprintf("stray-%d", s.strays), Episodes: d.Import.Files[0].Episodes})
+	if !s.w.addForeign(rel, string(content)) {
 		return ""
 	}
 	return fmt.Sprintf("download %d: %s", d.ID, rel)
@@ -1084,7 +1143,9 @@ func (s *sim) addShow() string {
 		return ""
 	}
 	sh := absent[s.user.IntN(len(absent))]
-	sh.profile = "tv" // a show added again starts over, whatever it had
+	// A show added again starts over with the type its genre gives it,
+	// whatever it had.
+	sh.profile = cmp.Or(sh.genre, store.TypeTV)
 	if err := s.w.seedShow(s.ctx, s.st, sh, store.MonitorOff); err != nil {
 		s.fail(simStopped, err.Error())
 		return ""
@@ -1384,8 +1445,9 @@ func (s *sim) missing() []int64 {
 
 // cleanedUp is L4: SABnzbd's folder of every download garner imported is
 // gone, unless it holds a file garner could not assign to an episode, such
-// as an extra or a file of an episode the catalogue dropped, or a subtitle
-// it could not move.
+// as an extra, a file of an episode the catalogue dropped or one a pack
+// names by whole-show numbering, which only an anime reads that way, or a
+// subtitle it could not move.
 func (s *sim) cleanedUp(all []store.Download) {
 	for _, d := range all {
 		if d.Import.State != store.ImportDone && d.Import.State != store.ImportUnverified {
@@ -1406,7 +1468,7 @@ func (s *sim) cleanedUp(all []store.Download) {
 			if err != nil || e.IsDir() {
 				return err
 			}
-			if v, ok := readVideo(p); ok && (v.Extra || slices.ContainsFunc(v.Episodes, func(id int64) bool { return s.w.episode(id) == nil })) || guard.IsSubtitle(p) {
+			if v, ok := readVideo(p); ok && (v.Extra || slices.ContainsFunc(v.Episodes, func(id int64) bool { return s.w.episode(id) == nil }) || s.w.wholeShowName(v)) || guard.IsSubtitle(p) {
 				explained = true
 			}
 			left = append(left, filepath.Base(p))
