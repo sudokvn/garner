@@ -123,9 +123,10 @@ func (s *Service) Episode(ctx context.Context, episodeID int64) (store.Search, e
 				}
 				seen[r.Posting] = true
 				kept++
+				other := otherShow(show, d.Series, r, claims, &m)
 				eval := selection.Evaluate(judge, selection.Release{
 					Claims: claims, Match: m, IndexerLanguages: selection.IndexerLanguages(r.Languages),
-					OtherShow: r.TVDBID != 0 && r.TVDBID != seriesID, Published: r.Published,
+					OtherShow: other, Published: r.Published,
 					Size: r.Size, Runtime: runtimeOf(d, m.Episodes),
 				})
 				hits = append(hits, hit{indexer: ix.Name, result: r, eval: eval, episodes: m.Episodes})
@@ -269,9 +270,10 @@ func (s *Service) Season(ctx context.Context, seriesID int64, season int) (store
 				owner = wanted[k]
 			}
 			judge := selection.Context{Profile: profile, Show: show, Want: owner, Original: original, Missing: wanted}
+			other := otherShow(show, d.Series, r, claims, &m)
 			eval := selection.Evaluate(judge, selection.Release{
 				Claims: claims, Match: m, IndexerLanguages: selection.IndexerLanguages(r.Languages),
-				OtherShow: r.TVDBID != 0 && r.TVDBID != seriesID, Published: r.Published,
+				OtherShow: other, Published: r.Published,
 				Size: r.Size, Runtime: runtimeOf(d, m.Episodes),
 			})
 			hits = append(hits, hit{indexer: ix.Name, result: r, eval: eval, episodes: m.Episodes, owner: owner})
@@ -301,6 +303,22 @@ func (s *Service) Season(ctx context.Context, seriesID int64, season int) (store
 	// No OnDone: a season search changes no episode's state, so clients
 	// have nothing to reload; the caller gets the result itself.
 	return saved, nil
+}
+
+// otherShow reports whether the indexer files the release under another
+// show than the name does: the indexer's show counts, unless the name gives
+// the year the show first aired. Indexers confuse a show with its remake or
+// original of the same name; the year tells them apart. When the name
+// overrules the indexer, a note on the match says so.
+func otherShow(show *match.Show, sr store.Series, r prowlarr.Result, claims release.Claims, m *match.Match) bool {
+	if r.TVDBID == 0 || r.TVDBID == sr.ID {
+		return false
+	}
+	if !show.NamesYear(claims) {
+		return true
+	}
+	m.Notes = append(m.Notes, fmt.Sprintf("the indexer files it under another show, but its name gives %d, the year this show first aired", sr.Year))
+	return false
 }
 
 // absoluteQueries are the text searches for an anime episode by its

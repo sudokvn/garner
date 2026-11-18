@@ -27,6 +27,7 @@ type Options struct {
 type Show struct {
 	opts     Options
 	name     string
+	year     int
 	titles   []showTitle
 	orders   []api.Order
 	episodes map[int64]*episode
@@ -60,7 +61,7 @@ type episode struct {
 
 func NewShow(d api.SeriesData, opts Options) *Show {
 	s := &Show{
-		opts: opts, name: cmp.Or(d.Series.NameEng, d.Series.Name), orders: d.Orders,
+		opts: opts, name: cmp.Or(d.Series.NameEng, d.Series.Name), year: d.Series.Year, orders: d.Orders,
 		episodes: map[int64]*episode{}, positions: map[string]map[api.Position]int64{},
 		absolute: map[int]int64{}, scene: map[api.Position]api.SceneNumber{},
 	}
@@ -170,6 +171,15 @@ func (s *Show) orderEpisode(order string, season int, ep release.Episode) (id in
 		return 0, "", fmt.Sprintf("the %s order has no %s", s.orderName(order), position(p))
 	}
 	return 0, "", fmt.Sprintf("TVDB has no %s", position(p))
+}
+
+// NamesYear reports whether the name gives the year the show first aired,
+// and no other year. Release names give it to tell a show from a remake
+// or an original of the same name, so it outweighs an indexer that files
+// the release under the other one.
+func (s *Show) NamesYear(c release.Claims) bool {
+	y, state := release.Value(c.Year)
+	return s.year > 0 && state == release.Unambiguous && y == s.year
 }
 
 // Absolute is the episode's number among all regular episodes, as release

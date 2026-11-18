@@ -23,7 +23,7 @@ garner rejects a release when:
 - it cannot tell which episode the release holds
 - the release does not hold the episode searched for
 - the name marks extra content instead of a regular episode
-- the indexer files the release under another show
+- the indexer files the release under another show, unless the name gives the year the show first aired. Indexers sometimes confuse a show with its remake or original of the same name, and the year tells them apart.
 - the release is a remux, an unchanged copy of a disc
 - its source is a DVD or a TV recording in standard definition
 - the name states one resolution, and it is below 720p or 2160p or higher

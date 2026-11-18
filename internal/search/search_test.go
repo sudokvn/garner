@@ -176,3 +176,56 @@ func TestAbsoluteSearch(t *testing.T) {
 		}
 	}
 }
+
+// TestOtherShowByYear keeps rejecting what the indexer files under another
+// show, unless the name gives the year this show first aired: indexers
+// confuse a show with its original or remake of the same name.
+func TestOtherShowByYear(t *testing.T) {
+	ctx := context.Background()
+	log := slog.New(slog.DiscardHandler)
+	st, err := store.Open(ctx, t.TempDir(), log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	d := series(store.TypeAnime, 3, 3)
+	d.Series.Year = 2011
+	if err := st.SaveSeries(ctx, d, true, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	indexer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/indexer" {
+			fmt.Fprint(w, `[{"id":1,"name":"One","enable":true,"protocol":"usenet"}]`)
+			return
+		}
+		var items strings.Builder
+		for title, show := range map[string]int{
+			"Lantern.Harbor.E04.Some.x.Title.German.2011.ANiME.DL.1080p.BluRay-YEAR": 77,
+			"Lantern.Harbor.E04.German.DL.1080p.BluRay-NOYEAR":                       77,
+			"Lantern.Harbor.1999.E04.German.DL.1080p.BluRay-OLD":                     77,
+			"Lantern.Harbor.E04.German.DL.1080p.WEB-OWN":                             42,
+		} {
+			fmt.Fprintf(&items, `<item><title>%s</title><guid>https://indexer.invalid/details/%[1]s</guid><link>http://prowlarr/1/download</link><size>1</size>`+
+				`<newznab:attr name="tvdbid" value="%d"/></item>`, title, show)
+		}
+		fmt.Fprintf(w, `<rss xmlns:newznab="http://www.newznab.com/DTD/2010/feeds/attributes/"><channel>%s</channel></rss>`, items.String())
+	}))
+	defer indexer.Close()
+
+	sr, err := New(st, prowlarr.New(indexer.URL, "key", indexer.Client()), nil, testprofiles.ByType, log).Episode(ctx, 20001)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range sr.Candidates {
+		group := c.Title[strings.LastIndex(c.Title, "-")+1:]
+		other := slices.Contains(c.Reasons, "the indexer files it under another show")
+		noted := slices.ContainsFunc(c.Reasons, func(r string) bool { return strings.Contains(r, "its name gives 2011") })
+		want := map[string]bool{"YEAR": false, "NOYEAR": true, "OLD": true, "OWN": false}[group]
+		if other != want || noted != (group == "YEAR") || (c.Verdict == api.Reject) != want {
+			t.Errorf("%s: %s %q", group, c.Verdict, c.Reasons)
+		}
+	}
+	if len(sr.Candidates) != 4 {
+		t.Errorf("%d candidates", len(sr.Candidates))
+	}
+}
