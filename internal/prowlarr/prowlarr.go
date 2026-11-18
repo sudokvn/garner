@@ -90,11 +90,15 @@ func (c *Client) Indexers(ctx context.Context) ([]Indexer, error) {
 	return out, nil
 }
 
-// Query is a TV search by TVDB ID. Episode 0 searches the whole season.
+// Query is a TV search by TVDB ID; Episode 0 searches the whole season.
+// With Text, it is a text search for those words instead, such as
+// "Harbor Precinct 059": indexers file releases that number a whole show
+// absolutely under no season and episode they could search by.
 type Query struct {
 	TVDBID  int64
 	Season  int
 	Episode int
+	Text    string
 }
 
 // Result is one release an indexer found.
@@ -131,8 +135,15 @@ func (c *Client) Search(ctx context.Context, indexer int, q Query) ([]Result, er
 	if q.Episode > 0 {
 		params.Set("ep", strconv.Itoa(q.Episode))
 	}
+	pages := maxPages
+	if q.Text != "" {
+		// The words find the releases on the first page; further pages
+		// hold other shows that share a word.
+		params = url.Values{"t": {"search"}, "q": {q.Text}, "extended": {"1"}, "limit": {strconv.Itoa(pageSize)}}
+		pages = 1
+	}
 	var out []Result
-	for page := 0; page < maxPages; page++ {
+	for page := 0; page < pages; page++ {
 		params.Set("offset", strconv.Itoa(page*pageSize))
 		body, err := c.get(ctx, fmt.Sprintf("/%d/api?%s", indexer, params.Encode()))
 		if err != nil {
@@ -140,7 +151,7 @@ func (c *Client) Search(ctx context.Context, indexer int, q Query) ([]Result, er
 		}
 		results, err := parseFeed(body, indexer)
 		if err != nil {
-			return out, err
+			return out, answerError{error: err, feed: true}
 		}
 		out = append(out, results...)
 		if len(results) < pageSize {
@@ -164,18 +175,47 @@ func (c *Client) get(ctx context.Context, path string) ([]byte, error) {
 		return nil, httpx.Redact(err)
 	}
 	defer resp.Body.Close()
+	status := answerError{error: fmt.Errorf("Prowlarr answered %s", resp.Status), status: resp.StatusCode}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 32<<20))
 	if err != nil {
+		if resp.StatusCode != http.StatusOK {
+			return nil, status
+		}
 		return nil, httpx.Redact(err)
 	}
 	// Newznab reports failures as an <error> document, sometimes with 200.
-	if msg := newznabError(body); msg != "" {
-		return nil, errors.New(msg)
+	if e, ok := newznabError(body); ok {
+		return nil, e
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Prowlarr answered %s", resp.Status)
+		return nil, status
 	}
 	return body, nil
+}
+
+// answerError is a failure Prowlarr or the indexer answered with: an HTTP
+// status or a Newznab error code, or an answer garner could not read.
+type answerError struct {
+	error
+	status int // HTTP status; 0 for a Newznab error or an unreadable answer
+	code   int // Newznab error code; 0 if none
+	feed   bool
+}
+
+func (e answerError) Unwrap() error { return e.error }
+
+// QueryFailed reports whether only this query failed, so the indexer may
+// still answer another kind of query: it rejected the query's parameters
+// or function (Newznab errors 200 to 399, HTTP 400), or answered it with
+// something garner could not read. Anything else concerns the indexer as a
+// whole: no answer, wrong credentials, a request limit or an unavailable
+// indexer.
+func QueryFailed(err error) bool {
+	var a answerError
+	if !errors.As(err, &a) {
+		return false
+	}
+	return a.feed || a.code >= 200 && a.code < 400 || a.status == http.StatusBadRequest
 }
 
 // wait spaces requests out by requestGap.
@@ -273,14 +313,15 @@ func page(raw string) string {
 	return u.String()
 }
 
-func newznabError(body []byte) string {
+func newznabError(body []byte) (answerError, bool) {
 	var e struct {
 		XMLName     xml.Name `xml:"error"`
 		Code        string   `xml:"code,attr"`
 		Description string   `xml:"description,attr"`
 	}
 	if xml.Unmarshal(body, &e) != nil || e.XMLName.Local != "error" {
-		return ""
+		return answerError{}, false
 	}
-	return fmt.Sprintf("%s (Newznab error %s)", e.Description, e.Code)
+	code, _ := strconv.Atoi(e.Code)
+	return answerError{error: fmt.Errorf("%s (Newznab error %s)", e.Description, e.Code), code: code}, true
 }

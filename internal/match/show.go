@@ -33,9 +33,13 @@ type Show struct {
 	// positions maps an order type and position to an episode.
 	positions map[string]map[api.Position]int64
 	// absolute numbers regular episodes in aired order, the way release
-	// groups count. TVDB's absolute order can include specials and
-	// TheXEM's absolute numbers restart every season, so neither fits.
+	// groups count; see api.AbsoluteNumbers. number is the reverse.
 	absolute map[int]int64
+	number   map[int64]int
+	// firstSeasonEnd is the last episode number of TVDB's season 1 in
+	// aired order; seasons counts the regular seasons.
+	firstSeasonEnd int
+	seasons        int
 	// scene maps TheXEM's scene numbering, which releases use, to TVDB.
 	scene map[api.Position]api.SceneNumber
 }
@@ -78,7 +82,7 @@ func NewShow(d api.SeriesData, opts Options) *Show {
 		}
 	}
 
-	var regular []*episode
+	seasons := map[int]bool{}
 	for _, e := range d.Episodes {
 		ep := &episode{Episode: e}
 		for _, n := range []string{e.Name, e.NameEng, e.NameDeu} {
@@ -94,12 +98,16 @@ func NewShow(d api.SeriesData, opts Options) *Show {
 			s.positions[order][p] = e.ID
 		}
 		if p, ok := e.Numbers[aired]; ok && p.Season > 0 {
-			regular = append(regular, ep)
+			seasons[p.Season] = true
+			if p.Season == 1 {
+				s.firstSeasonEnd = max(s.firstSeasonEnd, p.Number)
+			}
 		}
 	}
-	slices.SortFunc(regular, func(a, b *episode) int { return comparePosition(a.Numbers[aired], b.Numbers[aired]) })
-	for i, e := range regular {
-		s.absolute[i+1] = e.ID
+	s.seasons = len(seasons)
+	s.number = api.AbsoluteNumbers(d.Episodes)
+	for id, n := range s.number {
+		s.absolute[n] = id
 	}
 	for _, n := range d.Scene {
 		if _, dup := s.scene[n.Scene]; !dup {
@@ -162,6 +170,21 @@ func (s *Show) orderEpisode(order string, season int, ep release.Episode) (id in
 		return 0, "", fmt.Sprintf("the %s order has no %s", s.orderName(order), position(p))
 	}
 	return 0, "", fmt.Sprintf("TVDB has no %s", position(p))
+}
+
+// Absolute is the episode's number among all regular episodes, as release
+// groups count when they number the whole show; 0 for a special.
+func (s *Show) Absolute(id int64) int { return s.number[id] }
+
+// Regular counts the show's regular episodes.
+func (s *Show) Regular() int { return len(s.absolute) }
+
+// pastFirstSeason reports whether S01E<ep> lies beyond TVDB's season 1 and
+// TheXEM maps no scene episode there. Releases that number a whole show
+// absolutely write episode 59 as S01E059.
+func (s *Show) pastFirstSeason(ep release.Episode) bool {
+	_, scene := s.scene[api.Position{Season: 1, Number: ep.Number}]
+	return ep.Fraction == 0 && s.firstSeasonEnd > 0 && ep.Number > s.firstSeasonEnd && !scene
 }
 
 // absoluteEpisode finds an episode by its number among all regular episodes.

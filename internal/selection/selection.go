@@ -260,6 +260,9 @@ func judge(ctx Context, r Release) Evaluation {
 			break
 		}
 		switch {
+		case r.Match.Kind == match.Season && r.Match.Uncertain:
+			// Often hundreds of gigabytes more than asked for.
+			fallbacks = append(fallbacks, "the pack may hold the whole show instead of one season; a last resort, downloaded only when you choose it")
 		case r.Match.Kind == match.Season:
 			notes = append(notes, fmt.Sprintf("season pack of %d episodes; it may not hold every one", len(r.Match.Episodes)))
 		case len(r.Match.Episodes) > 1:

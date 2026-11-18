@@ -141,7 +141,7 @@ func (s *Show) match(c release.Claims, published time.Time) Match {
 				m.note("%s", r.note)
 			}
 		}
-		res = Match{Kind: Episodes, Episodes: got[0].ids}
+		res = Match{Kind: Episodes, Episodes: got[0].ids, Uncertain: got[0].uncertain}
 		if got[0].pack {
 			res.Kind = Season
 		}
@@ -189,6 +189,8 @@ type reading struct {
 	label    string // what the name says, such as "S01E04" or "episode 29"
 	note     string // how it was read, when that is worth showing
 	err      string // why it fails
+	// uncertain means the files may hold other episodes than the reading.
+	uncertain bool
 }
 
 func (r reading) ok() bool { return r.err == "" }
@@ -283,8 +285,20 @@ func (m *matcher) readAired(n release.Numbering) reading {
 		if len(r.ids) == 0 {
 			r.err = fmt.Sprintf("TVDB has no season %d", n.Season)
 		}
+		if m.s.opts.Anime && n.Season == 1 && len(r.ids) > 0 && m.s.seasons > 1 {
+			r.uncertain = true
+			r.note = fmt.Sprintf("TVDB splits the show into %d seasons, but releases that number it absolutely call all of it season 1, so the pack may hold the whole show", m.s.seasons)
+		}
 	case n.Seasoned:
 		r.ids, r.note, r.err = m.episodes(n.Episodes, func(e release.Episode) (int64, string, string) {
+			if m.s.opts.Anime && n.Season == 1 && m.s.pastFirstSeason(e) {
+				id, err := m.s.absoluteEpisode(e)
+				if err != "" {
+					return 0, "", err
+				}
+				return id, fmt.Sprintf("TVDB's season 1 ends at episode %d, so S01E%02d counts the show's episodes absolutely: %s",
+					m.s.firstSeasonEnd, e.Number, m.s.Label(id)), ""
+			}
 			return m.s.sceneEpisode(n.Season, e)
 		})
 	default:

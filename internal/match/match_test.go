@@ -142,6 +142,12 @@ var matchTests = []struct {
 	{lanternHarbor, anime, "[Grp] Tourou no Minato II - 05 [1080p]", time.Time{}, "S02E05", "season 2 comes from the title"},
 	{lanternHarbor, anime, "[Grp] Lantern Harbor II - Dawn - 30 [1080p]", time.Time{}, "unknown", "TVDB has no S02E30"},
 	{lanternHarbor, anime, "[Grp] Lantern Harbor - 30 [1080p]", time.Time{}, "S02E07", ""},
+	// Season 1 past its end counts the whole show absolutely, as some
+	// groups number it; only for anime.
+	{lanternHarbor, anime, "Laternenhafen.S01E030.German.DL.1080p.BluRay-GRP", time.Time{}, "S02E07", "TVDB's season 1 ends at episode 23"},
+	{lanternHarbor, anime, "Lantern.Harbor.S01E22-E25.German.DL.1080p.BluRay-GRP", time.Time{}, "S01E22-S02E02 (4)", "counts the show's episodes absolutely"},
+	{lanternHarbor, anime, "Lantern.Harbor.S01E048.German.DL.1080p.BluRay-GRP", time.Time{}, "unknown", "TVDB lists 47 regular episodes"},
+	{harborPrecinct, Options{}, "Harbor.Precinct.S01E030.German.DL.720p.WEB-GRP", time.Time{}, "unknown", "TVDB has no S01E30"},
 
 	// Streaming-service orders
 	{lanternHarbor, anime, "Lantern.Harbor.S02.1080p.NF.WEB-DL-GRP", time.Time{}, "unknown", "no reviewed rule"},
@@ -154,7 +160,8 @@ var matchTests = []struct {
 	{lanternHarbor, anime, "Lantern.Harbor.S04E01.1080p.WEB-GRP", time.Time{}, "unknown", "TVDB has no S04E01"},
 
 	// Contents
-	{lanternHarbor, anime, "Lantern.Harbor.S01.1080p.BluRay.x264-GRP", time.Time{}, "season S01E01-S01E23 (23)", ""},
+	{lanternHarbor, anime, "Lantern.Harbor.S01.1080p.BluRay.x264-GRP", time.Time{}, "season S01E01-S01E23 (23) uncertain", "may hold the whole show"},
+	{harborPrecinct, Options{}, "Harbor.Precinct.S01.German.DL.720p.WEB-GRP", time.Time{}, "season S01E01-S01E22 (22)", ""},
 	{lanternHarbor, anime, "Lantern.Harbor.S01.NCOP.1080p.BluRay.x264-GRP", time.Time{}, "extra", "NCOP"},
 	{lanternHarbor, anime, "[Grp] Tourou no Minato - 01 (720p) [2 Hours Special]", time.Time{}, "S01E01 uncertain", "3 episodes aired on 2024-04-05"},
 	{lanternHarbor, anime, "[Grp] Tourou no Minato - 04 (720p) [Special]", time.Time{}, "S01E04", ""},

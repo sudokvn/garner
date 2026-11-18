@@ -2,11 +2,13 @@ package prowlarr
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -26,7 +28,9 @@ func feedOf(items ...string) string {
 }
 
 func TestSearch(t *testing.T) {
+	var mu sync.Mutex
 	var queries []string
+	asked := func() []string { mu.Lock(); defer mu.Unlock(); return slices.Clone(queries) }
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("X-Api-Key") != "key" || r.URL.Query().Has("apikey") {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -37,7 +41,9 @@ func TestSearch(t *testing.T) {
 			fmt.Fprint(w, `[{"id":1,"name":"One","enable":true,"protocol":"usenet"},{"id":2,"name":"Two","enable":true,"protocol":"usenet"},
 				{"id":3,"name":"Off","enable":false,"protocol":"usenet"},{"id":4,"name":"Torrents","enable":true,"protocol":"torrent"}]`)
 		case "/1/api":
+			mu.Lock()
 			queries = append(queries, r.URL.RawQuery)
+			mu.Unlock()
 			// A full first page makes the client ask for the next one.
 			n := 100
 			if r.URL.Query().Get("offset") != "0" {
@@ -69,8 +75,8 @@ func TestSearch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(results) != 102 || len(queries) != 2 || !strings.Contains(queries[0], "tvdbid=42") || !strings.Contains(queries[0], "ep=1") {
-		t.Fatalf("%d results from queries %q", len(results), queries)
+	if q := asked(); len(results) != 102 || len(q) != 2 || !strings.Contains(q[0], "tvdbid=42") || !strings.Contains(q[0], "ep=1") {
+		t.Fatalf("%d results from queries %q", len(results), q)
 	}
 	if elapsed := time.Since(start); elapsed < requestGap {
 		t.Errorf("two requests took %s; want at least %s apart", elapsed, requestGap)
@@ -80,9 +86,26 @@ func TestSearch(t *testing.T) {
 		t.Errorf("result = %+v", r)
 	}
 
+	// A text search asks for the words alone, and only for one page.
+	mu.Lock()
+	queries = nil
+	mu.Unlock()
+	if results, err := c.Search(ctx, 1, Query{TVDBID: 42, Text: "Harbor Precinct 059"}); err != nil || len(results) != 100 {
+		t.Fatalf("text search: %d results, %v", len(results), err)
+	}
+	if q := asked(); len(q) != 1 || !strings.Contains(q[0], "t=search") || !strings.Contains(q[0], "q=Harbor+Precinct+059") ||
+		strings.Contains(q[0], "tvdbid") {
+		t.Errorf("text search queries %q", q)
+	}
+
 	_, err = c.Search(ctx, 2, Query{TVDBID: 42, Season: 1})
-	if err == nil || !strings.Contains(err.Error(), "Incorrect user credentials") {
-		t.Errorf("error = %v", err)
+	if err == nil || !strings.Contains(err.Error(), "Incorrect user credentials") || QueryFailed(err) {
+		t.Errorf("error = %v, only the query failed: %v", err, QueryFailed(err))
+	}
+	// A server that does not answer fails as a whole.
+	gone := New("http://prowlarr.invalid", "key", &http.Client{Transport: refused{}})
+	if _, err := gone.Search(ctx, 1, Query{TVDBID: 42, Season: 1}); err == nil || QueryFailed(err) {
+		t.Errorf("unreachable: error = %v, only the query failed: %v", err, QueryFailed(err))
 	}
 }
 
@@ -159,5 +182,38 @@ func TestPages(t *testing.T) {
 	}
 	if got := it("<guid>https://indexer.invalid/details/g1</guid>", "<comments>https://indexer.invalid/api/SECRET/c1</comments>"); got != "https://indexer.invalid/details/g1" {
 		t.Errorf("page from the ID after an unusable comments link = %q", got)
+	}
+}
+
+// refused is a transport whose every connection is refused.
+type refused struct{}
+
+func (refused) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, errors.New("connect: connection refused")
+}
+
+// TestQueryFailed tells failures of one query, after which another kind of
+// query may still work, from failures of the whole indexer, after which
+// garner asks it nothing more in that search.
+func TestQueryFailed(t *testing.T) {
+	for body, want := range map[string]bool{
+		`<error code="203" description="Function not available"/>`:     true,
+		`<error code="201" description="Incorrect parameter"/>`:        true,
+		`<error code="100" description="Incorrect user credentials"/>`: false,
+		`<error code="500" description="Request limit reached"/>`:      false,
+		`<error code="900" description="Indexer is not responding"/>`:  false,
+	} {
+		e, ok := newznabError([]byte(body))
+		if !ok || QueryFailed(e) != want {
+			t.Errorf("%s: only the query failed = %v, want %v", body, QueryFailed(e), want)
+		}
+	}
+	for status, want := range map[int]bool{http.StatusBadRequest: true, http.StatusTooManyRequests: false, http.StatusUnauthorized: false, http.StatusBadGateway: false} {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(status) }))
+		_, err := New(srv.URL, "key", srv.Client()).Search(context.Background(), 1, Query{TVDBID: 42, Season: 1})
+		srv.Close()
+		if err == nil || QueryFailed(err) != want {
+			t.Errorf("HTTP %d: %v, only the query failed = %v, want %v", status, err, QueryFailed(err), want)
+		}
 	}
 }

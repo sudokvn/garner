@@ -214,6 +214,31 @@ func TestRankPack(t *testing.T) {
 	}
 }
 
+// TestWholeShowPack keeps a bare season 1 pack of an anime with later
+// seasons a last resort: groups that number the show absolutely call all
+// of it season 1, so it may be far larger than asked for, and the monitor
+// must not download it on its own.
+func TestWholeShowPack(t *testing.T) {
+	d := api.SeriesData{Series: api.Series{ID: 1, Name: "Lantern Harbor", OriginalLanguage: "ja"}}
+	for s := 1; s <= 2; s++ {
+		for n := 1; n <= 3; n++ {
+			d.Episodes = append(d.Episodes, api.Episode{ID: int64(100*s + n), Numbers: map[string]api.Position{"official": {Season: s, Number: n}}})
+		}
+	}
+	for _, tc := range []struct {
+		anime   bool
+		verdict api.Verdict
+	}{{true, api.Fallback}, {false, api.Accept}} {
+		s := match.NewShow(d, match.Options{Anime: tc.anime})
+		claims := release.Parse("Lantern.Harbor.S01.German.1080p.BluRay-GRP")
+		e := Evaluate(Context{Profile: Anime, Show: s, Want: 101, Original: "ja", Missing: []int64{101, 102, 103}},
+			Release{Claims: claims, Match: s.Match(claims, time.Time{})})
+		if e.Verdict != tc.verdict || tc.anime && !strings.Contains(e.Reasons[0], "may hold the whole show") {
+			t.Errorf("anime %v: %s %q, want %s", tc.anime, e.Verdict, e.Reasons, tc.verdict)
+		}
+	}
+}
+
 // TestUpgrade accepts, for an episode with a file, only releases in a
 // better tier than the file's: the same tier from a better source does
 // not replace it.

@@ -44,6 +44,7 @@ A release is only a last resort when:
   - the show's original language is unknown or not among the profile's languages
 
   With `unnamed_audio = "reject"`, such a release is rejected.
+- the release is a pack of season 1 of an anime that TheTVDB splits into several seasons. Groups that number a show absolutely call all of it season 1, so the pack may hold the whole show, often hundreds of gigabytes.
 
 ## The audio of a release
 
@@ -96,9 +97,10 @@ garner downloads another release when a download fails in a way another release 
 
 ## TV and anime
 
-Every show has a type, TV or anime. A show in TheTVDB's genre Anime gets the type anime when you add it, and every new show gets the profile its type has as the default. To change a show's type or profile, press `p` on its details page. The type decides two things:
+Every show has a type, TV or anime. A show in TheTVDB's genre Anime gets the type anime when you add it, and every new show gets the profile its type has as the default. To change a show's type or profile, press `p` on its details page. The type decides three things:
 
 - **Numbering.** When a number such as 101 could mean season 1, episode 1 or episode 101, anime reads it as episode 101 first, and TV as season 1, episode 1.
+- **Absolute numbering.** Some groups number an anime's episodes through the whole show instead of by TheTVDB's seasons. Episode 59 is then E059 or S01E059, even when TheTVDB places it in season 2. garner counts the show's regular episodes in aired order to find it, and reads a season 1 episode past the end of TheTVDB's season 1 the same way. Indexers file these releases under no season and episode garner could search by, so for anime garner also searches the show's English and German titles with the absolute number, such as `Harbor Precinct 059`. It does so for episodes outside season 1 and for every episode of a show with 100 episodes or more. The number has two digits. From 100 episodes, garner searches it with both two and three digits, and from 1000 episodes with three and four, because episodes released before the show grew keep the shorter number. The terminal interface shows the absolute number next to the season and episode where they differ, such as `S02E01 · 59`.
 - **Library folder.** New files of anime shows go to `library.anime`, those of TV shows to `library.tv`. Changing the type does not move files already in the library.
 
 TheXEM's scene numbering applies to every show.

@@ -1,6 +1,10 @@
 package api
 
-import "time"
+import (
+	"cmp"
+	"slices"
+	"time"
+)
 
 // Series is a show in the catalogue.
 type Series struct {
@@ -110,6 +114,29 @@ type Episode struct {
 	OverviewLanguage string `json:"-"`
 	// Numbers maps an order type to the episode's position in it.
 	Numbers map[string]Position `json:"numbers"`
+}
+
+// AbsoluteNumbers numbers a show's regular episodes 1, 2, 3 and so on in
+// aired order, the way release groups count when they number a whole show
+// without seasons, such as E059. TVDB's absolute order can include
+// specials and TheXEM's absolute numbers may restart every season, so
+// neither fits. Specials get no number.
+func AbsoluteNumbers(episodes []Episode) map[int64]int {
+	var regular []Episode
+	for _, e := range episodes {
+		if p, ok := e.Numbers["official"]; ok && p.Season > 0 {
+			regular = append(regular, e)
+		}
+	}
+	slices.SortFunc(regular, func(a, b Episode) int {
+		pa, pb := a.Numbers["official"], b.Numbers["official"]
+		return cmp.Or(cmp.Compare(pa.Season, pb.Season), cmp.Compare(pa.Number, pb.Number))
+	})
+	out := make(map[int64]int, len(regular))
+	for i, e := range regular {
+		out[e.ID] = i + 1
+	}
+	return out
 }
 
 // SceneNumber maps a TVDB aired-order position to scene numbering.

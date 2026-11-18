@@ -70,6 +70,10 @@ type episodeRow struct {
 	episode api.Episode
 	pos     api.Position
 	status  api.EpisodeStatus
+	// absolute is the anime episode's number among all regular episodes,
+	// as groups that number a whole show write it, such as E059; 0 when it
+	// is pos's number anyway or the show is not an anime.
+	absolute int
 }
 
 func newShow(sess *session, back screen, id int64, name, message string) *showScreen {
@@ -235,6 +239,7 @@ func (s *showScreen) seasons() []season {
 		states[st.EpisodeID] = st
 	}
 	order := s.detail.Series.DefaultOrder
+	numbers := absoluteNumbers(s.detail)
 	bySeason := map[int]*season{}
 	for _, e := range s.detail.Episodes {
 		pos, ok := e.Numbers[order]
@@ -246,7 +251,7 @@ func (s *showScreen) seasons() []season {
 			se = &season{number: pos.Season}
 			bySeason[pos.Season] = se
 		}
-		se.episodes = append(se.episodes, episodeRow{episode: e, pos: pos, status: states[e.ID]})
+		se.episodes = append(se.episodes, episodeRow{episode: e, pos: pos, status: states[e.ID], absolute: differing(numbers, e.ID, pos)})
 	}
 	out := make([]season, 0, len(bySeason))
 	for _, se := range bySeason {
@@ -397,6 +402,32 @@ func (s *showScreen) cursorEpisode() (episodeRow, bool) {
 
 func episodeLabel(e episodeRow) string {
 	return fmt.Sprintf("S%02dE%02d", e.pos.Season, e.pos.Number)
+}
+
+// episodeCell is the episode's label in the table, with its absolute
+// number when that differs, such as "S02E01 · 59".
+func episodeCell(e episodeRow) string {
+	if e.absolute > 0 {
+		return fmt.Sprintf("%s · %d", episodeLabel(e), e.absolute)
+	}
+	return episodeLabel(e)
+}
+
+// absoluteNumbers are an anime's absolute episode numbers; nil for TV.
+func absoluteNumbers(d *api.SeriesDetail) map[int64]int {
+	if d.Series.Type != api.TypeAnime {
+		return nil
+	}
+	return api.AbsoluteNumbers(d.Episodes)
+}
+
+// differing is an episode's absolute number when it differs from its
+// number in the season, else 0.
+func differing(numbers map[int64]int, id int64, pos api.Position) int {
+	if n := numbers[id]; n != pos.Number && pos.Season > 0 {
+		return n
+	}
+	return 0
 }
 
 const showTop = 6 // rows above the table: header, blank, facts, blank, column names, rule
@@ -552,19 +583,37 @@ func (s *showScreen) enterLabel() string {
 // state.
 type showCols struct {
 	width, title int
+	episode      int  // as wide as the widest label, such as "S02E01 · 59"
+	absolute     bool // the labels show absolute numbers; they give way when narrow
 	size         bool // the Size column, left out when narrow
+	fits         bool // State keeps its room
 }
 
 const airedWidth = len("26 Sep 2026")
 
 func showColumns(d *api.SeriesDetail, width int) showCols {
-	c := showCols{width: width, title: len("Title")}
+	title, wide := len("Title"), len("Episode")
+	numbers := absoluteNumbers(d)
 	for _, e := range d.Episodes {
-		c.title = max(c.title, ansi.StringWidth(clean(cmp.Or(e.NameEng, e.Name))))
+		title = max(title, ansi.StringWidth(clean(cmp.Or(e.NameEng, e.Name))))
+		pos := e.Numbers[d.Series.DefaultOrder]
+		wide = max(wide, ansi.StringWidth(episodeCell(episodeRow{pos: pos, absolute: differing(numbers, e.ID, pos)})))
 	}
-	// Margins and gaps: 3 + glyph 1 + 3 + episode 7 + 3 + title + 3 +
+	c := layoutShow(width, title, wide)
+	// Narrow: the absolute numbers give way before the titles shrink; the
+	// Releases screen still names them.
+	if wide > len("Episode") && (!c.fits || c.title < min(title, minName)) {
+		c = layoutShow(width, title, len("Episode"))
+	}
+	c.absolute = c.episode == wide && wide > len("Episode")
+	return c
+}
+
+func layoutShow(width, title, episode int) showCols {
+	c := showCols{width: width, title: title, episode: episode}
+	// Margins and gaps: 3 + glyph 1 + 3 + episode + 3 + title + 3 +
 	// aired + 3 + size 7 + 3 + state.
-	fixed := 3 + 1 + 3 + 7 + 3 + 3 + airedWidth + 3 + 7 + 3
+	fixed := 3 + 1 + 3 + c.episode + 3 + 3 + airedWidth + 3 + 7 + 3
 	// Narrow: the titles keep room, State gives way, then Size goes.
 	c.size = true
 	state := 28
@@ -572,7 +621,16 @@ func showColumns(d *api.SeriesDetail, width int) showCols {
 		c.size, fixed, state = false, fixed-3-7, 20
 	}
 	c.title = max(10, min(c.title, 40, width-fixed-state))
+	c.fits = width-fixed-c.title >= state
 	return c
+}
+
+// label leaves out the absolute number when the table has no room for it.
+func (c showCols) label(e episodeRow) episodeRow {
+	if !c.absolute {
+		e.absolute = 0
+	}
+	return e
 }
 
 func (c showCols) head() string {
@@ -580,7 +638,7 @@ func (c showCols) head() string {
 	if c.size {
 		sz = sSubtle.Render(fit("Size", 7, true)) + "   "
 	}
-	return "   " + " " + "   " + sSubtle.Render(fit("Episode", 7, false)) + "   " + sSubtle.Render(fit("Title", c.title, false)) +
+	return "   " + " " + "   " + sSubtle.Render(fit("Episode", c.episode, false)) + "   " + sSubtle.Render(fit("Title", c.title, false)) +
 		"   " + sSubtle.Render(fit("Aired", airedWidth, false)) + "   " + sz + sSubtle.Render("State")
 }
 
@@ -641,7 +699,7 @@ func (c showCols) episodeRow(e episodeRow, d *api.SeriesDetail, now time.Time, s
 	}
 	gap := bg(lipgloss.NewStyle()).Render("   ")
 	line := gap + bg(glyphStyle).Render(glyph) + gap +
-		bg(main).Render(fit(episodeLabel(e), 7, false)) + gap +
+		bg(main).Render(fit(episodeCell(c.label(e)), c.episode, false)) + gap +
 		bg(main).Render(fit(clean(cmp.Or(e.episode.NameEng, e.episode.Name)), c.title, false)) + gap +
 		bg(main).Render(fit(aired, airedWidth, false)) + gap
 	if c.size {

@@ -706,6 +706,9 @@ func shortAge(d time.Duration) string {
 func episodeFacts(e episodeRow) []string {
 	title := clean(cmp.Or(e.episode.NameEng, e.episode.Name))
 	parts := []string{fact("Episode", strings.TrimSpace(episodeLabel(e)+" "+title))}
+	if e.absolute > 0 {
+		parts = append(parts, fact("Absolute", strconv.Itoa(e.absolute)))
+	}
 	if t, err := time.Parse(time.DateOnly, e.episode.Aired); err == nil {
 		parts = append(parts, fact("Aired", t.Format("2 Jan 2006")))
 	}

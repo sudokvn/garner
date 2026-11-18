@@ -8,9 +8,14 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
+	"unicode"
+
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/sudokvn/garner/internal/api"
 	"github.com/sudokvn/garner/internal/match"
@@ -90,29 +95,65 @@ func (s *Service) Episode(ctx context.Context, episodeID int64) (store.Search, e
 		progress.Indexers[i] = api.IndexerProgress{Name: ix.Name}
 	}
 	s.report(progress)
+	queries := []prowlarr.Query{{TVDBID: seriesID, Season: pos.Season, Episode: pos.Number}}
+	for _, text := range absoluteQueries(d.Series, show, episodeID, pos) {
+		queries = append(queries, prowlarr.Query{TVDBID: seriesID, Text: text})
+	}
+	var partial []string // indexers that answered only some queries
 	for i, ix := range indexers {
-		results, err := s.prowlarr.Search(ctx, ix.ID, prowlarr.Query{TVDBID: seriesID, Season: pos.Season, Episode: pos.Number})
-		if ctx.Err() != nil {
-			return store.Search{}, ctx.Err()
+		res := store.SearchIndexer{Name: ix.Name}
+		seen := map[string]bool{} // postings, as several queries may find one
+		answered, failure := false, ""
+		for _, q := range queries {
+			results, err := s.prowlarr.Search(ctx, ix.ID, q)
+			if ctx.Err() != nil {
+				return store.Search{}, ctx.Err()
+			}
+			kept := 0
+			for _, r := range results {
+				if seen[r.Posting] {
+					continue
+				}
+				claims := release.Parse(r.Title)
+				m := show.Match(claims, r.Published)
+				// A text search also finds other shows and episodes that share
+				// a word or digits; only what it was asked for is worth showing.
+				if q.Text != "" && !slices.Contains(m.Episodes, episodeID) {
+					continue
+				}
+				seen[r.Posting] = true
+				kept++
+				eval := selection.Evaluate(judge, selection.Release{
+					Claims: claims, Match: m, IndexerLanguages: selection.IndexerLanguages(r.Languages),
+					OtherShow: r.TVDBID != 0 && r.TVDBID != seriesID, Published: r.Published,
+					Size: r.Size, Runtime: runtimeOf(d, m.Episodes),
+				})
+				hits = append(hits, hit{indexer: ix.Name, result: r, eval: eval, episodes: m.Episodes})
+				res.Results++
+			}
+			answered = answered || err == nil || kept > 0
+			if err != nil {
+				failure = cmp.Or(failure, err.Error())
+				s.log.Warn("indexer search failed", "indexer", ix.Name, "episode", episodeID, "text", q.Text, "err", err)
+				// An indexer that is unreachable, limits requests or refuses
+				// the credentials would fail the other queries too; one that
+				// refused only this query may answer another kind.
+				if !prowlarr.QueryFailed(err) {
+					break
+				}
+			}
 		}
-		res := store.SearchIndexer{Name: ix.Name, Results: len(results)}
-		if err != nil {
-			res.Error = err.Error()
-			s.log.Warn("indexer search failed", "indexer", ix.Name, "episode", episodeID, "err", err)
+		// An indexer failed when none of its queries was answered; one that
+		// answered only some of them searched, but not completely.
+		switch {
+		case !answered:
+			res.Error = failure
+		case failure != "":
+			partial = append(partial, ix.Name)
 		}
 		sr.Indexers = append(sr.Indexers, res)
 		progress.Indexers[i] = api.IndexerProgress{Name: ix.Name, Done: true, Results: res.Results, Error: res.Error}
 		s.report(progress)
-		for _, r := range results {
-			claims := release.Parse(r.Title)
-			m := show.Match(claims, r.Published)
-			eval := selection.Evaluate(judge, selection.Release{
-				Claims: claims, Match: m, IndexerLanguages: selection.IndexerLanguages(r.Languages),
-				OtherShow: r.TVDBID != 0 && r.TVDBID != seriesID, Published: r.Published,
-				Size: r.Size, Runtime: runtimeOf(d, m.Episodes),
-			})
-			hits = append(hits, hit{indexer: ix.Name, result: r, eval: eval, episodes: m.Episodes})
-		}
 	}
 
 	evals := make([]selection.Evaluation, len(hits))
@@ -124,6 +165,9 @@ func (s *Service) Episode(ctx context.Context, episodeID int64) (store.Search, e
 		sr.Candidates = append(sr.Candidates, hits[i].candidate())
 	}
 	sr.Outcome, sr.Summary = outcome(selection.Summary(profile, judge.Have, evals), evals, sr.Indexers)
+	if len(partial) > 0 && sr.Outcome != api.SearchFailed {
+		sr.Summary += fmt.Sprintf(" (%s answered only some searches)", strings.Join(partial, ", "))
+	}
 	if err := s.store.SaveSearch(ctx, sr); err != nil {
 		return store.Search{}, err
 	}
@@ -258,6 +302,86 @@ func (s *Service) Season(ctx context.Context, seriesID int64, season int) (store
 	// have nothing to reload; the caller gets the result itself.
 	return saved, nil
 }
+
+// absoluteQueries are the text searches for an anime episode by its
+// absolute number, such as "Harbor Precinct 059": groups that number a
+// whole show write episode 59 as E059 or S01E059, and indexers file those
+// under no TVDB position they could search by. They match the digits only
+// as written, so the number is padded as such groups pad it, both ways
+// past 999 episodes, and searched under the English and the German title.
+// The aired-order search finds such releases in the first season of a
+// show with fewer than 100 episodes, where both numberings agree.
+func absoluteQueries(sr store.Series, show *match.Show, id int64, pos api.Position) []string {
+	n, total := show.Absolute(id), show.Regular()
+	if sr.Type != store.TypeAnime || n == 0 || pos.Season == 1 && n == pos.Number && total < 100 {
+		return nil
+	}
+	// Groups pad to the show's length when they release, so episodes from
+	// before it reached 100 or 1000 episodes keep one digit fewer.
+	digits := max(2, len(strconv.Itoa(total)))
+	widths := []int{digits - 1, digits}
+	if digits == 2 {
+		widths = []int{2}
+	}
+	var numbers []string
+	for _, w := range widths {
+		if s := fmt.Sprintf("%0*d", w, n); !slices.Contains(numbers, s) {
+			numbers = append(numbers, s)
+		}
+	}
+	var titles []string
+	for _, t := range []string{cmp.Or(sr.NameEng, sr.Name), sr.NameDeu} {
+		if t = searchTitle(t); t != "" && !slices.ContainsFunc(titles, func(o string) bool { return strings.EqualFold(o, t) }) {
+			titles = append(titles, t)
+		}
+	}
+	var out []string
+	for _, t := range titles {
+		for _, num := range numbers {
+			out = append(out, t+" "+num)
+		}
+	}
+	return out
+}
+
+// searchTitle turns a show's title into the words release names use:
+// "Harbor Precinct (2013)" becomes "Harbor Precinct", "Harbor's: Night"
+// "Harbors Night", "Hafenwächter" "Hafenwaechter" and "Crème" "Creme".
+// A title without Latin letters, such as a Japanese one, gives nothing.
+func searchTitle(title string) string {
+	title = yearSuffix.ReplaceAllString(title, "")
+	// Composed first, so an umlaut written as a letter and a combining
+	// mark becomes "ae" too.
+	title = umlauts.Replace(norm.NFC.String(title))
+	var b strings.Builder
+	latin := false
+	for _, r := range norm.NFD.String(title) {
+		switch {
+		case unicode.Is(unicode.Mn, r), r == '\'', r == '’':
+			// accents and apostrophes
+		case r < unicode.MaxASCII && (unicode.IsLetter(r) || unicode.IsDigit(r)):
+			latin = latin || unicode.IsLetter(r)
+			b.WriteRune(r)
+		default:
+			b.WriteByte(' ')
+		}
+	}
+	if !latin {
+		return ""
+	}
+	return strings.Join(strings.Fields(b.String()), " ")
+}
+
+var (
+	yearSuffix = regexp.MustCompile(`\s*\((19|20)\d\d\)\s*$`)
+	// umlauts are the letters that do not lose only an accent, written as
+	// release names write them, as the importer names files.
+	umlauts = strings.NewReplacer(
+		"ä", "ae", "ö", "oe", "ü", "ue", "Ä", "Ae", "Ö", "Oe", "Ü", "Ue", "ß", "ss",
+		"æ", "ae", "Æ", "Ae", "œ", "oe", "Œ", "Oe", "ø", "o", "Ø", "O", "ł", "l", "Ł", "L",
+		"đ", "d", "Đ", "D", "ð", "d", "þ", "th", "Þ", "Th",
+	)
+)
 
 // seasonEpisodes lists a season's episodes in the order's sequence.
 func seasonEpisodes(d store.SeriesData, order string, season int) []int64 {
