@@ -10,7 +10,7 @@
 # other builds leave it empty and say so in the image.
 
 ARG ALPINE=docker.io/library/alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
-ARG GOLANG=docker.io/library/golang:1.27.3-alpine3.24@sha256:f2c872bcee949b7be9c490efd02b48a8a2fbf947cdf533f1c58525ec9d8170fd
+ARG GOLANG=docker.io/library/golang:1.27.4-alpine3.24@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280
 
 # A static FFprobe built from the FFmpeg release, with only the container
 # readers and stream parsers the file check needs: no decoders, no network
