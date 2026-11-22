@@ -48,22 +48,24 @@ One set of glyphs marks states everywhere, in pipeline order (`glyphs` in `help.
 
 ## Colours
 
-The palette is in `style.go`:
+The palette is in `style.go`. It has a dark set and a light set of the same roles:
 
-| Name | Colour | Used for |
-| --- | --- | --- |
-| fg | `#EDF1F2` | text |
-| muted | `#9199A3` | secondary text |
-| subtle | `#80848D` | headers, rows that need nothing |
-| border | `#3D3D47` | rules and frames |
-| select | `#242037` | cursor row, chosen option |
-| mint | `#75B39C` | keys in the key bar (bold), success, garner's mark |
-| amber | `#F79926` | work in progress, needs you, files below the profile's first preference |
-| red | `#F54D47` | failures, offline |
-| iris | `#9BA0E3` | links, underlined |
-| faded | `#3A3A44` | everything behind an overlay |
+| Name | Dark | Light | Used for |
+| --- | --- | --- | --- |
+| fg | `#EDF1F2` | `#1C2024` | text |
+| muted | `#9199A3` | `#545B66` | secondary text |
+| subtle | `#80848D` | `#6B7079` | headers, rows that need nothing |
+| border | `#3D3D47` | `#C4C8CF` | rules and frames |
+| select | `#242037` | derived | cursor row, chosen option |
+| mint | `#75B39C` | `#2D7A5E` | keys in the key bar (bold), success, garner's mark |
+| amber | `#F79926` | `#A65400` | work in progress, needs you, files below the profile's first preference |
+| red | `#F54D47` | `#C42B26` | failures, offline |
+| iris | `#9BA0E3` | `#4A50B8` | links, underlined |
+| faded | `#3A3A44` | `#C9CCD1` | everything behind an overlay |
 
-The interface sets no background colour, so it uses the terminal's own.
+The interface sets no background colour, so it uses the terminal's own. On start it asks the terminal for that colour (`tea.RequestBackgroundColor`) and `usePalette` picks the set: the light one on a light background, with the select background blended from the terminal's background and a little violet. A terminal that does not answer keeps the dark set. Use the palette's variables and styles, never colour values of your own, and read them when drawing: they change once the terminal answers.
+
+With `NO_COLOR` or a terminal without colour, Lip Gloss drops every colour but keeps bold and reverse video. The cursor then shows in reverse video; see [Cursor](#cursor).
 
 ## Mark
 

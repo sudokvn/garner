@@ -1,10 +1,12 @@
 package tui
 
 import (
+	"image/color"
 	"regexp"
 	"strings"
 	"testing"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -55,4 +57,31 @@ func TestCursorWithoutColour(t *testing.T) {
 	if !strings.Contains(ansi.Strip(answers), "> Cancel ") || !reverse.MatchString(answers) {
 		t.Errorf("answers %q: want > on Cancel and reverse video", answers)
 	}
+}
+
+// TestLightTerminal checks that on a terminal with a white background the
+// text is dark and the cursor row has a light background of its own: the
+// dark set's text is all but invisible on white.
+func TestLightTerminal(t *testing.T) {
+	defer usePalette(true, nil)
+	_, cl := newRecorder(t)
+	a, lib := libraryApp(cl, true)
+	a.Update(tea.BackgroundColorMsg{Color: color.White})
+	view := lib.view(120, 36)
+	const darkText, darkSelect = "38;2;237;241;242", "48;2;36;32;55"
+	if strings.Contains(view, darkText) || strings.Contains(view, darkSelect) {
+		t.Errorf("white terminal: the view uses the dark set's text or select colour")
+	}
+	if luma(cFg) > 0.3 {
+		t.Errorf("white terminal: text colour %v is not dark", cFg)
+	}
+	if l := luma(cSelect); l < 0.8 || l > 0.97 {
+		t.Errorf("white terminal: select background %v, want a light tint", cSelect)
+	}
+}
+
+// luma is a colour's brightness from 0 to 1.
+func luma(c color.Color) float64 {
+	r, g, b, _ := c.RGBA()
+	return (0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b)) / 0xffff
 }

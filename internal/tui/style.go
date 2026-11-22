@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"image/color"
 	"slices"
 	"strings"
 	"time"
@@ -11,39 +12,71 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// The palette; internal/tui/README.md lists the colours' uses.
-var (
-	cFg     = lipgloss.Color("#EDF1F2")
-	cMuted  = lipgloss.Color("#9199A3")
-	cSubtle = lipgloss.Color("#80848D")
-	cBorder = lipgloss.Color("#3D3D47")
-	cSelect = lipgloss.Color("#242037")
-	cMint   = lipgloss.Color("#75B39C")
-	cAmber  = lipgloss.Color("#F79926")
-	cRed    = lipgloss.Color("#F54D47")
-	cIris   = lipgloss.Color("#9BA0E3")
-)
+// The palette; internal/tui/README.md lists the colours' uses. usePalette
+// sets it and the styles and glyphs below.
+var cFg, cMuted, cSubtle, cBorder, cSelect, cMint, cAmber, cRed, cIris, cFaded color.Color
 
-var (
-	sNormal  = lipgloss.NewStyle().Foreground(cFg)
-	sBold    = sNormal.Bold(true)
-	sMuted   = lipgloss.NewStyle().Foreground(cMuted)
-	sSubtle  = lipgloss.NewStyle().Foreground(cSubtle)
-	sBorder  = lipgloss.NewStyle().Foreground(cBorder)
-	sMint    = lipgloss.NewStyle().Foreground(cMint)
-	sAmber   = lipgloss.NewStyle().Foreground(cAmber)
-	sRed     = lipgloss.NewStyle().Foreground(cRed)
-	sKey     = sMint.Bold(true)
-	sCommand = sBold.Background(cSelect)
-)
+var sNormal, sBold, sMuted, sSubtle, sBorder, sMint, sAmber, sRed, sKey, sCommand lipgloss.Style
 
 // Glyphs, one set everywhere (see internal/tui/README.md).
-var (
-	gDone    = sMint.Render("✓")
+var gDone, gWorking, gWaiting, gFailed string
+
+// The dark set applies until the terminal tells its background.
+func init() { usePalette(true, nil) }
+
+// usePalette sets the palette for the terminal's background: the dark set
+// on a dark one, the light set of the same roles on a light one. On a
+// light background bg, the select background is derived from bg, so the
+// cursor row stands out from that background by the same small step.
+//
+// The app calls it once the terminal answers, before it draws with the
+// answer; nothing else may change the palette.
+func usePalette(dark bool, bg color.Color) {
+	ld := lipgloss.LightDark(dark)
+	pick := func(light, dark string) color.Color { return ld(lipgloss.Color(light), lipgloss.Color(dark)) }
+	cFg = pick("#1C2024", "#EDF1F2")
+	cMuted = pick("#545B66", "#9199A3")
+	cSubtle = pick("#6B7079", "#80848D")
+	cBorder = pick("#C4C8CF", "#3D3D47")
+	cSelect = lipgloss.Color("#242037")
+	cMint = pick("#2D7A5E", "#75B39C")
+	cAmber = pick("#A65400", "#F79926")
+	cRed = pick("#C42B26", "#F54D47")
+	cIris = pick("#4A50B8", "#9BA0E3")
+	cFaded = pick("#C9CCD1", "#3A3A44")
+	if !dark {
+		if bg == nil {
+			bg = lipgloss.Color("#FFFFFF")
+		}
+		cSelect = mix(bg, lipgloss.Color("#4B3FA8"), 0.14)
+	}
+
+	sNormal = lipgloss.NewStyle().Foreground(cFg)
+	sBold = sNormal.Bold(true)
+	sMuted = lipgloss.NewStyle().Foreground(cMuted)
+	sSubtle = lipgloss.NewStyle().Foreground(cSubtle)
+	sBorder = lipgloss.NewStyle().Foreground(cBorder)
+	sMint = lipgloss.NewStyle().Foreground(cMint)
+	sAmber = lipgloss.NewStyle().Foreground(cAmber)
+	sRed = lipgloss.NewStyle().Foreground(cRed)
+	sKey = sMint.Bold(true)
+	sCommand = sBold.Background(cSelect)
+
+	gDone = sMint.Render("✓")
 	gWorking = sAmber.Render("●")
 	gWaiting = sSubtle.Render("○")
-	gFailed  = sRed.Render("✗")
-)
+	gFailed = sRed.Render("✗")
+}
+
+// mix blends colour b into a by share, from 0 to 1.
+func mix(a, b color.Color, share float64) color.Color {
+	ar, ag, ab, _ := a.RGBA()
+	br, bgr, bb, _ := b.RGBA()
+	blend := func(x, y uint32) uint8 {
+		return uint8((float64(x>>8)*(1-share) + float64(y>>8)*share) + 0.5)
+	}
+	return color.RGBA{R: blend(ar, br), G: blend(ag, bgr), B: blend(ab, bb), A: 0xff}
+}
 
 // clean makes untrusted text, such as release names and server messages,
 // safe to print: control characters (including the escape that starts
@@ -237,8 +270,6 @@ func indent(s string, n int) string {
 	}
 	return strings.Join(lines, "\n")
 }
-
-var cFaded = lipgloss.Color("#3A3A44")
 
 // overlay draws a rounded box with lines centred over base, everything
 // behind it in the faded colour.

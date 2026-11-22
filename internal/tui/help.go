@@ -28,14 +28,15 @@ var everywhere = []string{
 	"q", "quit, from the Library",
 }
 
-// glyphs are the states every list shows, in pipeline order.
+// glyphs are the states every list shows, in pipeline order. The styles
+// are pointers, as the palette follows the terminal's background.
 var glyphs = []struct {
 	glyph string
-	style lipgloss.Style
+	style *lipgloss.Style
 	label string
 }{
-	{"·", sSubtle, "not aired"}, {"○", sSubtle, "nothing yet"}, {"◐", sAmber, "downloading"}, {"●", sAmber, "processing"},
-	{"✓", sMint, "in the library"}, {"▲", sAmber, "needs you"}, {"✗", sRed, "failed"}, {"~", sAmber, "last resort"},
+	{"·", &sSubtle, "not aired"}, {"○", &sSubtle, "nothing yet"}, {"◐", &sAmber, "downloading"}, {"●", &sAmber, "processing"},
+	{"✓", &sMint, "in the library"}, {"▲", &sAmber, "needs you"}, {"✗", &sRed, "failed"}, {"~", &sAmber, "last resort"},
 }
 
 // helpLines are the overlay's lines for room cells: keys in two columns

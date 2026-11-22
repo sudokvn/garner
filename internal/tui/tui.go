@@ -105,10 +105,12 @@ func Run(ctx context.Context, path, version string) error {
 }
 
 func (a *app) Init() tea.Cmd {
+	// The palette follows the terminal's background; without an answer,
+	// the dark set stays.
 	if a.stored != nil {
-		return a.open(a.stored, api.Status{})
+		return tea.Batch(tea.RequestBackgroundColor, a.open(a.stored, api.Status{}))
 	}
-	return a.screen.init()
+	return tea.Batch(tea.RequestBackgroundColor, a.screen.init())
 }
 
 // open starts a session and shows the library.
@@ -153,6 +155,9 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		a.width, a.height = msg.Width, msg.Height
 		return a, nil
+	case tea.BackgroundColorMsg:
+		usePalette(msg.IsDark(), msg.Color)
+		// The screen may keep styles of its own, such as a text field's.
 	case tea.ColorProfileMsg:
 		a.mark = msg.Profile >= colorprofile.ANSI256
 		colourless = msg.Profile == colorprofile.NoTTY || msg.Profile == colorprofile.ASCII

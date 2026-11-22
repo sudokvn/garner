@@ -76,19 +76,28 @@ func newConnect(path, notice string) *connectScreen {
 	in.Prompt = "› "
 	in.EchoMode = textinput.EchoPassword
 	in.EchoCharacter = '•'
+	in.SetStyles(connectStyles())
+	return &connectScreen{path: path, notice: notice, input: in}
+}
+
+// connectStyles styles the field in the palette; Connect can open before
+// the terminal tells its background, so it styles the field again then.
+func connectStyles() textinput.Styles {
 	st := textinput.DefaultStyles(true)
 	st.Cursor.Blink = false
 	st.Cursor.Color = cFg
 	st.Focused.Prompt = sSubtle
 	st.Focused.Text = sNormal
-	in.SetStyles(st)
-	return &connectScreen{path: path, notice: notice, input: in}
+	return st
 }
 
 func (s *connectScreen) init() tea.Cmd { return s.input.Focus() }
 
 func (s *connectScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.BackgroundColorMsg:
+		s.input.SetStyles(connectStyles())
+		return s, nil
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter":
