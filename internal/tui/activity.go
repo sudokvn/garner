@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,7 +19,8 @@ import (
 )
 
 // Activity lists what runs, what waits for the user, and what ended within
-// the last day: one row per episode, its latest download.
+// the last day: one row per episode, its latest download, with the
+// attempts before it that the file check rejected hanging under it.
 
 type activityMsg struct {
 	from  *activityScreen
@@ -26,11 +28,23 @@ type activityMsg struct {
 	err   error
 }
 
+// rejectionsMsg brings the rejection counts on their own, so a slow count
+// does not hold back the list.
+type rejectionsMsg struct {
+	from       *activityScreen
+	gen        int // the reload that asked
+	rejections api.Rejections
+	err        error
+}
+
 type activityScreen struct {
-	sess  *session
-	back  screen
-	items []api.ActivityItem
-	err   error
+	sess       *session
+	back       screen
+	items      []api.ActivityItem
+	rejections *api.Rejections
+	// Counts reloads, so an older answer does not replace newer counts.
+	rejGen int
+	err    error
 	// A reload asked for while one runs follows it.
 	loading, dirty bool
 	selected       int64 // episode ID
@@ -53,13 +67,19 @@ func (s *activityScreen) reload() tea.Cmd {
 		return nil
 	}
 	s.loading = true
-	cl := s.sess.client
-	return func() tea.Msg {
+	s.rejGen++
+	cl, gen := s.sess.client, s.rejGen
+	return tea.Batch(func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 		items, err := cl.Activity(ctx)
-		return activityMsg{s, items, err}
-	}
+		return activityMsg{from: s, items: items, err: err}
+	}, func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		r, err := cl.Rejections(ctx)
+		return rejectionsMsg{from: s, gen: gen, rejections: r, err: err}
+	})
 }
 
 func (s *activityScreen) update(msg tea.Msg) (screen, tea.Cmd) {
@@ -90,6 +110,11 @@ func (s *activityScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 			waiting = append(waiting, &s.items[i].Download)
 		}
 		return s, tea.Batch(cmd, redrawWhenSlow(waiting...))
+	case rejectionsMsg:
+		// Without the counts, the list still shows.
+		if msg.from == s && msg.gen == s.rejGen && msg.err == nil {
+			s.rejections = &msg.rejections
+		}
 	case cancelledMsg:
 		s.busy = ""
 		switch {
@@ -143,6 +168,8 @@ func (s *activityScreen) apply(d api.Download) tea.Cmd {
 	if i < 0 || s.items[i].Download.State != d.State || s.items[i].Download.Import.State != d.Import.State {
 		return s.reload()
 	}
+	// An event does not number the download; it keeps its attempt.
+	d.Attempt = s.items[i].Download.Attempt
 	s.items[i].Download = d
 	return nil
 }
@@ -299,7 +326,7 @@ func itemEpisode(it api.ActivityItem) string {
 }
 
 const (
-	activityTop        = 4 // rows above the list: header, blank, column names, rule
+	activityTop        = 6 // rows above the list: header, blank, facts, blank, column names, rule
 	activityShowWidth  = 34
 	activityEpWidth    = len("Episode")
 	activitySinceWidth = len("16 Oct 14:02")
@@ -307,7 +334,9 @@ const (
 
 func (s *activityScreen) view(width, height int) string {
 	var b strings.Builder
+	now := time.Now()
 	b.WriteString(header(width, s.sess, "garner", "Activity") + "\n\n")
+	b.WriteString(s.facts(width, now) + "\n\n")
 	// Wide: State takes the room, as on the other tables. Narrow: the show
 	// names give way to State, down to a minimum.
 	fixed := 3 + 1 + 3 + 3 + activityEpWidth + 3 + 3 + activitySinceWidth + 3
@@ -327,12 +356,28 @@ func (s *activityScreen) view(width, height int) string {
 	case len(rows) == 0:
 		b.WriteString("\n   " + sMuted.Render("Nothing running. Finished downloads stay here for a day."))
 	default:
+		// Lines, for scrolling: each row, then its rejected attempts.
+		var lines []string
+		cursor := 0 // the cursor row's line
+		last := 0   // the last line that belongs to it
+		for _, it := range rows {
+			selected := it.Download.EpisodeID == s.selected
+			if selected {
+				cursor = len(lines)
+			}
+			lines = append(lines, activityRow(it, selected, showWidth, stateWidth, width, now))
+			for _, r := range it.Rejected {
+				lines = append(lines, rejectedRow(r, width, now))
+			}
+			if selected {
+				last = len(lines) - 1
+			}
+		}
 		page := max(3, height-activityTop-barHeight)
-		cursor := max(0, slices.IndexFunc(rows, func(it api.ActivityItem) bool { return it.Download.EpisodeID == s.selected }))
-		s.offset = min(max(s.offset, cursor-page+1), cursor)
-		now := time.Now()
-		for _, it := range rows[s.offset:min(len(rows), s.offset+page)] {
-			b.WriteString(activityRow(it, it.Download.EpisodeID == s.selected, showWidth, stateWidth, width, now) + "\n")
+		// The cursor row shows with its rejected attempts where they fit.
+		s.offset = min(max(s.offset, last-page+1), cursor)
+		for _, l := range lines[s.offset:min(len(lines), s.offset+page)] {
+			b.WriteString(l + "\n")
 		}
 	}
 	page := screenLayout(width, height, b.String(), s.bottom())
@@ -360,9 +405,11 @@ func activityRow(it api.ActivityItem, selected bool, showWidth, stateWidth, widt
 	var parts []part
 	switch state {
 	case api.EpisodeImported:
-		// Done: nothing to do, so subtle, as on the show screen.
+		// Done: nothing to do, so subtle, as on the show screen. What the
+		// file check found, or without a check what the release claimed.
 		text = sSubtle
-		parts = []part{{strings.TrimPrefix(clean(d.Tier)+" · "+size(d.Size), " · "), sSubtle}}
+		found := cmp.Or(foundTier(fileCheck(d)), clean(d.Tier))
+		parts = []part{{strings.TrimPrefix(found+" · "+size(d.Size), " · "), sSubtle}}
 		if d.Replaces != "" {
 			parts = append(parts, part{" · replaced " + clean(d.Replaces), sSubtle})
 		}
@@ -373,7 +420,12 @@ func activityRow(it api.ActivityItem, selected bool, showWidth, stateWidth, widt
 		glyph, glyphStyle, text = "✗", sSubtle, sSubtle
 		parts = []part{{"cancelled", sSubtle}}
 	default:
-		parts = statusParts(state, &d, "", nil, 0, now)
+		// A running download that is not the episode's first names its
+		// attempt, as the Show screen does.
+		parts = statusParts(state, &d, "", nil, d.Attempt, now)
+		if (state == api.EpisodeProcessing || state == api.EpisodeImporting) && d.Attempt > 1 {
+			parts = append(parts, part{" · attempt " + strconv.Itoa(d.Attempt), sMuted})
+		}
 	}
 	gap := bg(lipgloss.NewStyle()).Render("   ")
 	line := cur.margin() + bg(glyphStyle).Render(glyph) + gap +
@@ -382,6 +434,49 @@ func activityRow(it api.ActivityItem, selected bool, showWidth, stateWidth, widt
 		renderParts(parts, stateWidth, bg)
 	line = cur.fill(line, width-3-activitySinceWidth) + bg(sSubtle).Render(fit(when(since(d), now), activitySinceWidth, true))
 	return cur.fill(line, width-3)
+}
+
+// rejectedRow hangs an attempt the file check rejected under its episode's
+// row, with the server's reason and when it was rejected.
+func rejectedRow(d api.Download, width int, now time.Time) string {
+	lead := "       " + sSubtle.Render("└ ")
+	room := width - 3 - activitySinceWidth - 3 - lipgloss.Width(lead)
+	line := lead + renderParts(rejectedParts(d), room, func(s lipgloss.Style) lipgloss.Style { return s })
+	return pad(line, width-3-activitySinceWidth) + sSubtle.Render(fit(when(cmp.Or(d.Import.Updated, d.Updated), now), activitySinceWidth, true))
+}
+
+// rejectedParts names an attempt the file check rejected, by its number
+// when the server sends one, with the server's reason.
+func rejectedParts(d api.Download) []part {
+	label := "rejected after download"
+	if d.Attempt > 0 {
+		label = "attempt " + strconv.Itoa(d.Attempt) + " rejected"
+	}
+	return []part{{label, sMuted}, {" · ", sMuted}, {rejection(d), sMuted}}
+}
+
+// facts count what runs, what was imported today and what the file check
+// rejected, which the server counts over its current shows.
+func (s *activityScreen) facts(width int, now time.Time) string {
+	inFlight, today := 0, 0
+	for _, it := range s.items {
+		d := it.Download
+		switch {
+		case d.Active():
+			inFlight++
+		case d.Import.State == api.ImportDone && d.Import.Updated.Local().Format(time.DateOnly) == now.Local().Format(time.DateOnly):
+			today++
+		}
+	}
+	parts := []string{fact("In flight", fmt.Sprint(inFlight)), fact("Imported today", fmt.Sprint(today))}
+	if r := s.rejections; r != nil {
+		counts := "none"
+		if r.Total > 0 {
+			counts = fmt.Sprintf("%d in the last 7 days · %d since %s", r.LastWeek, r.Total, day(r.Oldest.Local().Format(time.DateOnly), now))
+		}
+		parts = append(parts, fact("Rejected after download", counts))
+	}
+	return factLines(width, parts...)
 }
 
 func (s *activityScreen) bottom() string {

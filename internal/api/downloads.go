@@ -70,6 +70,10 @@ type Download struct {
 	// failure, its original timestamps and its retry eligibility stay put.
 	Acknowledged time.Time `json:"acknowledged,omitzero"`
 	Import       Import    `json:"import"`
+	// Attempt is the download's place among every download started for
+	// its episode, 1 for the first. It is set on the downloads of an
+	// ActivityItem and zero elsewhere.
+	Attempt int `json:"attempt,omitempty"`
 }
 
 // Stage is one of SABnzbd's post-processing steps and what happened in it.

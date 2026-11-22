@@ -155,7 +155,7 @@ func (s *Store) Downloads(ctx context.Context, limit int) ([]Download, error) {
 // Activity lists each episode's latest download that runs, waits for the
 // user (an import that failed or was not confirmed), or ended since since;
 // newest first. Each comes with the attempts of its run that the file
-// check rejected.
+// check rejected, and all of them with their attempt numbers.
 func (s *Store) Activity(ctx context.Context, since time.Time) ([]ActivityItem, error) {
 	rows, err := s.q.ListActivity(ctx, since.Unix())
 	if err != nil {
@@ -171,10 +171,22 @@ func (s *Store) Activity(ctx context.Context, since time.Time) ([]ActivityItem, 
 		if err != nil {
 			return nil, err
 		}
+		numberAttempts(&d, earlier)
 		out = append(out, ActivityItem{Download: d, Rejected: rejectedInRun(d, earlier), SeriesID: r.SeriesID, SeriesName: r.SeriesName,
 			SeriesNameEng: r.SeriesNameEng.String, Season: int(r.Season.Int64), Number: int(r.Number.Int64)})
 	}
 	return out, nil
+}
+
+// numberAttempts numbers an episode's downloads, newest first, by their
+// place among all of them, and d, one of them, as they number it.
+func numberAttempts(d *Download, downloads []Download) {
+	for i := range downloads {
+		downloads[i].Attempt = len(downloads) - i
+		if downloads[i].ID == d.ID {
+			d.Attempt = downloads[i].Attempt
+		}
+	}
 }
 
 // replaceWithin bounds the time between a failure and the replacement

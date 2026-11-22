@@ -226,3 +226,96 @@ func TestActivityRejectedAttempts(t *testing.T) {
 		t.Errorf("rejected attempts before a download the user started = %q, want none", r)
 	}
 }
+
+// TestActivityAttemptNumbers numbers an episode's attempts in Activity by
+// every download started for it, so "attempt 4 rejected" there is attempt
+// 4 on the Show and Episode screens too, however the downloads of other
+// episodes interleave.
+func TestActivityAttemptNumbers(t *testing.T) {
+	ctx := context.Background()
+	st, err := Open(ctx, t.TempDir(), slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	pos := func(n int) map[string]Position { return map[string]Position{"official": {Season: 1, Number: n}} }
+	if err := st.SaveSeries(ctx, SeriesData{
+		Series: Series{ID: 42, Slug: "x", Name: "Harbor Precinct", OriginalLanguage: "eng", OriginalCountry: "usa",
+			Status: "Ended", DefaultOrder: "official", TVDBUpdated: "2026-01-01", Type: "tv"},
+		Episodes: []Episode{{ID: 101, Numbers: pos(1)}, {ID: 102, Numbers: pos(2)}},
+	}, true, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	at := func(minutes int) time.Time { return now.Add(time.Duration(minutes-60) * time.Minute) }
+	// attempt starts a download that the file check rejects, that fails in
+	// SABnzbd, or that still runs when end is zero.
+	attempt := func(episode int64, title string, start, end time.Time, rejected bool, stopped string) {
+		t.Helper()
+		d, err := st.StartDownload(ctx, Download{EpisodeID: episode, Title: title, Link: "x", Verdict: "accept"}, start)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d.State, d.JobID = Downloading, title
+		if !end.IsZero() {
+			d.State, d.Retryable, d.Failure = Failed, true, "failed"
+		}
+		if err := st.UpdateDownload(ctx, d, end); err != nil {
+			t.Fatal(err)
+		}
+		if rejected {
+			if err := st.UpdateImport(ctx, d.ID, Import{State: ImportRejected, Detail: "file check: the video is 1280x720"}, end); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if stopped != "" {
+			if err := st.StopReplacing(ctx, d.ID, stopped); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	// The first attempt belongs to an earlier run; Activity leaves it out
+	// but still counts it.
+	attempt(101, "earlier run", at(-3000), at(-2990), true, "No other release like it is left to try.")
+	attempt(102, "other episode", at(-5), at(-1), false, "")
+	attempt(101, "rejected first", at(0), at(10), true, "")
+	attempt(102, "other episode again", at(5), time.Time{}, false, "")
+	attempt(101, "failed in SABnzbd", at(10), at(20), false, "")
+	attempt(101, "rejected second", at(20), at(30), true, "")
+	attempt(101, "running", at(30), time.Time{}, false, "")
+
+	// The episode's number downloads, oldest first, give each its number.
+	all, err := st.EpisodeDownloads(ctx, 101)
+	if err != nil {
+		t.Fatal(err)
+	}
+	number := map[int64]int{}
+	for i, d := range all {
+		number[d.ID] = len(all) - i
+	}
+	items, err := st.Activity(ctx, now.Add(-24*time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	i := slices.IndexFunc(items, func(it ActivityItem) bool { return it.Download.EpisodeID == 101 })
+	if i < 0 {
+		t.Fatal("episode 101 is not in the activity")
+	}
+	it := items[i]
+	got := []int{it.Download.Attempt}
+	want := []int{number[it.Download.ID]}
+	for _, d := range it.Rejected {
+		got, want = append(got, d.Attempt), append(want, number[d.ID])
+	}
+	if !slices.Equal(got, []int{5, 4, 2}) || !slices.Equal(got, want) {
+		t.Errorf("attempt numbers of the running download and its rejected attempts = %v, want %v and [5 4 2]", got, want)
+	}
+	_, states, err := st.ShowStatus(ctx, 42, now, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	j := slices.IndexFunc(states, func(s EpisodeStatus) bool { return s.EpisodeID == 101 })
+	if j < 0 || states[j].Attempts != it.Download.Attempt {
+		t.Errorf("the Show screen does not count %d attempts, as Activity numbers the latest", it.Download.Attempt)
+	}
+}
