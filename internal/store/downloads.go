@@ -154,7 +154,8 @@ func (s *Store) Downloads(ctx context.Context, limit int) ([]Download, error) {
 
 // Activity lists each episode's latest download that runs, waits for the
 // user (an import that failed or was not confirmed), or ended since since;
-// newest first.
+// newest first. Each comes with the attempts of its run that the file
+// check rejected.
 func (s *Store) Activity(ctx context.Context, since time.Time) ([]ActivityItem, error) {
 	rows, err := s.q.ListActivity(ctx, since.Unix())
 	if err != nil {
@@ -166,10 +167,49 @@ func (s *Store) Activity(ctx context.Context, since time.Time) ([]ActivityItem, 
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, ActivityItem{Download: d, SeriesID: r.SeriesID, SeriesName: r.SeriesName,
+		earlier, err := s.EpisodeDownloads(ctx, d.EpisodeID)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, ActivityItem{Download: d, Rejected: rejectedInRun(d, earlier), SeriesID: r.SeriesID, SeriesName: r.SeriesName,
 			SeriesNameEng: r.SeriesNameEng.String, Season: int(r.Season.Int64), Number: int(r.Number.Int64)})
 	}
 	return out, nil
+}
+
+// replaceWithin bounds the time between a failure and the replacement
+// garner starts for it; it starts it right away.
+const replaceWithin = time.Minute
+
+// rejectedInRun lists, newest first, the attempts before d in d's run that
+// the file check rejected; downloads are the episode's, newest first.
+func rejectedInRun(d Download, downloads []Download) []Download {
+	var out []Download
+	next := d
+	for _, prev := range downloads {
+		if prev.ID >= d.ID {
+			continue
+		}
+		if !replaced(prev, next) {
+			break
+		}
+		if prev.Import.State == ImportRejected {
+			out = append(out, prev)
+		}
+		next = prev
+	}
+	return out
+}
+
+// replaced reports whether garner started next to replace the failed
+// download prev: prev may be replaced and garner did not stop, and next
+// keeps prev's choice by hand and search, started when prev failed. A
+// download the user or the monitor started later is not a replacement.
+func replaced(prev, next Download) bool {
+	gap := next.Created.Sub(prev.Updated)
+	return prev.State == Failed && prev.Retryable && prev.Stopped == "" &&
+		next.Manual == prev.Manual && next.SearchSeason == prev.SearchSeason &&
+		gap >= -replaceWithin && gap <= replaceWithin
 }
 
 func (s *Store) FailedSince(ctx context.Context, episodeID int64, t time.Time) (int, error) {

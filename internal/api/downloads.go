@@ -123,12 +123,17 @@ func (d Download) CanAcknowledge() bool {
 // place in the show's default order; Season and Number are 0 when the order
 // does not place it.
 type ActivityItem struct {
-	Download      Download `json:"download"`
-	SeriesID      int64    `json:"series_id"`
-	SeriesName    string   `json:"series_name"`
-	SeriesNameEng string   `json:"series_name_eng,omitempty"`
-	Season        int      `json:"season"`
-	Number        int      `json:"number"`
+	Download Download `json:"download"`
+	// Rejected lists, newest first, the episode's earlier attempts in the
+	// same run as Download that the file check rejected. A run is a chain
+	// of attempts, each started by garner to replace the failed one before
+	// it; an attempt garner did not replace ends it.
+	Rejected      []Download `json:"rejected,omitempty"`
+	SeriesID      int64      `json:"series_id"`
+	SeriesName    string     `json:"series_name"`
+	SeriesNameEng string     `json:"series_name_eng,omitempty"`
+	Season        int        `json:"season"`
+	Number        int        `json:"number"`
 }
 
 // ImportState is where the import of a finished download is; empty
