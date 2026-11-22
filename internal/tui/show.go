@@ -716,14 +716,7 @@ func episodeParts(e episodeRow, d *api.SeriesDetail, now time.Time) []part {
 	st := e.status
 	switch st.State {
 	case api.EpisodeImported:
-		if st.Tier == "" {
-			return []part{{"in the library", sSubtle}}
-		}
-		if st.Tier != d.Best {
-			// Below the best tier: an upgrade may come.
-			return []part{{clean(st.Tier), sAmber}}
-		}
-		return []part{{clean(st.Tier), sSubtle}}
+		return importedParts(st, d.Best)
 	case api.EpisodeUpcoming:
 		if e.episode.Aired == "" || e.episode.Aired != d.Summary.NextAired {
 			return nil
@@ -743,6 +736,30 @@ func episodeParts(e episodeRow, d *api.SeriesDetail, now time.Time) []part {
 		}
 	}
 	return statusParts(st.State, st.Download, st.Summary, st.NextRetry, st.Attempts, now)
+}
+
+// importedParts describes a file in the library: what the file check found
+// in it, amber when that falls short of the profile's first preference,
+// and whether its release was chosen by hand. A file garner took over was
+// never checked; it shows the preference its release name met.
+func importedParts(st api.EpisodeStatus, best string) []part {
+	label, short := clean(st.Tier), st.Tier != best
+	if st.Check != nil {
+		label, short = foundTier(st.Check), !meets(st.Check, best)
+	}
+	if label == "" {
+		label, short = "in the library", false
+	}
+	style := sSubtle
+	if short {
+		// Below the first preference: an upgrade may come.
+		style = sAmber
+	}
+	parts := []part{{label, style}}
+	if st.ChosenByHand {
+		parts = append(parts, part{" · chosen by hand", sSubtle})
+	}
+	return parts
 }
 
 func episodeGlyph(state api.EpisodeState) (string, lipgloss.Style) {

@@ -49,3 +49,26 @@ func TestAbsoluteNumbers(t *testing.T) {
 		}
 	}
 }
+
+// TestShowStateFound labels an imported file by what the file check found
+// in it, not by what its release name claimed, and says when its release
+// was chosen by hand.
+func TestShowStateFound(t *testing.T) {
+	show, _ := lanterns(t)
+	st := &show.detail.States[0]
+	st.Check = &api.FileCheck{Audio: []string{"English"}, Resolution: "1920x1080"}
+	st.ChosenByHand = true
+	view := ansi.Strip(show.view(120, 36))
+	if !strings.Contains(view, "English 1080p · chosen by hand") || strings.Contains(view, "Japanese 1080p") {
+		t.Errorf("the dub reads as its release claimed:\n%s", view)
+	}
+	parts := importedParts(*st, show.detail.Best)
+	if parts[0].style.GetForeground() != sAmber.GetForeground() {
+		t.Error("a file below the first preference is not amber")
+	}
+	// A file garner took over was never checked: its release's preference.
+	st.Check, st.ChosenByHand = nil, false
+	if view := ansi.Strip(show.view(120, 36)); !strings.Contains(view, "Japanese 1080p") || strings.Contains(view, "chosen by hand") {
+		t.Errorf("a file without a check:\n%s", view)
+	}
+}
