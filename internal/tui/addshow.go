@@ -236,8 +236,7 @@ func (s *addScreen) view(width, height int) string {
 		if errors.As(s.err, &server) && server.Status == http.StatusBadGateway {
 			text = "TVDB did not answer: " + text + "."
 		}
-		b.WriteString("   " + gFailed + " " + sNormal.Render(text) + sMuted.Render(" Change the search or press ") +
-			sKey.Render("enter") + sMuted.Render(" to try again."))
+		b.WriteString(errorLines(text, sMuted.Render("Change the search or press ")+sKey.Render("enter")+sMuted.Render(" to try again."), width))
 	case len(rs) == 0:
 		b.WriteString("   " + sMuted.Render("No show matches "+strconv.Quote(s.shown)+"."))
 	default:
@@ -499,8 +498,7 @@ func (s *previewScreen) view(width, height int) string {
 	p := s.preview
 	switch {
 	case s.err != nil:
-		b.WriteString("   " + gFailed + " " + sNormal.Render(clean(s.err.Error())) + sMuted.Render(" Press ") +
-			sKey.Render("r") + sMuted.Render(" to try again."))
+		b.WriteString(errorLines(clean(s.err.Error()), sMuted.Render("Press ")+sKey.Render("r")+sMuted.Render(" to try again."), width))
 	case p == nil:
 		b.WriteString("   " + sMuted.Render("Loading "+s.name()+" from TVDB…"))
 	default:
@@ -523,6 +521,21 @@ func (s *previewScreen) view(width, height int) string {
 		return overlay(page, monitorQuestion("Add "+s.name(), s.choice, "", "add"), width, height)
 	}
 	return page
+}
+
+// errorLines draws an error after its glyph, wrapped under itself within
+// the design's width, then the recovery hint on a line of its own.
+func errorLines(text, hint string, width int) string {
+	inner := max(20, min(width, designWidth)-3-2-3)
+	var b strings.Builder
+	for i, l := range strings.Split(ansi.Wrap(text, inner, ""), "\n") {
+		glyph := " "
+		if i == 0 {
+			glyph = gFailed
+		}
+		b.WriteString("   " + glyph + " " + sNormal.Render(strings.TrimRight(l, " ")) + "\n")
+	}
+	return b.String() + "\n     " + hint
 }
 
 const labelWidth = 12
