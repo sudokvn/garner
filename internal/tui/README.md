@@ -96,10 +96,11 @@ Some keys mean the same everywhere:
 
 - `j k` move, `gg G` jump to the top or bottom, `ctrl+d u` move by half a page.
 - `enter` opens, `esc` goes back, `A` opens Activity, `P` opens Profiles, `?` opens Help, `q` quits from the Library.
+- `n` opens the next episode that needs the user (`needs.go`): failures not cleared first, then files Jellyfin did not confirm. Pressed again on that episode, it moves on and wraps around, and the bottom line counts the queue.
 - `/` filters as you type in the bottom line; `enter` keeps the filter and `esc` clears it.
 - `s` sorts by the next column and `I` reverses the order. Where a row is an episode, as on the Show screen and the Library's Upcoming tab, `s` searches it now instead.
 - `d` deletes and is never a navigation key. `j k` never leave a pane; `tab` moves between panes. Where `tab` also switches categories, as in the Library, the preview takes it and `1` to `4` keep switching them.
-- While text is typed or a question is open, the screen takes every key, including `?` and `A`.
+- While text is typed or a question is open, the screen takes every key, including `?`, `A` and `n`.
 
 ## Text
 

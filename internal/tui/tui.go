@@ -75,6 +75,7 @@ type app struct {
 	screen        screen
 	library       *libraryScreen
 	stored        *client.Client // a stored connection to open on start
+	needs         needsState     // the queue n walks
 }
 
 // Run opens the interface. path is where the connection code is stored.
@@ -186,6 +187,8 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			break
 		}
 		switch key {
+		case "n":
+			return a, a.nextNeeds()
 		case "?":
 			a.help, a.helpScroll = true, scroller{}
 			return a, nil
@@ -204,6 +207,8 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.screen = newProfiles(a.sess, a.screen)
 			return a, a.screen.init()
 		}
+	case needsMsg:
+		return a, a.showNeeds(msg)
 	case connectedMsg:
 		return a, a.open(msg.client, msg.status)
 	case switchMsg:
@@ -237,7 +242,7 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.sess.stop()
 			a.sess = nil
 		}
-		a.library = nil
+		a.library, a.needs = nil, needsState{}
 		a.screen = newConnect(a.path, msg.reason)
 		return a, a.screen.init()
 	case eventMsg:
@@ -292,7 +297,7 @@ func (a *app) View() tea.View {
 	v.AltScreen = true
 	v.WindowTitle = "garner"
 	if a.width > 0 && a.height > 0 {
-		v.Content = a.screen.view(a.width, a.height)
+		v.Content = a.withNeeds(a.screen.view(a.width, a.height))
 		if a.help {
 			// The box's borders and a line of margin above and below.
 			all := helpLines(a.screen, a.width-8)

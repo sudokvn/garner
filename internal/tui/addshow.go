@@ -648,7 +648,8 @@ func (s *previewScreen) bottom() string {
 
 func (s *previewScreen) flashed() *flash { return &s.flash }
 
-func (s *previewScreen) captures() bool { return s.asking }
+// captures: while the show is added, no key leaves the screen.
+func (s *previewScreen) captures() bool { return s.asking || s.adding }
 
 func (s *previewScreen) help() (string, []string) {
 	return "Add show", []string{"a", "add to the library", "o", "open on TVDB"}
