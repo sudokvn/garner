@@ -80,7 +80,9 @@ About keeps licence access to one line, `AGPLv3 · source and licence`, followed
 
 ## Keys
 
-Every screen lists its keys in a `help()` method, and the Help overlay (`?`) shows them with the keys that every screen has. The key bar shows the most important ones. When you add a key, add it to the screen's `help()`.
+Every screen lists its keys in a `help()` method, and the Help overlay (`?`) shows them with the keys that every screen has. The key bar shows the most important ones, keys in mint bold and labels in muted. When you add a key, add it to the screen's `help()`.
+
+When the key bar is wider than the terminal, `fitKeys` leaves out whole keys by importance (`keyImportance` in `style.go`): `j k` first, then the screen's own keys from the right, then `enter`, `esc` and `q`, and `?` last of all. The keys that stay keep their order, so write a key bar in the order it reads best at full width.
 
 The key bar stays in place as the cursor moves. A key whose label or action depends on the row, such as `enter` on the Show screen or `x cancel` in Activity, uses `keySlot`: its label keeps the room of the widest one, and a row without the action shows the key greyed out instead of leaving it out.
 

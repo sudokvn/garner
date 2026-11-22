@@ -615,7 +615,7 @@ func (s *editorScreen) bottom(row editorRow) string {
 	if row.kind == rowResolution {
 		add = "add resolution"
 	}
-	return keyBar("e", "edit", "h l", "choose", "a", add, "d", "remove", "K", "move up", "J", "move down", "enter", "save", "esc", "cancel")
+	return keyBar("e", "edit", "h l", "choose", "a", add, "d", "remove", "K J", "move", "enter", "save", "esc", "cancel", "?", "help")
 }
 
 func (s *editorScreen) flashed() *flash { return &s.flash }

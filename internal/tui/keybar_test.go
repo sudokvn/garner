@@ -86,6 +86,21 @@ func TestKeyBarKeepsItsPlace(t *testing.T) {
 	}
 }
 
+// TestKeyBarKeepsSaveAndCancel checks that a narrow key bar leaves out
+// the less important keys first: at 80 columns the profile editor still
+// shows how to save, leave and get help.
+func TestKeyBarKeepsSaveAndCancel(t *testing.T) {
+	_, cl := newRecorder(t)
+	_, ed := editorApp(cl, 1)
+	lines := strings.Split(ed.view(80, 24), "\n")
+	bar := ansi.Strip(lines[len(lines)-1])
+	for _, key := range []string{"enter save", "esc cancel", "? help", "e edit"} {
+		if !strings.Contains(bar, key) {
+			t.Errorf("key bar at 80 columns %q: no %q", bar, key)
+		}
+	}
+}
+
 // TestBarSeparated keeps the last row of a full screen apart from the key
 // bar: a rule runs between them (GRR-82).
 func TestBarSeparated(t *testing.T) {

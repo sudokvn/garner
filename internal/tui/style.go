@@ -121,24 +121,37 @@ const minName = 24
 // keyGap separates the keys of a key bar.
 const keyGap = "    "
 
-// fitKeys makes a key bar fit width by leaving out whole keys: "j k move"
-// first, then from the right. The Help key and the last one, usually
-// "esc back", stay: Help lists every key. Other lines are cut.
+// keyImportance ranks a key of the key bar; fitKeys leaves out the least
+// important first. j k go first, as every screen moves with them. enter,
+// esc and q, which act or leave, go last, and ? last of all: Help lists
+// every key.
+func keyImportance(part string) int {
+	key, _, _ := strings.Cut(ansi.Strip(part), " ")
+	switch key {
+	case "j":
+		return 0
+	case "enter", "esc", "q":
+		return 2
+	case "?":
+		return 3
+	}
+	return 1
+}
+
+// fitKeys makes a key bar fit width by leaving out whole keys, the least
+// important first and, among equals, from the right. The keys that stay
+// keep their order. Other lines are cut.
 func fitKeys(bar string, width int) string {
 	parts := strings.Split(bar, keyGap)
 	if lipgloss.Width(bar) <= width || len(parts) < 2 {
 		return ansi.Truncate(bar, width, "")
 	}
-	stays := func(i int) bool { return i == len(parts)-1 || strings.HasPrefix(ansi.Strip(parts[i]), "? ") }
-	var order []int
-	if strings.HasPrefix(ansi.Strip(parts[0]), "j k ") {
-		order = append(order, 0)
+	order := make([]int, len(parts))
+	for i := range order {
+		order[i] = len(parts) - 1 - i
 	}
-	for i := len(parts) - 1; i > 0; i-- {
-		if !stays(i) {
-			order = append(order, i)
-		}
-	}
+	slices.SortStableFunc(order, func(a, b int) int { return keyImportance(parts[a]) - keyImportance(parts[b]) })
+	order = order[:len(order)-1] // the most important key stays
 	left := map[int]bool{}
 	join := func() string {
 		var kept []string
