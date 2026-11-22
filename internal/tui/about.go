@@ -16,8 +16,9 @@ import (
 	"github.com/sudokvn/garner/internal/client"
 )
 
-// About shows the versions, the connection, how the services the server
-// uses are doing, and what the library holds, with TVDB's attribution.
+// About shows the versions, the connection, the downloads the file check
+// rejected, how the services the server uses are doing, and what the
+// library holds, with TVDB's attribution.
 
 type (
 	aboutStatusMsg struct {
@@ -30,6 +31,11 @@ type (
 		services api.Services
 		err      error
 	}
+	aboutRejectionsMsg struct {
+		from       *aboutScreen
+		rejections api.Rejections
+		err        error
+	}
 )
 
 type aboutScreen struct {
@@ -40,9 +46,13 @@ type aboutScreen struct {
 	status   *api.Status
 	services *api.Services
 	err      error // of the services check
-	flash    flash
-	scroll   scroller
-	sources  *pickList
+	// rejections counts the downloads the file check rejected; rejectErr
+	// is why they could not be counted.
+	rejections *api.Rejections
+	rejectErr  error
+	flash      flash
+	scroll     scroller
+	sources    *pickList
 }
 
 func newAbout(sess *session, back screen, path, version string) *aboutScreen {
@@ -65,6 +75,12 @@ func (s *aboutScreen) init() tea.Cmd {
 			defer cancel()
 			sv, err := cl.Services(ctx)
 			return aboutServicesMsg{s, sv, err}
+		},
+		func() tea.Msg {
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			r, err := cl.Rejections(ctx)
+			return aboutRejectionsMsg{s, r, err}
 		},
 	)
 }
@@ -94,6 +110,14 @@ func (s *aboutScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 			return s, func() tea.Msg { return disconnectedMsg{errRevoked} }
 		}
 		s.services, s.err = &msg.services, msg.err
+	case aboutRejectionsMsg:
+		if msg.from != s {
+			return s, nil
+		}
+		if errors.Is(msg.err, client.ErrUnauthorized) {
+			return s, func() tea.Msg { return disconnectedMsg{errRevoked} }
+		}
+		s.rejections, s.rejectErr = &msg.rejections, msg.err
 	case openedMsg:
 		if msg.err != nil {
 			s.flash.stay(gFailed + " " + sRed.Render("Could not open the browser: "+clean(msg.err.Error())))
@@ -193,6 +217,7 @@ func (s *aboutScreen) view(width, height int) string {
 		}
 	}
 	b.WriteString("\n")
+	b.WriteString(indent(frame("rejected after download", s.rejectionLines(), w), 3) + "\n\n")
 
 	switch {
 	case s.services == nil:
