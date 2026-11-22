@@ -140,18 +140,18 @@ func Check(p Probe, e Expect) api.FileCheck {
 	}
 
 	if len(p.Video) == 0 {
-		r.Problems = append(r.Problems, "the file has no video track")
+		r.AddProblem(api.ProblemNoVideoTrack, "the file has no video track")
 	} else {
 		v := p.Video[0]
 		class := api.ResolutionClass(v.Width, v.Height)
 		r.Resolution = fmt.Sprintf("%dx%d", v.Width, v.Height)
 		switch {
 		case class < 720:
-			r.Problems = append(r.Problems, fmt.Sprintf("the video is %s, below 720p", r.Resolution))
+			r.AddProblem(api.ProblemResolution, fmt.Sprintf("the video is %s, below 720p", r.Resolution))
 		case class >= 2160 && e.Resolution < 2160:
-			r.Problems = append(r.Problems, fmt.Sprintf("the video is %s; garner does not take 2160p yet", r.Resolution))
+			r.AddProblem(api.ProblemResolution, fmt.Sprintf("the video is %s; garner does not take 2160p yet", r.Resolution))
 		case e.Resolution >= 1080 && class < 1080:
-			r.Problems = append(r.Problems, fmt.Sprintf("the video is %s, but the release claimed %s", r.Resolution, e.Resolution))
+			r.AddProblem(api.ProblemResolution, fmt.Sprintf("the video is %s, but the release claimed %s", r.Resolution, e.Resolution))
 		}
 	}
 
@@ -161,10 +161,10 @@ func Check(p Probe, e Expect) api.FileCheck {
 	case e.Runtime == 0 || p.Duration == 0:
 		r.Notes = append(r.Notes, "length not checked: TVDB lists no runtime")
 	case p.Duration > e.Runtime*3/2+5*time.Minute:
-		r.Problems = append(r.Problems, fmt.Sprintf("the file runs %s, but the episodes run about %s; it holds more than claimed",
+		r.AddProblem(api.ProblemLength, fmt.Sprintf("the file runs %s, but the episodes run about %s; it holds more than claimed",
 			r.Duration, e.Runtime.Round(time.Minute)))
 	case p.Duration < e.Runtime/2:
-		r.Problems = append(r.Problems, fmt.Sprintf("the file runs %s, but the episodes run about %s; it is incomplete or a sample",
+		r.AddProblem(api.ProblemLength, fmt.Sprintf("the file runs %s, but the episodes run about %s; it is incomplete or a sample",
 			r.Duration, e.Runtime.Round(time.Minute)))
 	}
 	return r
@@ -172,7 +172,7 @@ func Check(p Probe, e Expect) api.FileCheck {
 
 func checkAudio(r *api.FileCheck, p Probe, e Expect) {
 	if len(p.Audio) == 0 {
-		r.Problems = append(r.Problems, "the file has no audio track")
+		r.AddProblem(api.ProblemNoAudioTrack, "the file has no audio track")
 		return
 	}
 	var tagged []release.Language
@@ -193,10 +193,18 @@ func checkAudio(r *api.FileCheck, p Probe, e Expect) {
 	case len(tagged) == 0:
 		r.Notes = append(r.Notes, fmt.Sprintf("audio tracks carry no language tag; %s could not be confirmed", strings.Join(wanted, " or ")))
 	case e.Strict:
-		r.Problems = append(r.Problems, fmt.Sprintf("the file's audio is %s, with no %s track", strings.Join(r.Audio, ", "), strings.Join(wanted, " or ")))
+		r.AddProblem(api.ProblemAudioLanguage, fmt.Sprintf("the file's audio is %s, with no %s track", strings.Join(r.Audio, ", "), strings.Join(wanted, " or ")))
 	default:
 		r.Notes = append(r.Notes, fmt.Sprintf("no %s audio track; kept because the release was chosen by hand", strings.Join(wanted, " or ")))
 	}
+}
+
+// Unreadable is the check of a file FFprobe could not read: err, from
+// Probe, is its one problem.
+func Unreadable(err error) api.FileCheck {
+	r := api.FileCheck{Audio: []string{}, Subtitles: []string{}}
+	r.AddProblem(api.ProblemUnreadable, err.Error())
+	return r
 }
 
 // languages names each track's language, or "unknown" without a usable tag.

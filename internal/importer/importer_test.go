@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sudokvn/garner/internal/api"
 	"github.com/sudokvn/garner/internal/config"
 	"github.com/sudokvn/garner/internal/importer/guard"
 	"github.com/sudokvn/garner/internal/inspect"
@@ -286,6 +287,9 @@ func TestImportRejectsWrongAudio(t *testing.T) {
 	got, _ := e.st.GetDownload(ctx, d.ID)
 	if got.Import.State != store.ImportRejected || len(e.rejected) != 1 || !strings.Contains(e.rejected[0], "no German track") {
 		t.Errorf("import = %+v, rejected %q", got.Import, e.rejected)
+	}
+	if kinds := got.RejectedFor(); !slices.Equal(kinds, []api.ProblemKind{api.ProblemAudioLanguage}) {
+		t.Errorf("stored kinds = %q, want the audio language", kinds)
 	}
 	if _, err := os.Stat(filepath.Join(e.share, target)); !os.IsNotExist(err) {
 		t.Error("a rejected file reached the library")

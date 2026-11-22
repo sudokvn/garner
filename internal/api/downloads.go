@@ -183,12 +183,88 @@ type ImportFile struct {
 type FileCheck struct {
 	// Problems mean the release is not what it claimed; it is bad.
 	Problems []string `json:"problems,omitempty"`
+	// Kinds holds the kind of each problem, in the order of Problems. It
+	// is empty for checks stored before garner kept kinds; Kind reads it.
+	Kinds []ProblemKind `json:"kinds,omitempty"`
 	// Notes are evidence worth showing.
 	Notes      []string `json:"notes,omitempty"`
 	Resolution string   `json:"resolution,omitempty"`
 	Audio      []string `json:"audio"`
 	Subtitles  []string `json:"subtitles"`
 	Duration   string   `json:"duration,omitempty"`
+}
+
+// AddProblem records a problem with its kind. Problems of a check stored
+// before garner kept kinds stay unclassified.
+func (c *FileCheck) AddProblem(kind ProblemKind, problem string) {
+	for len(c.Kinds) < len(c.Problems) {
+		c.Kinds = append(c.Kinds, ProblemUnclassified)
+	}
+	c.Problems = append(c.Problems, problem)
+	c.Kinds = append(c.Kinds, kind)
+}
+
+// Kind returns the kind of the i-th problem: ProblemUnclassified for a
+// check stored before garner kept kinds.
+func (c FileCheck) Kind(i int) ProblemKind {
+	if i < 0 || i >= len(c.Kinds) || c.Kinds[i] == "" {
+		return ProblemUnclassified
+	}
+	return c.Kinds[i]
+}
+
+// ProblemKind is what kind of problem made the file check reject a
+// download. Kinds stay the same when the sentences change, so clients can
+// group and count problems without reading them.
+type ProblemKind string
+
+// Kinds of problem.
+const (
+	ProblemNoVideoFile   ProblemKind = "no_video_file"  // the download holds no video file
+	ProblemWrongEpisode  ProblemKind = "wrong_episode"  // no file of the download holds the episode it is for
+	ProblemUnreadable    ProblemKind = "unreadable"     // FFprobe could not read the file
+	ProblemNoVideoTrack  ProblemKind = "no_video_track" // the file has no video track
+	ProblemResolution    ProblemKind = "resolution"     // below 720p, below what the release claimed, or 2160p unasked
+	ProblemNoAudioTrack  ProblemKind = "no_audio_track" // the file has no audio track
+	ProblemAudioLanguage ProblemKind = "audio_language" // no audio track in a language the release promised
+	ProblemLength        ProblemKind = "length"         // far longer or shorter than the episodes run
+	// ProblemUnclassified stands for problems stored before garner kept
+	// kinds.
+	ProblemUnclassified ProblemKind = "unclassified"
+)
+
+// RejectedFor lists the kinds of problem the file check rejected the
+// download for, each once, in the order found; nil unless its import was
+// rejected. A download without video files, or whose files hold none of
+// its episode, has that kind whenever it was rejected; problems from
+// before garner kept kinds are ProblemUnclassified.
+func (d Download) RejectedFor() []ProblemKind {
+	if d.Import.State != ImportRejected {
+		return nil
+	}
+	files := d.Import.Files
+	if len(files) == 0 {
+		return []ProblemKind{ProblemNoVideoFile}
+	}
+	if !slices.ContainsFunc(files, func(f ImportFile) bool { return slices.Contains(f.Episodes, d.EpisodeID) }) {
+		return []ProblemKind{ProblemWrongEpisode}
+	}
+	var kinds []ProblemKind
+	for _, f := range files {
+		if f.Check == nil {
+			continue
+		}
+		for i := range f.Check.Problems {
+			if k := f.Check.Kind(i); !slices.Contains(kinds, k) {
+				kinds = append(kinds, k)
+			}
+		}
+	}
+	if len(kinds) == 0 {
+		// Before garner kept kinds, an unreadable file had no check.
+		return []ProblemKind{ProblemUnclassified}
+	}
+	return kinds
 }
 
 // ResolutionClass names a video's resolution as releases do, such as 1080

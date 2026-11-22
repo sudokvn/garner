@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sudokvn/garner/internal/api"
 	"github.com/sudokvn/garner/internal/release"
 )
 
@@ -29,19 +30,20 @@ func TestCheck(t *testing.T) {
 		probe   Probe
 		expect  Expect
 		problem string // empty: the file passes
+		kind    api.ProblemKind
 		note    string
 	}{
-		{"matches", probe(1920, 1080, 22.8, "ger", "eng"), german1080, "", "German audio track found"},
-		{"wide film is 1080p", probe(1920, 800, 22, "deu"), german1080, "", "German audio track found"},
-		{"untagged audio is only noted", probe(1920, 1080, 22, "und"), german1080, "", "could not be confirmed"},
-		{"wrong language", probe(1920, 1080, 22, "jpn"), german1080, "with no German track", ""},
-		{"wrong language chosen by hand", probe(1920, 1080, 22, "jpn"), Expect{Languages: []release.Language{"de"}, Runtime: 22 * time.Minute}, "", "chosen by hand"},
-		{"720p claimed as 1080p", probe(1280, 720, 22, "ger"), german1080, "the release claimed 1080p", ""},
-		{"below 720p", probe(720, 576, 22, "ger"), Expect{Languages: []release.Language{"de"}, Strict: true, Runtime: 22 * time.Minute}, "below 720p", ""},
-		{"four episodes in one file", probe(1920, 1080, 104, "ger"), german1080, "holds more than claimed", ""},
-		{"sample", probe(1920, 1080, 1, "ger"), german1080, "incomplete or a sample", ""},
-		{"no runtime known", probe(1920, 1080, 40, "ger"), Expect{Languages: []release.Language{"de"}, Strict: true}, "", "length not checked"},
-		{"no video", Probe{Duration: 22 * time.Minute, Audio: []Track{{Language: "ger"}}}, german1080, "no video track", ""},
+		{"matches", probe(1920, 1080, 22.8, "ger", "eng"), german1080, "", "", "German audio track found"},
+		{"wide film is 1080p", probe(1920, 800, 22, "deu"), german1080, "", "", "German audio track found"},
+		{"untagged audio is only noted", probe(1920, 1080, 22, "und"), german1080, "", "", "could not be confirmed"},
+		{"wrong language", probe(1920, 1080, 22, "jpn"), german1080, "with no German track", api.ProblemAudioLanguage, ""},
+		{"wrong language chosen by hand", probe(1920, 1080, 22, "jpn"), Expect{Languages: []release.Language{"de"}, Runtime: 22 * time.Minute}, "", "", "chosen by hand"},
+		{"720p claimed as 1080p", probe(1280, 720, 22, "ger"), german1080, "the release claimed 1080p", api.ProblemResolution, ""},
+		{"below 720p", probe(720, 576, 22, "ger"), Expect{Languages: []release.Language{"de"}, Strict: true, Runtime: 22 * time.Minute}, "below 720p", api.ProblemResolution, ""},
+		{"four episodes in one file", probe(1920, 1080, 104, "ger"), german1080, "holds more than claimed", api.ProblemLength, ""},
+		{"sample", probe(1920, 1080, 1, "ger"), german1080, "incomplete or a sample", api.ProblemLength, ""},
+		{"no runtime known", probe(1920, 1080, 40, "ger"), Expect{Languages: []release.Language{"de"}, Strict: true}, "", "", "length not checked"},
+		{"no video", Probe{Duration: 22 * time.Minute, Audio: []Track{{Language: "ger"}}}, german1080, "no video track", api.ProblemNoVideoTrack, ""},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -51,6 +53,9 @@ func TestCheck(t *testing.T) {
 			}
 			if tc.problem == "" && len(r.Problems) > 0 || tc.problem != "" && !has(r.Problems, tc.problem) || tc.note != "" && !has(r.Notes, tc.note) {
 				t.Errorf("Check = problems %q, notes %q; want problem %q, note %q", r.Problems, r.Notes, tc.problem, tc.note)
+			}
+			if tc.problem != "" && (len(r.Kinds) != len(r.Problems) || !slices.Contains(r.Kinds, tc.kind)) {
+				t.Errorf("Check = problems %q of kinds %q; want kind %q", r.Problems, r.Kinds, tc.kind)
 			}
 		})
 	}

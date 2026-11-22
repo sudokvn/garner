@@ -96,6 +96,8 @@ func (s *Service) check(ctx context.Context, d *store.Download) {
 		}
 		p, err := s.probe.Probe(ctx, f.Source)
 		if errors.Is(err, inspect.ErrUnreadable) {
+			res := inspect.Unreadable(err)
+			f.Check = &res
 			problems = append(problems, fmt.Sprintf("%s: %v", filepath.Base(f.Source), err))
 			continue
 		}
