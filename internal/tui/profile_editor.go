@@ -67,6 +67,7 @@ type editorScreen struct {
 	flash    flash
 	server   []string // problems the server answered with
 	scroll   scroller
+	trial    trial // the unsaved profile tried on a show's last search
 }
 
 // newEditor opens p: a stored profile when id is set, else a new one.
@@ -175,20 +176,37 @@ func (s *editorScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 			s.input, cmd = s.input.Update(msg)
 			return s, cmd
 		}
+	case trialTickMsg:
+		if msg.from == s && msg.seq == s.trial.seq {
+			return s, s.startTrial(false)
+		}
+	case trialMsg:
+		if msg.from == s {
+			return s, s.trialAnswer(msg)
+		}
 	case tea.KeyPressMsg:
 		if s.busy != "" {
 			return s, nil
 		}
 		s.flash.clear()
+		before, changed := judgeKey(s.p), s.changed()
+		var cmd tea.Cmd
 		switch {
 		case s.typing:
-			return s, s.typingKey(msg)
+			cmd = s.typingKey(msg)
 		case s.picker != nil:
-			return s, s.pickerKey(msg.String())
+			cmd = s.pickerKey(msg.String())
 		case s.discard:
-			return s, s.discardKey(msg.String())
+			cmd = s.discardKey(msg.String())
+		default:
+			cmd = s.key(msg.String())
 		}
-		return s, s.key(msg.String())
+		// The server judges the profile once it rests, and when the changes
+		// pane appears, also for a name or description, which judging ignores.
+		if judgeKey(s.p) != before || !changed && s.changed() {
+			cmd = tea.Batch(cmd, s.trialAfterChange())
+		}
+		return s, cmd
 	}
 	return s, nil
 }
@@ -263,6 +281,8 @@ func (s *editorScreen) key(key string) tea.Cmd {
 		// The cursor stays in the list, on the entry that took the place.
 		s.cursor = slices.IndexFunc(s.rows(), func(r editorRow) bool { return r.kind == row.kind && r.index == min(row.index, s.listLen(row.kind)-1) })
 		s.server = nil
+	case "t":
+		return s.startTrial(true)
 	case "K":
 		s.swap(row, -1)
 	case "J":
@@ -662,7 +682,9 @@ func (s *editorScreen) bottom(row editorRow) string {
 	if row.kind == rowResolution {
 		add = "add resolution"
 	}
-	return keyBar("e", "edit", "h l", "choose", "a", add, "d", "remove", "K J", "move", "enter", "save", "esc", "cancel", "?", "help")
+	return joinKeys(keyBar("e", "edit", "h l", "choose", "a", add, "d", "remove", "K J", "move"),
+		keySlot("t", "another show", s.changed() && s.shows > 1),
+		keyBar("enter", "save", "esc", "cancel", "?", "help"))
 }
 
 func (s *editorScreen) flashed() *flash { return &s.flash }
@@ -676,7 +698,8 @@ func (s *editorScreen) help() (string, []string) {
 	return "Profile editor", []string{
 		"e", "edit the field under the cursor", "h l", "choose a setting's value",
 		"a", "add a language, or a resolution on those rows", "d", "remove the entry",
-		"K J", "move the entry up or down", "enter", "save the profile",
+		"K J", "move the entry up or down",
+		"t", "try the unsaved changes on another show's last search", "enter", "save the profile",
 		"esc", "leave; asks when there are changes",
 		"ctrl+d u", "scroll the unsaved changes on a short terminal",
 	}

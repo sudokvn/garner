@@ -190,9 +190,12 @@ func usedBy(shows int) string {
 }
 
 // changesLines fill the changes pane, inner cells wide: the changed
-// settings, then what saving does.
+// settings, what they change on a show's last search, then what saving
+// does.
 func (s *editorScreen) changesLines(inner int) []string {
 	lines := changeLines(s.was, s.p, inner)
+	lines = append(lines, "")
+	lines = append(lines, s.trialLines(inner)...)
 	lines = append(lines, "")
 	return append(lines, wrapLabelled("If you save", sNormal.Render(ifSaved(s.shows)), inner)...)
 }
