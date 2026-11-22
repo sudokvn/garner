@@ -54,12 +54,7 @@ func monitorQuestion(title string, chosen int, off, ok string) []string {
 		width = max(width, len(m.label))
 	}
 	for i, m := range monitorModes {
-		row := " " + pad(m.label, width) + "   " + m.means + " "
-		if i == chosen {
-			lines = append(lines, sNormal.Background(cSelect).Render(row))
-		} else {
-			lines = append(lines, sNormal.Render(row))
-		}
+		lines = append(lines, cursor(i == chosen).option(sNormal, pad(m.label, width)+"   "+m.means+" "))
 	}
 	if off != "" {
 		lines = append(lines, "", sMuted.Render("The monitor is "+clean(off)+";"), sMuted.Render("this applies once it runs."))

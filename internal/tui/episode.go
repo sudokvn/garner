@@ -473,7 +473,7 @@ func (s *episodeScreen) cancelQuestion() []string {
 	return []string{
 		gFailed + " " + sBold.Render("Cancel the download of "+s.label()+"?"),
 		"",
-		"  " + choice("Keep going", s.choice == 0) + "   " + choice("Cancel download", s.choice == 1),
+		choice("Keep going", s.choice == 0) + "   " + choice("Cancel download", s.choice == 1),
 		"",
 		keyBar("h l", "choose", "enter", "ok", "esc", "back"),
 	}

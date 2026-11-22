@@ -463,7 +463,8 @@ func (cols releaseCols) head() string {
 }
 
 func (cols releaseCols) row(c api.Candidate, width int, selected bool) string {
-	bg := selectBg(selected)
+	cur := cursor(selected)
+	bg := cur.bg
 	glyph, glyphStyle := "✓", sMint
 	text := sNormal
 	switch c.Verdict {
@@ -483,7 +484,7 @@ func (cols releaseCols) row(c api.Candidate, width int, selected bool) string {
 		age = shortAge(time.Since(*c.Published))
 	}
 	gap := bg(lipgloss.NewStyle()).Render("   ")
-	line := gap + bg(glyphStyle).Render(glyph) + gap +
+	line := cur.margin() + bg(glyphStyle).Render(glyph) + gap +
 		bg(text).Render(fit(cutMiddle(clean(c.Title), cols.name), cols.name, false)) + gap +
 		bg(tierStyle).Render(fit(tier, cols.tier, false)) + gap
 	if cols.tried > 0 {
@@ -500,7 +501,7 @@ func (cols releaseCols) row(c api.Candidate, width int, selected bool) string {
 	if cols.age > 0 {
 		line += gap + bg(text).Render(fit(age, cols.age, true))
 	}
-	return fill(line, width, bg)
+	return cur.fill(line, width)
 }
 
 // tierLabel is what the Preference column shows for a release: the

@@ -561,19 +561,15 @@ func (c columns) head(sort sortKey, reverse bool) string {
 }
 
 func (c columns) row(sh api.Show, selected bool) string {
-	bg := func(st lipgloss.Style) lipgloss.Style {
-		if selected {
-			return st.Background(cSelect)
-		}
-		return st
-	}
+	cur := cursor(selected)
+	bg := cur.bg
 	gap := bg(lipgloss.NewStyle()).Render("   ")
 	main, numbers, statusStyle := sNormal, sNormal, sMuted
 	if sh.Focus == nil {
 		main, numbers, statusStyle = sSubtle, sSubtle, sSubtle
 	}
 	glyph, glyphStyle := showGlyph(sh)
-	line := gap + bg(glyphStyle).Render(glyph) + gap +
+	line := cur.margin() + bg(glyphStyle).Render(glyph) + gap +
 		bg(main).Render(fit(showName(sh), c.name, false)) + gap +
 		bg(numbers).Render(fit(episodes(sh), c.episodes, true)) + gap +
 		bg(numbers).Render(fit(size(sh.Bytes), c.size, true)) + gap
@@ -581,10 +577,7 @@ func (c columns) row(sh api.Show, selected bool) string {
 		line += bg(statusStyle).Render(fit(status(sh.Status), c.statusW, false)) + gap
 	}
 	line += renderParts(stateParts(sh, time.Now()), c.state, bg)
-	if w := lipgloss.Width(line); w < c.width {
-		line += bg(lipgloss.NewStyle()).Render(strings.Repeat(" ", c.width-w))
-	}
-	return line
+	return cur.fill(line, c.width)
 }
 
 func showGlyph(sh api.Show) (string, lipgloss.Style) {

@@ -94,7 +94,7 @@ func (s *showScreen) searchQuestion() []string {
 		lines = append(lines, sNormal.Render("This includes "+plural(cancelled, "episode")+" whose download was cancelled."))
 	}
 	return append(lines, "",
-		"  "+choice("Cancel", s.choice == 0)+"   "+choice("Search", s.choice == 1),
+		choice("Cancel", s.choice == 0)+"   "+choice("Search", s.choice == 1),
 		"",
 		keyBar("h l", "choose", "enter", "ok", "esc", "cancel"))
 }

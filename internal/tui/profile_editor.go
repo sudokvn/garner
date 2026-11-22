@@ -445,19 +445,15 @@ func (s *editorScreen) view(width, height int) string {
 	row := s.row()
 	var b strings.Builder
 	b.WriteString(header(width, s.sess, "garner", "Profiles", s.name()) + "\n\n")
-	// A row is built from styled parts, each with the select background on
-	// the cursor row, which then runs across the full width.
+	// A row is built from styled parts, each with the cursor's background
+	// on the cursor row, which then runs across the full width.
 	type styler = func(lipgloss.Style) lipgloss.Style
 	line := func(r editorRow, build func(bg styler) string) {
-		bg := func(st lipgloss.Style) lipgloss.Style { return st }
-		if r == row {
-			bg = func(st lipgloss.Style) lipgloss.Style { return st.Background(cSelect) }
-		}
-		text := build(bg)
-		b.WriteString(text + bg(lipgloss.NewStyle()).Render(strings.Repeat(" ", max(0, width-lipgloss.Width(text)))) + "\n")
+		cur := cursor(r == row)
+		b.WriteString(cur.fill(cur.margin()+build(cur.bg), width) + "\n")
 	}
 	label := func(bg styler, l string) string {
-		return bg(lipgloss.NewStyle()).Render("   ") + bg(sSubtle).Render(pad(l, settingWidth))
+		return bg(sSubtle).Render(pad(l, settingWidth))
 	}
 	text := func(r editorRow, l, v string) func(bg styler) string {
 		return func(bg styler) string {
@@ -516,7 +512,8 @@ func (s *editorScreen) view(width, height int) string {
 				}
 				st := sSubtle
 				if c == v {
-					st = sNormal
+					// Bold, so the chosen value shows without colour too.
+					st = sBold
 				}
 				out += bg(st).Render(c)
 				cells += lipgloss.Width(c)
@@ -599,7 +596,7 @@ func (s *editorScreen) discardLines() []string {
 		"",
 		sNormal.Render(subject + " has unsaved changes."),
 		"",
-		"  " + choice("Keep editing", s.choice == 0) + "   " + choice("Discard", s.choice == 1),
+		choice("Keep editing", s.choice == 0) + "   " + choice("Discard", s.choice == 1),
 		"",
 		keyBar("h l", "choose", "enter", "ok", "esc", "cancel"),
 	}

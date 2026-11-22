@@ -103,13 +103,13 @@ func (p filesPrompt) lines(name string) []string {
 		}
 	}
 	if t.Renamable == 0 {
-		return append(lines, "", "  "+choice("OK", true), "", keyBar("enter", "ok"))
+		return append(lines, "", choice("OK", true), "", keyBar("enter", "ok"))
 	}
 	return append(lines, "",
 		sNormal.Render(plural(t.Renamable, "file")+" of the show lie outside garner's folder for it."),
 		sNormal.Render("Rename and move them there, named the way garner names files?"),
 		"",
-		"  "+choice("Keep as they are", p.choice == 0)+"   "+choice("Rename and move", p.choice == 1),
+		choice("Keep as they are", p.choice == 0)+"   "+choice("Rename and move", p.choice == 1),
 		"",
 		keyBar("h l", "choose", "enter", "ok", "esc", "keep"))
 }

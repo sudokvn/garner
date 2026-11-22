@@ -261,12 +261,64 @@ func overlay(base string, lines []string, width, height int) string {
 	return strings.Join(rows, "\n")
 }
 
-// choice renders one option of an overlay, highlighted when chosen.
-func choice(label string, chosen bool) string {
-	if chosen {
-		return sNormal.Background(cSelect).Render(" " + label + " ")
+// colourless is whether the terminal shows no colour, as with NO_COLOR.
+// The app sets it from the terminal's colour profile.
+var colourless bool
+
+// cursor is whether a row or an option is the one under the cursor. Every
+// table row, option and pick-list entry is drawn with it, so the cursor
+// looks the same everywhere: the select background across the row and a
+// bold mint > in its mark cell. Without colour, reverse video takes the
+// background's place and the > stays.
+//
+// A table row starts with margin, styles each part with bg and ends with
+// fill; an option starts with option.
+type cursor bool
+
+// bg adds the cursor's background to a style: the select background, or
+// reverse video without colour. Off the cursor it changes nothing.
+func (c cursor) bg(st lipgloss.Style) lipgloss.Style {
+	switch {
+	case !bool(c):
+		return st
+	case colourless:
+		return st.Reverse(true)
 	}
-	return sNormal.Render(" " + label + " ")
+	return st.Background(cSelect)
+}
+
+// mark is the cell that carries the cursor's >, or a space.
+func (c cursor) mark() string {
+	if c {
+		return c.bg(sKey).Render(">")
+	}
+	return " "
+}
+
+// margin is a table row's three cells before its first column, the mark
+// in the middle one.
+func (c cursor) margin() string {
+	space := c.bg(lipgloss.NewStyle()).Render(" ")
+	return space + c.mark() + space
+}
+
+// option starts an option of a question or a pick list: the mark, then
+// text in st after a space, on the cursor's background.
+func (c cursor) option(st lipgloss.Style, text string) string {
+	return c.mark() + c.bg(st).Render(" "+text)
+}
+
+// fill pads a row to width, keeping the cursor's background across.
+func (c cursor) fill(line string, width int) string {
+	if w := lipgloss.Width(line); w < width {
+		line += c.bg(lipgloss.NewStyle()).Render(strings.Repeat(" ", width-w))
+	}
+	return line
+}
+
+// choice renders one option of an overlay, marked when chosen.
+func choice(label string, chosen bool) string {
+	return cursor(chosen).option(sNormal, label+" ")
 }
 
 // flashFor is how long a success or info message stays in the bottom line.
@@ -450,13 +502,10 @@ func (p *pickList) lines(title string, height int) []string {
 		case it.header:
 			lines = append(lines, sSubtle.Render(it.label))
 		default:
-			label, note := sNormal, sMuted
-			if i == p.choice {
-				label, note = label.Background(cSelect), note.Background(cSelect)
-			}
-			noteWidth := max(0, p.width-1-p.labelWidth)
-			lines = append(lines, label.Render(ansi.Truncate(" "+pad(it.label, p.labelWidth), p.width, ""))+
-				note.Render(fit(it.note, noteWidth, false)))
+			c := cursor(i == p.choice)
+			noteWidth := max(0, p.width-2-p.labelWidth)
+			lines = append(lines, c.option(sNormal, ansi.Truncate(pad(it.label, p.labelWidth), p.width-2, ""))+
+				c.bg(sMuted).Render(fit(it.note, noteWidth, false)))
 		}
 	}
 	if first > 0 || last < len(p.items) {

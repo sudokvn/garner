@@ -155,6 +155,7 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, nil
 	case tea.ColorProfileMsg:
 		a.mark = msg.Profile >= colorprofile.ANSI256
+		colourless = msg.Profile == colorprofile.NoTTY || msg.Profile == colorprofile.ASCII
 		if a.sess != nil {
 			a.sess.mark = a.mark
 		}

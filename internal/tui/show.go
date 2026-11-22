@@ -643,7 +643,8 @@ func (c showCols) head() string {
 }
 
 func (c showCols) seasonRow(se season, folded, selected bool) string {
-	bg := selectBg(selected)
+	cur := cursor(selected)
+	bg := cur.bg
 	glyph, glyphStyle := seasonGlyph(se)
 	name := "Season " + strconv.Itoa(se.number)
 	if se.number == 0 {
@@ -653,9 +654,9 @@ func (c showCols) seasonRow(se season, folded, selected bool) string {
 	if folded {
 		nameStyle = sSubtle
 	}
-	line := bg(lipgloss.NewStyle()).Render("   ") + bg(glyphStyle).Render(glyph) + bg(lipgloss.NewStyle()).Render("   ") +
+	line := cur.margin() + bg(glyphStyle).Render(glyph) + bg(lipgloss.NewStyle()).Render("   ") +
 		bg(nameStyle).Render(name) + bg(lipgloss.NewStyle()).Render("   ") + bg(sMuted).Render(seasonCounts(se))
-	return fill(line, c.width, bg)
+	return cur.fill(line, c.width)
 }
 
 func seasonCounts(se season) string {
@@ -686,7 +687,8 @@ func seasonCounts(se season) string {
 }
 
 func (c showCols) episodeRow(e episodeRow, d *api.SeriesDetail, now time.Time, selected bool) string {
-	bg := selectBg(selected)
+	cur := cursor(selected)
+	bg := cur.bg
 	st := e.status
 	main := sNormal
 	if st.State == api.EpisodeImported || st.State == "" {
@@ -698,7 +700,7 @@ func (c showCols) episodeRow(e episodeRow, d *api.SeriesDetail, now time.Time, s
 		aired = t.Format("2 Jan 2006")
 	}
 	gap := bg(lipgloss.NewStyle()).Render("   ")
-	line := gap + bg(glyphStyle).Render(glyph) + gap +
+	line := cur.margin() + bg(glyphStyle).Render(glyph) + gap +
 		bg(main).Render(fit(episodeCell(c.label(e)), c.episode, false)) + gap +
 		bg(main).Render(fit(clean(cmp.Or(e.episode.NameEng, e.episode.Name)), c.title, false)) + gap +
 		bg(main).Render(fit(aired, airedWidth, false)) + gap
@@ -706,7 +708,7 @@ func (c showCols) episodeRow(e episodeRow, d *api.SeriesDetail, now time.Time, s
 		line += bg(main).Render(fit(size(st.Size), 7, true)) + gap
 	}
 	stateWidth := max(0, c.width-lipgloss.Width(line))
-	return fill(line+renderParts(episodeParts(e, d, now), stateWidth, bg), c.width, bg)
+	return cur.fill(line+renderParts(episodeParts(e, d, now), stateWidth, bg), c.width)
 }
 
 // episodeParts describes an episode's state in the table.
@@ -781,23 +783,6 @@ func seasonGlyph(se season) (string, lipgloss.Style) {
 		}
 	}
 	return episodeGlyph(best)
-}
-
-func selectBg(selected bool) func(lipgloss.Style) lipgloss.Style {
-	return func(st lipgloss.Style) lipgloss.Style {
-		if selected {
-			return st.Background(cSelect)
-		}
-		return st
-	}
-}
-
-// fill pads a row to width, keeping the cursor background across.
-func fill(line string, width int, bg func(lipgloss.Style) lipgloss.Style) string {
-	if w := lipgloss.Width(line); w < width {
-		line += bg(lipgloss.NewStyle()).Render(strings.Repeat(" ", width-w))
-	}
-	return line
 }
 
 func (s *showScreen) flashed() *flash { return &s.flash }

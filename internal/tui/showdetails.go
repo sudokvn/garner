@@ -434,7 +434,7 @@ func deleteQuestion(name string, sh api.Show, chosen int) []string {
 		row = append(row, choice(a.label, i == chosen))
 	}
 	return append(lines, "",
-		"  "+strings.Join(row, "   "),
+		strings.Join(row, "   "),
 		"",
 		keyBar("h l", "choose", "enter", "ok", "esc", "cancel"))
 }
@@ -474,10 +474,8 @@ func (s *showDetailsScreen) profileLines() []string {
 		if current {
 			st = sNormal
 		}
-		if i == s.choice {
-			st, noteSt = st.Background(cSelect), noteSt.Background(cSelect)
-		}
-		return st.Render(" "+pad(label, labelWidth)) + noteSt.Render(fit(note, width-1-labelWidth, false))
+		c := cursor(i == s.choice)
+		return c.option(st, pad(label, labelWidth)) + c.bg(noteSt).Render(fit(note, width-2-labelWidth, false))
 	}
 	lines := []string{sBold.Render("Profile and type of " + s.name()), "", sSubtle.Render("Type")}
 	for i, t := range showTypes {

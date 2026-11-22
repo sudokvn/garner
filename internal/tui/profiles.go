@@ -465,7 +465,7 @@ func (e *exportPrompt) lines(name string) []string {
 		return append(lines,
 			sNormal.Render(homeShort(e.path)+" already exists."),
 			"",
-			"  "+choice("Keep it", e.choice == 0)+"   "+choice("Overwrite", e.choice == 1),
+			choice("Keep it", e.choice == 0)+"   "+choice("Overwrite", e.choice == 1),
 			"",
 			keyBar("h l", "choose", "enter", "ok", "esc", "back"))
 	}
@@ -613,25 +613,18 @@ func (c profileColumns) head() string {
 }
 
 func (c profileColumns) row(r profileRow, selected bool) string {
-	bg := func(st lipgloss.Style) lipgloss.Style {
-		if selected {
-			return st.Background(cSelect)
-		}
-		return st
-	}
+	cur := cursor(selected)
+	bg := cur.bg
 	gap := bg(lipgloss.NewStyle()).Render("   ")
 	prefs, prefsStyle := prefsLine(r.parsed), sMuted
 	if !r.ok {
 		prefs, prefsStyle = "can't be read by this garner", sRed
 	}
-	line := gap + bg(sNormal).Render(fit(r.Name, c.name, false)) + gap +
+	line := cur.margin() + bg(sNormal).Render(fit(r.Name, c.name, false)) + gap +
 		bg(prefsStyle).Render(fit(prefs, c.prefs, false)) + gap +
 		bg(sNormal).Render(fit(strconv.Itoa(len(r.Shows)), showsWidth, true)) + gap +
 		bg(sNormal).Render(fit(defaultLabel(r.Profile), defaultWidth, false))
-	if w := lipgloss.Width(line); w < c.width {
-		line += bg(lipgloss.NewStyle()).Render(strings.Repeat(" ", c.width-w))
-	}
-	return line
+	return cur.fill(line, c.width)
 }
 
 // defaultLabel says which new shows get the profile: TV, Anime or both.
@@ -801,7 +794,7 @@ func (s *profilesScreen) deleteLines(r profileRow) []string {
 		"",
 		sNormal.Render("No show uses it."),
 		"",
-		"  " + choice("Cancel", s.choice == 0) + "   " + choice("Delete", s.choice == 1),
+		choice("Cancel", s.choice == 0) + "   " + choice("Delete", s.choice == 1),
 		"",
 		keyBar("h l", "choose", "enter", "ok", "esc", "cancel"),
 	}
@@ -861,13 +854,7 @@ func (s *profilesScreen) useForLines(r profileRow) []string {
 	}
 	lines := []string{sBold.Render("Use " + r.Name + " for new shows"), ""}
 	for i, row := range rows {
-		label := " " + pad(row.label, 18)
-		if i == s.choice {
-			label = sNormal.Background(cSelect).Render(label)
-		} else {
-			label = sNormal.Render(label)
-		}
-		lines = append(lines, label+"  "+sMuted.Render(row.note))
+		lines = append(lines, cursor(i == s.choice).option(sNormal, pad(row.label, 18))+"  "+sMuted.Render(row.note))
 	}
 	return append(lines, "", keyBar("j k", "choose", "enter", "ok", "esc", "cancel"))
 }

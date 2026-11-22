@@ -321,12 +321,8 @@ func (c foundCols) head() string {
 }
 
 func (c foundCols) row(r api.FoundShow, selected bool) string {
-	bg := func(st lipgloss.Style) lipgloss.Style {
-		if selected {
-			return st.Background(cSelect)
-		}
-		return st
-	}
+	cur := cursor(selected)
+	bg := cur.bg
 	gap := bg(lipgloss.NewStyle()).Render("   ")
 	glyph := bg(lipgloss.NewStyle()).Render(" ")
 	if r.Added {
@@ -336,13 +332,10 @@ func (c foundCols) row(r api.FoundShow, selected bool) string {
 	if r.Year > 0 {
 		year = strconv.Itoa(r.Year)
 	}
-	line := gap + glyph + gap + bg(sNormal).Render(fit(foundName(r), c.name, false)) + gap +
+	line := cur.margin() + glyph + gap + bg(sNormal).Render(fit(foundName(r), c.name, false)) + gap +
 		bg(sMuted).Render(fit(year, 4, false)) + gap + bg(sMuted).Render(fit(clean(r.Network), c.network, false)) + gap +
 		bg(sMuted).Render(fit(langCode(r.Language), 4, false)) + gap + bg(sMuted).Render(fit(status(r.Status), 10, false))
-	if w := lipgloss.Width(line); w < c.width {
-		line += bg(lipgloss.NewStyle()).Render(strings.Repeat(" ", c.width-w))
-	}
-	return line
+	return cur.fill(line, c.width)
 }
 
 func foundName(r api.FoundShow) string { return clean(cmp.Or(r.NameEng, r.Name)) }

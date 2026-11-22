@@ -14,7 +14,13 @@ Every screen has the same skeleton:
 2. **Row 2** is blank. Then either the category tabs (Library) or one line of labelled facts, a blank line, the column headers, a rule and the rows.
 3. **Last two rows:** a rule in the border colour across the full width, then the key bar, a message after an action, or a prompt such as the `/` filter. The rule keeps a full screen apart from the keys; screens size their tables with `barHeight`.
 
-Columns are three cells apart. Numbers are right-aligned. The first column is a single glyph. Column headers are subtle, except the sorted one, which shows `▾`, or `▴` when reversed. The cursor row has the select background across its full width. Rows that need nothing, such as complete shows or folded seasons, are subtle.
+Columns are three cells apart. Numbers are right-aligned. The first column is a single glyph. Column headers are subtle, except the sorted one, which shows `▾`, or `▴` when reversed. Rows that need nothing, such as complete shows or folded seasons, are subtle.
+
+## Cursor
+
+The row under the cursor has the select background across its full width and a bold mint `>` in the margin, in the cell before the glyph column. The chosen answer of a question and the chosen entry of a pick list carry the same `>` in their first cell. In a terminal without colour, such as with `NO_COLOR`, reverse video takes the place of the select background and the `>` stays.
+
+Draw every cursor with `cursor` in `style.go`, never with the select colour itself. A table row starts with `margin()`, styles each part with `bg` and ends with `fill`. An option of a question or a pick list starts with `option`; `choice` draws a whole answer. A setting's chosen value, as in the profile editor, is bold, so it shows without colour too.
 
 Success and info messages, such as `✓ Added Harbor Precinct`, disappear after 3 seconds or at the next key. Errors and work in progress, such as `Searching…`, stay until something replaces them.
 
@@ -50,7 +56,7 @@ The palette is in `style.go`:
 | muted | `#9199A3` | secondary text |
 | subtle | `#80848D` | headers, rows that need nothing |
 | border | `#3D3D47` | rules and frames |
-| select | `#242037` | cursor row |
+| select | `#242037` | cursor row, chosen option |
 | mint | `#75B39C` | keys in the key bar (bold), success, garner's mark |
 | amber | `#F79926` | work in progress, needs you, files below the profile's first preference |
 | red | `#F54D47` | failures, offline |

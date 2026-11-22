@@ -341,7 +341,7 @@ func (s *activityScreen) view(width, height int) string {
 			return overlay(page, []string{
 				gFailed + " " + sBold.Render("Cancel the download of "+itemShow(it)+" "+itemEpisode(it)+"?"),
 				"",
-				"  " + choice("Keep going", s.choice == 0) + "   " + choice("Cancel download", s.choice == 1),
+				choice("Keep going", s.choice == 0) + "   " + choice("Cancel download", s.choice == 1),
 				"",
 				keyBar("h l", "choose", "enter", "ok", "esc", "back"),
 			}, width, height)
@@ -351,7 +351,8 @@ func (s *activityScreen) view(width, height int) string {
 }
 
 func activityRow(it api.ActivityItem, selected bool, showWidth, stateWidth, width int, now time.Time) string {
-	bg := selectBg(selected)
+	cur := cursor(selected)
+	bg := cur.bg
 	d := it.Download
 	state := activityState(d)
 	glyph, glyphStyle := episodeGlyph(state)
@@ -375,12 +376,12 @@ func activityRow(it api.ActivityItem, selected bool, showWidth, stateWidth, widt
 		parts = statusParts(state, &d, "", nil, 0, now)
 	}
 	gap := bg(lipgloss.NewStyle()).Render("   ")
-	line := gap + bg(glyphStyle).Render(glyph) + gap +
+	line := cur.margin() + bg(glyphStyle).Render(glyph) + gap +
 		bg(text).Render(fit(itemShow(it), showWidth, false)) + gap +
 		bg(text).Render(fit(itemEpisode(it), activityEpWidth, false)) + gap +
 		renderParts(parts, stateWidth, bg)
-	line = fill(line, width-3-activitySinceWidth, bg) + bg(sSubtle).Render(fit(when(since(d), now), activitySinceWidth, true))
-	return fill(line, width-3, bg)
+	line = cur.fill(line, width-3-activitySinceWidth) + bg(sSubtle).Render(fit(when(since(d), now), activitySinceWidth, true))
+	return cur.fill(line, width-3)
 }
 
 func (s *activityScreen) bottom() string {
