@@ -67,6 +67,8 @@ The palette is in `style.go`. It has a dark set and a light set of the same role
 
 The interface sets no background colour, so it uses the terminal's own. On start it asks the terminal for that colour (`tea.RequestBackgroundColor`) and `usePalette` picks the set: the light one on a light background, with the select background blended from the terminal's background and a little violet. A terminal that does not answer keeps the dark set. Use the palette's variables and styles, never colour values of your own, and read them when drawing: they change once the terminal answers.
 
+The profile editor's changes pane tints two kinds of row: what a setting was, with red blended into black on a dark terminal or white on a light one, and what it is now, with mint blended the same way (`changeTint` in `profile_changes.go`). Without colour, the words `was` and `now` tell the rows apart.
+
 With `NO_COLOR` or a terminal without colour, Lip Gloss drops every colour but keeps bold and reverse video. The cursor then shows in reverse video; see [Cursor](#cursor).
 
 ## Mark

@@ -49,8 +49,9 @@ type editorSavedMsg struct {
 type editorScreen struct {
 	sess     *session
 	back     *profilesScreen
-	id       int64  // the profile being replaced; 0 for a new one
-	opened   string // the profile as opened, encoded, to tell changes
+	id       int64           // the profile being replaced; 0 for a new one
+	opened   string          // the profile as opened, encoded, to tell changes
+	was      profile.Profile // the profile as opened, for the changes pane
 	p        profile.Profile
 	shows    int // shows that follow the saved profile
 	cursor   int
@@ -73,6 +74,8 @@ func newEditor(sess *session, back *profilesScreen, id int64, p profile.Profile,
 	// The lists are edited in place; the caller keeps its own.
 	p.Audio, p.Resolution = slices.Clone(p.Audio), slices.Clone(p.Resolution)
 	s := &editorScreen{sess: sess, back: back, id: id, p: p, shows: shows, opened: profile.Encode(p)}
+	s.was = p
+	s.was.Audio, s.was.Resolution = slices.Clone(p.Audio), slices.Clone(p.Resolution)
 	if p.Name == "" {
 		s.cursor = 0
 	} else {
@@ -201,6 +204,12 @@ func follows(n int) string {
 func (s *editorScreen) key(key string) tea.Cmd {
 	row := s.row()
 	switch key {
+	case "ctrl+d", "ctrl+u", "pgdown", "pgup":
+	default:
+		// Any other key works on the settings, which start at the top.
+		s.scroll.offset = 0
+	}
+	switch key {
 	case "esc":
 		if !s.changed() {
 			return func() tea.Msg { return switchMsg{s.back} }
@@ -212,6 +221,9 @@ func (s *editorScreen) key(key string) tea.Cmd {
 		s.cursor = max(0, s.cursor-1)
 	case "G":
 		s.cursor = len(s.rows()) - 1
+	case "ctrl+d", "ctrl+u", "pgdown", "pgup":
+		// The changes pane may reach below a short terminal.
+		s.scroll.key(key)
 	case "enter":
 		return s.save()
 	case "e":
@@ -456,25 +468,32 @@ func (s *editorScreen) view(width, height int) string {
 	label := func(bg styler, l string) string {
 		return bg(sSubtle).Render(pad(l, settingWidth))
 	}
-	text := func(r editorRow, l, v string) func(bg styler) string {
+	// A value that differs from the profile as opened is amber.
+	valueStyle := func(changed bool) lipgloss.Style {
+		if changed {
+			return sAmber
+		}
+		return sNormal
+	}
+	text := func(r editorRow, l, v, was string) func(bg styler) string {
 		return func(bg styler) string {
 			if s.typing && r == row {
 				// The field draws its own cursor.
 				s.input.SetWidth(max(10, width-3-settingWidth-2))
 				return label(bg, l) + s.input.View()
 			}
-			return label(bg, l) + bg(sNormal).Render(v)
+			return label(bg, l) + bg(valueStyle(v != was)).Render(v)
 		}
 	}
-	line(editorRow{rowName, 0}, text(editorRow{rowName, 0}, "Name", s.p.Name))
-	line(editorRow{rowDescription, 0}, text(editorRow{rowDescription, 0}, "Description", s.p.Description))
+	line(editorRow{rowName, 0}, text(editorRow{rowName, 0}, "Name", s.p.Name, s.was.Name))
+	line(editorRow{rowDescription, 0}, text(editorRow{rowDescription, 0}, "Description", s.p.Description, s.was.Description))
 	b.WriteString("\n")
-	entry := func(l string, i int, v, note string) func(bg styler) string {
+	entry := func(l string, i int, v, note string, changed bool) func(bg styler) string {
 		return func(bg styler) string {
 			if i > 0 {
 				l = ""
 			}
-			out := label(bg, l) + bg(sSubtle).Render(strconv.Itoa(i+1)) + bg(lipgloss.NewStyle()).Render("  ") + bg(sNormal).Render(v)
+			out := label(bg, l) + bg(sSubtle).Render(strconv.Itoa(i+1)) + bg(lipgloss.NewStyle()).Render("  ") + bg(valueStyle(changed)).Render(v)
 			if note != "" {
 				out += bg(lipgloss.NewStyle()).Render("  ") + bg(sMuted).Render(note)
 			}
@@ -492,13 +511,13 @@ func (s *editorScreen) view(width, height int) string {
 		if code == profile.Original {
 			note = "the show's own language"
 		}
-		line(editorRow{rowAudio, i}, entry("Audio", i, profile.LanguageName(code), note))
+		line(editorRow{rowAudio, i}, entry("Audio", i, profile.LanguageName(code), note, i >= len(s.was.Audio) || s.was.Audio[i] != code))
 	}
 	if len(s.p.Resolution) == 0 {
 		line(editorRow{rowResolution, -1}, none("Resolution", "none; press a to add a resolution"))
 	}
 	for i, r := range s.p.Resolution {
-		line(editorRow{rowResolution, i}, entry("Resolution", i, fmt.Sprintf("%dp", r), ""))
+		line(editorRow{rowResolution, i}, entry("Resolution", i, fmt.Sprintf("%dp", r), "", i >= len(s.was.Resolution) || s.was.Resolution[i] != r))
 	}
 	b.WriteString("\n")
 	// Below the designed width the explanations do not fit beside the
@@ -518,6 +537,9 @@ func (s *editorScreen) view(width, height int) string {
 				if c == v {
 					// Bold, so the chosen value shows without colour too.
 					st = sBold
+					if v != o.get(s.was) {
+						st = sAmber.Bold(true)
+					}
 				}
 				out += bg(st).Render(c)
 				cells += lipgloss.Width(c)
@@ -543,11 +565,15 @@ func (s *editorScreen) view(width, height int) string {
 		}
 		b.WriteString("\n")
 	}
-	prefs := sMuted.Render("none yet")
-	if len(s.p.Audio) > 0 && len(s.p.Resolution) > 0 {
-		prefs = sNormal.Render(prefsLine(s.p))
+	if paneWidth := min(width, designWidth) - 6; s.changed() {
+		b.WriteString(indent(frame("not saved yet · "+usedBy(s.shows), s.changesLines(paneWidth-6), paneWidth), 3) + "\n")
+	} else {
+		prefs := sMuted.Render("none yet")
+		if len(s.p.Audio) > 0 && len(s.p.Resolution) > 0 {
+			prefs = sNormal.Render(prefsLine(s.p))
+		}
+		b.WriteString(indent(frame("preferences", []string{prefs}, paneWidth), 3) + "\n")
 	}
-	b.WriteString(indent(frame("preferences", []string{prefs}, min(width, designWidth)-6), 3) + "\n")
 	problems, warnings := s.check()
 	if len(problems)+len(warnings) > 0 {
 		b.WriteString("\n")
@@ -559,6 +585,8 @@ func (s *editorScreen) view(width, height int) string {
 		b.WriteString("   " + sAmber.Render("!") + " " + sNormal.Render(clean(w)) + "\n")
 	}
 	page := s.scroll.layout(width, height, b.String(), s.bottom(row))
+	// j k move the cursor here; the page scrolls with ctrl+d and ctrl+u.
+	page = strings.Replace(page, "j k scroll", "ctrl+d u scroll", 1)
 	switch {
 	case s.picker != nil:
 		return overlay(page, s.picker.lines(s.pickerTitle(), height), width, height)
@@ -650,5 +678,6 @@ func (s *editorScreen) help() (string, []string) {
 		"a", "add a language, or a resolution on those rows", "d", "remove the entry",
 		"K J", "move the entry up or down", "enter", "save the profile",
 		"esc", "leave; asks when there are changes",
+		"ctrl+d u", "scroll the unsaved changes on a short terminal",
 	}
 }

@@ -105,7 +105,7 @@ func pad(s string, width int) string {
 func frame(title string, lines []string, width int) string {
 	inner := width - 6
 	title = strings.ToUpper(title)
-	top := sBorder.Render("┌─ ") + sSubtle.Render(title) + sBorder.Render(" "+strings.Repeat("─", max(0, width-5-len(title)))+"┐")
+	top := sBorder.Render("┌─ ") + sSubtle.Render(title) + sBorder.Render(" "+strings.Repeat("─", max(0, width-5-ansi.StringWidth(title)))+"┐")
 	out := []string{top}
 	side := sBorder.Render("│")
 	for _, l := range lines {
