@@ -735,7 +735,7 @@ func episodeParts(e episodeRow, d *api.SeriesDetail, now time.Time) []part {
 			return []part{{"airs in " + strconv.Itoa(days) + " days", sMuted}}
 		}
 	}
-	return statusParts(st.State, st.Download, st.Summary, st.NextRetry, st.Attempts, now)
+	return stripParts("", st.State, st.Download, st.Summary, st.NextRetry, st.Attempts, now)
 }
 
 // importedParts describes a file in the library: what the file check found

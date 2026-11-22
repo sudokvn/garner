@@ -134,7 +134,8 @@ func (s *Store) summarise(ctx context.Context, now time.Time, only int64, sc *Sc
 		if state != EpisodeUpcoming {
 			sh.Counts[state]++
 		}
-		focus := &Focus{EpisodeID: e.ID, Season: int(e.Season.Int64), Number: int(e.Number.Int64), State: state, Aired: e.Aired.String, NextRetry: next}
+		focus := &Focus{EpisodeID: e.ID, Season: int(e.Season.Int64), Number: int(e.Number.Int64), State: state, Aired: e.Aired.String,
+			Attempts: f.attempts[e.ID], NextRetry: next}
 		if cleared || explains(state, d) {
 			focus.Download = d
 		}

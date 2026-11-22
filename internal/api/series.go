@@ -204,6 +204,9 @@ type Focus struct {
 	Aired     string       `json:"aired,omitempty"`
 	// Download is the episode's latest download, when it has one.
 	Download *Download `json:"download,omitempty"`
+	// Attempts counts the downloads started for the episode, as
+	// EpisodeStatus does.
+	Attempts int `json:"attempts,omitempty"`
 	// Summary comes from the episode's latest search; NextRetry is when
 	// the monitor searches it again, unset when it does not get it.
 	Summary   string     `json:"summary,omitempty"`

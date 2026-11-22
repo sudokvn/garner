@@ -617,7 +617,13 @@ func stateParts(sh api.Show, now time.Time) []part {
 		}
 		return nil
 	}
-	return statusParts(f.State, f.Download, f.Summary, f.NextRetry, 0, now)
+	// A running download that is not the episode's first names its
+	// attempt, as the Show screen does.
+	label := ""
+	if f.Season > 0 || f.Number > 0 {
+		label = fmt.Sprintf("S%02dE%02d", f.Season, f.Number)
+	}
+	return stripParts(label, f.State, f.Download, f.Summary, f.NextRetry, f.Attempts, now)
 }
 
 func episodes(sh api.Show) string { return fmt.Sprintf("%d/%d", sh.Imported, sh.Aired) }

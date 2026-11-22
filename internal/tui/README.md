@@ -46,6 +46,8 @@ One set of glyphs marks states everywhere, in pipeline order (`glyphs` in `help.
 | `✗` | failed |
 | `~` | last resort |
 
+In a table's State column, a download that runs, waits for Jellyfin or failed at a step shows the pipeline strip before its state text: six cells for the six steps of the Episode screen (`strip.go`). In colour they are squares: mint done, amber current, red failed, the border colour not reached. Without colour their shapes differ: `■` done, `▸` current, `✗` failed, `□` not reached. The strip replaces the progress bar; the percentage stays.
+
 ## Colours
 
 The palette is in `style.go`. It has a dark set and a light set of the same roles:
