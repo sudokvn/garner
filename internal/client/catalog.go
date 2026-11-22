@@ -15,6 +15,14 @@ func (c *Client) Library(ctx context.Context) ([]api.Show, error) {
 	return shows, c.do(ctx, http.MethodGet, "/api/v1/series", nil, &shows)
 }
 
+// Upcoming lists the episodes of every show that aired in the last two
+// days and are missing, or air in the next fourteen, with when the monitor
+// searches each.
+func (c *Client) Upcoming(ctx context.Context) (api.Upcoming, error) {
+	var u api.Upcoming
+	return u, c.do(ctx, http.MethodGet, "/api/v1/upcoming", nil, &u)
+}
+
 // FindShows finds shows on TVDB. q may also be a TVDB ID or a thetvdb.com
 // link.
 func (c *Client) FindShows(ctx context.Context, q string) (api.FoundShows, error) {

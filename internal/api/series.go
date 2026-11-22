@@ -210,6 +210,46 @@ type Focus struct {
 	NextRetry *time.Time `json:"next_retry,omitempty"`
 }
 
+// Upcoming lists the regular episodes of every show that aired in the
+// last two days and are not in the library, or air in the next fourteen
+// days, by air date. Specials are left out, as the monitor does not get
+// them.
+type Upcoming struct {
+	// Today is the server's date, YYYY-MM-DD, from which the days count.
+	Today    string            `json:"today"`
+	Episodes []UpcomingEpisode `json:"episodes"`
+	// MonitorOff says why the monitor does not run; empty when it runs.
+	MonitorOff string `json:"monitor_off,omitempty"`
+}
+
+// UpcomingEpisode is an episode that aired lately and is missing, or airs
+// soon.
+type UpcomingEpisode struct {
+	EpisodeID     int64  `json:"episode_id"`
+	SeriesID      int64  `json:"series_id"`
+	SeriesName    string `json:"series_name"`
+	SeriesNameEng string `json:"series_name_eng,omitempty"`
+	// Season and Number are in the show's default order.
+	Season  int    `json:"season"`
+	Number  int    `json:"number"`
+	Name    string `json:"name,omitempty"`
+	NameEng string `json:"name_eng,omitempty"`
+	// Aired is the air date, YYYY-MM-DD in the server's time zone. garner
+	// knows no time of day.
+	Aired string       `json:"aired"`
+	State EpisodeState `json:"state"`
+	// Monitored reports whether the show's monitor mode gets the episode,
+	// whether or not the monitor runs.
+	Monitored bool `json:"monitored"`
+	// NextSearch is the earliest time the monitor searches the episode: an
+	// episode that has not aired waits for the start of its air date, and
+	// one that is due now has the time of the answer. The monitor searches
+	// due episodes one after another, so a search can start later. Unset
+	// when the monitor does not get the episode, such as while it
+	// downloads, or does not run.
+	NextSearch *time.Time `json:"next_search,omitempty"`
+}
+
 // EpisodeStatus is what garner has of one episode.
 type EpisodeStatus struct {
 	EpisodeID int64 `json:"episode_id"`

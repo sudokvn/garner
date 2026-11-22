@@ -35,6 +35,7 @@ func (s *Server) register(mux router) {
 	mux.Handle("GET /api/v1/status", http.HandlerFunc(s.handleStatus))
 	mux.Handle("GET /api/v1/status/services", http.HandlerFunc(s.handleServices))
 	mux.Handle("GET /api/v1/events", http.HandlerFunc(s.handleEvents))
+	mux.Handle("GET /api/v1/upcoming", http.HandlerFunc(s.handleUpcoming))
 	s.catalogRoutes(mux)
 	s.searchRoutes(mux)
 	s.downloadRoutes(mux)
