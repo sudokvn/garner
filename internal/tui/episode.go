@@ -341,7 +341,9 @@ func (s *episodeScreen) view(width, height int) string {
 		w := min(width, designWidth)
 		if d, ok := s.latest(); ok {
 			b.WriteString("   " + s.releaseFacts(d, w-6) + "\n\n")
-			for _, st := range pipeline(d, now) {
+			steps := pipeline(d, now)
+			markCaveat(steps, d, s.best())
+			for _, st := range steps {
 				b.WriteString(st.render(w) + "\n")
 			}
 			// Why no other release started after this one failed.
@@ -373,7 +375,12 @@ func (s *episodeScreen) releaseFacts(d api.Download, w int) string {
 	case api.Fallback:
 		meta = append(meta, sAmber.Render("last resort"))
 	case api.Reject:
-		meta = append(meta, sRed.Render("rejected"))
+		if !d.Manual {
+			meta = append(meta, sRed.Render("rejected"))
+		}
+	}
+	if d.Manual {
+		meta = append(meta, sAmber.Render("chosen by hand"))
 	}
 	if d.Replaces != "" {
 		meta = append(meta, sMuted.Render("replaces "+clean(d.Replaces)))
@@ -386,16 +393,9 @@ func (s *episodeScreen) releaseFacts(d api.Download, w int) string {
 		meta = append(meta, sSubtle.Render("cleared "+when(d.Acknowledged, time.Now())))
 	}
 	tail := "      " + strings.Join(meta, sMuted.Render(" · "))
-	// Attempts in a row: the downloads that failed or were cancelled just
-	// before this one.
-	attempt := 1
-	for _, e := range s.detail.Downloads[1:] {
-		if e.State != api.Failed && e.State != api.Cancelled {
-			break
-		}
-		attempt++
-	}
-	if attempt > 1 {
+	// The attempt counts every download of the episode, as Earlier
+	// attempts and the Show screen do.
+	if attempt := len(s.detail.Downloads); attempt > 1 {
 		tail += "      " + fact("Attempt", fmt.Sprint(attempt))
 	}
 	// Narrow: the name keeps the line, the rest moves under it.
@@ -419,6 +419,14 @@ func (s *episodeScreen) frames(row episodeRow, w int, now time.Time) []string {
 	if ok && d.Active() && len(d.Reasons) > 0 {
 		out = append(out, frame("why this release", reasonLines(d.Verdict, d.Reasons, d.Decisive, w-8), w))
 	}
+	if ok && !d.Active() {
+		if notes := s.notes(d); len(notes) > 0 {
+			out = append(out, frame("notes", notes, w))
+		}
+	}
+	if earlier := s.earlier(w-6, now); len(earlier) > 0 {
+		out = append(out, frame("earlier attempts", earlier, w))
+	}
 	if f := s.detail.File; f != nil && (row.status.State == api.EpisodeImported || row.status.State == api.EpisodeAttention) {
 		dir, name := filepath.Split(clean(f.Path))
 		var lines []string
@@ -430,43 +438,107 @@ func (s *episodeScreen) frames(row episodeRow, w int, now time.Time) []string {
 		}
 		out = append(out, frame("file", append(lines, sMuted.Render(size(f.Size))), w))
 	}
-	if ok && !d.Active() && len(d.Import.Notes) > 0 {
-		var notes []string
-		for _, n := range d.Import.Notes {
-			notes = append(notes, sNormal.Render(clean(n)))
-		}
-		out = append(out, frame("notes", notes, w))
-	}
-	var earlier []string
-	if ok {
-		for _, e := range s.detail.Downloads[1:] {
-			if len(earlier) == 3*2 {
-				break
-			}
-			glyph, why := gFailed, clean(cmp.Or(e.FailureSummary, e.Failure))
-			switch e.State {
-			case api.Cancelled:
-				glyph, why = sSubtle.Render("✗"), "cancelled"
-			case api.Failed:
-			default:
-				continue // an earlier version that was imported, or one still running
-			}
-			// The size tells uploads of the same name apart.
-			meta := when(e.Created, now)
-			if sz := size(e.Size); sz != "" {
-				meta = sz + " · " + meta
-			}
-			earlier = append(earlier, glyph+" "+sNormal.Render(clean(e.Title))+sSubtle.Render("  "+meta),
-				"  "+sMuted.Render(why))
-		}
-	}
-	if len(earlier) > 0 {
-		out = append(out, frame("earlier attempts", earlier, w))
-	}
 	if ov := s.detail.Overview; ov != "" {
 		out = append(out, frame(overviewLabel(s.detail.OverviewLanguage), []string{sNormal.Render(clean(ov))}, w))
 	}
 	return out
+}
+
+// best is the show's first preference, such as "Japanese 1080p"; empty
+// until the show is loaded.
+func (s *episodeScreen) best() string {
+	if s.show.detail == nil {
+		return ""
+	}
+	return s.show.detail.Best
+}
+
+// notes are the file check's notes on the episode's file, amber when the
+// check passed without the language the release was for, then the
+// import's. The sentences come from the server.
+func (s *episodeScreen) notes(d api.Download) []string {
+	var lines []string
+	if c := fileCheck(d); c != nil {
+		style := sNormal
+		if _, ok := missingLanguage(d, c, s.best()); ok {
+			style = sAmber
+		}
+		for _, n := range c.Notes {
+			lines = append(lines, style.Render(clean(n)))
+		}
+	}
+	for _, n := range d.Import.Notes {
+		lines = append(lines, sNormal.Render(clean(n)))
+	}
+	return lines
+}
+
+// earlier lists every download before the latest, newest first, in two
+// lines each within w cells: the attempt, its release, size and start,
+// then what came of it.
+func (s *episodeScreen) earlier(w int, now time.Time) []string {
+	if s.detail == nil || len(s.detail.Downloads) < 2 {
+		return nil
+	}
+	all := s.detail.Downloads
+	labelWidth := len("Attempt ") + len(fmt.Sprint(len(all)-1))
+	var lines []string
+	for i, e := range all[1:] {
+		if i > 0 {
+			lines = append(lines, "")
+		}
+		label := sSubtle.Render(pad(fmt.Sprintf("Attempt %d", len(all)-1-i), labelWidth)) + "   "
+		// The size tells uploads of the same name apart.
+		meta := when(e.Created, now)
+		if sz := size(e.Size); sz != "" {
+			meta = sz + " · " + meta
+		}
+		room := w - lipgloss.Width(label)
+		name := cutMiddle(clean(e.Title), max(20, room-len(meta)-3))
+		lines = append(lines, pad(label+sNormal.Render(name), w-ansi.StringWidth(meta))+sSubtle.Render(meta),
+			strings.Repeat(" ", lipgloss.Width(label))+renderParts(attemptOutcome(e), room, func(s lipgloss.Style) lipgloss.Style { return s }))
+	}
+	return lines
+}
+
+// attemptOutcome says what came of an earlier download. A rejected file
+// shows what its release claimed and what the file check found.
+func attemptOutcome(d api.Download) []part {
+	sep := part{" · ", sMuted}
+	switch {
+	case d.State == api.Cancelled:
+		return []part{{"cancelled", sSubtle}}
+	case d.Import.State == api.ImportRejected:
+		parts := []part{{"rejected after download", sMuted}, sep}
+		found := foundProblems(fileCheck(d))
+		if found == "" {
+			return append(parts, part{rejection(d), sRed})
+		}
+		if d.Tier != "" {
+			parts = append(parts, part{"claimed ", sMuted}, part{clean(d.Tier), sNormal}, part{"   ", sMuted})
+		}
+		return append(parts, part{"found ", sMuted}, part{found, sRed})
+	case d.Import.State == api.ImportFailed:
+		return []part{{"import failed", sMuted}, sep, {clean(d.Import.Detail), sRed}}
+	case d.State == api.Failed:
+		return []part{{"download failed", sMuted}, sep, {clean(cmp.Or(d.FailureSummary, d.Failure)), sRed}}
+	case d.Import.State == api.ImportUnverified:
+		return []part{{"needs you", sAmber}, sep, {clean(d.Import.Detail), sMuted}}
+	case d.Import.State == api.ImportDone:
+		parts := []part{{"imported", sMuted}}
+		if tier := cmp.Or(foundTier(fileCheck(d)), clean(d.Tier)); tier != "" {
+			parts = append(parts, sep, part{tier, sMuted})
+		}
+		return parts
+	}
+	label, style := attemptLabel(&d)
+	return []part{{label, style}}
+}
+
+// rejection is the server's reason for rejecting a download, without the
+// step it names, as the pipeline shows it.
+func rejection(d api.Download) string {
+	return clean(strings.TrimPrefix(cmp.Or(d.Failure, d.Import.Detail), "file check: "))
 }
 
 func (s *episodeScreen) cancelQuestion() []string {
@@ -686,4 +758,153 @@ func checkParts(files []api.ImportFile) []part {
 		facts = append(facts, plural(len(files), "file"))
 	}
 	return []part{{strings.Join(facts, " · "), sMuted}}
+}
+
+// fileCheck is what the file check found in the download's file of its
+// episode, or in its first checked file; nil before the check.
+func fileCheck(d api.Download) *api.FileCheck {
+	var first *api.FileCheck
+	for _, f := range d.Import.Files {
+		switch {
+		case f.Check == nil:
+		case slices.Contains(f.Episodes, d.EpisodeID):
+			return f.Check
+		case first == nil:
+			first = f.Check
+		}
+	}
+	return first
+}
+
+// foundAudio names the audio languages the check found, each once.
+// Tracks without a language tag are "unknown", unless others are named.
+func foundAudio(c *api.FileCheck) []string {
+	var named []string
+	unknown := false
+	for _, a := range c.Audio {
+		switch a = clean(a); {
+		case a == "unknown":
+			unknown = true
+		case !slices.Contains(named, a):
+			named = append(named, a)
+		}
+	}
+	if len(named) == 0 && unknown {
+		return []string{"unknown"}
+	}
+	return named
+}
+
+// foundResolution names the video's resolution as releases do, such as
+// "1080p"; empty when the check found no video.
+func foundResolution(c *api.FileCheck) string {
+	var w, h int
+	if _, err := fmt.Sscanf(c.Resolution, "%dx%d", &w, &h); err != nil {
+		return ""
+	}
+	return fmt.Sprintf("%dp", api.ResolutionClass(w, h))
+}
+
+// foundTier writes what the check found as a preference reads, such as
+// "English 1080p"; empty without a check.
+func foundTier(c *api.FileCheck) string {
+	if c == nil {
+		return ""
+	}
+	audio := strings.Join(foundAudio(c), ", ")
+	if audio == "unknown" || audio == "" {
+		audio = "unknown audio"
+	}
+	return strings.TrimSpace(audio + " " + foundResolution(c))
+}
+
+// splitTier splits a preference such as "Japanese 1080p" into its
+// language and resolution.
+func splitTier(tier string) (language, resolution string, ok bool) {
+	i := strings.LastIndex(tier, " ")
+	if i <= 0 {
+		return "", "", false
+	}
+	return tier[:i], tier[i+1:], true
+}
+
+// meets reports whether what the check found meets a preference such as
+// "Japanese 1080p": audio in its language at its resolution.
+func meets(c *api.FileCheck, tier string) bool {
+	language, resolution, ok := splitTier(tier)
+	return ok && slices.Contains(c.Audio, language) && foundResolution(c) == resolution
+}
+
+// missingLanguage reports the language a passed check did not find: the
+// language of the preference the release met, or for a release without
+// one, such as a rejected one chosen by hand, of the profile's first
+// preference. The file was kept, and the check's notes say why. A last
+// resort may have any of the profile's languages, so it has none missing.
+func missingLanguage(d api.Download, c *api.FileCheck, best string) (string, bool) {
+	if c == nil || len(c.Problems) > 0 || d.Verdict == api.Fallback {
+		return "", false
+	}
+	language, _, ok := splitTier(cmp.Or(d.Tier, best))
+	if !ok || slices.Contains(c.Audio, language) {
+		return "", false
+	}
+	return language, true
+}
+
+// markCaveat turns the passed file check amber when the file lacks the
+// language its release was for, and says so before the other facts.
+func markCaveat(steps []step, d api.Download, best string) {
+	c := fileCheck(d)
+	language, ok := missingLanguage(d, c, best)
+	if !ok || len(steps) < 4 || steps[3].glyph != gDone {
+		return
+	}
+	audio := foundAudio(c)
+	text := strings.Join(audio, ", ") + " audio"
+	// An untagged track may be in the language: no claim then.
+	if !slices.Contains(c.Audio, "unknown") {
+		text += ", no " + language + " track"
+	}
+	facts := []part{{text, sAmber}}
+	if res := foundResolution(c); res != "" {
+		facts = append(facts, part{" · " + res, sMuted})
+	}
+	if dur, err := time.ParseDuration(c.Duration); err == nil {
+		facts = append(facts, part{fmt.Sprintf(" · %d min", int(dur.Round(time.Minute).Minutes())), sMuted})
+	}
+	steps[3].glyph, steps[3].detail = sAmber.Render("✓"), facts
+}
+
+// foundProblems names what the file check found that its problems are
+// about, such as "1280x720" or "English audio"; empty for problems the
+// facts do not show, such as an unreadable file.
+func foundProblems(c *api.FileCheck) string {
+	if c == nil {
+		return ""
+	}
+	var found []string
+	add := func(s string) {
+		if s != "" && !slices.Contains(found, s) {
+			found = append(found, s)
+		}
+	}
+	for i := range c.Problems {
+		switch c.Kind(i) {
+		case api.ProblemResolution:
+			add(clean(c.Resolution))
+		case api.ProblemAudioLanguage:
+			add(strings.Join(foundAudio(c), ", ") + " audio")
+		case api.ProblemNoAudioTrack:
+			add("no audio track")
+		case api.ProblemNoVideoTrack:
+			add("no video track")
+		case api.ProblemLength:
+			if dur, err := time.ParseDuration(c.Duration); err == nil {
+				add(fmt.Sprintf("%d min", int(dur.Round(time.Minute).Minutes())))
+			}
+		default:
+			return "" // the server's sentence says it better
+		}
+	}
+	return strings.Join(found, " · ")
 }
