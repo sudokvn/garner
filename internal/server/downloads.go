@@ -36,6 +36,7 @@ func (s *Server) downloadRoutes(mux router) {
 	mux.Handle("GET /api/v1/downloads", http.HandlerFunc(s.handleListDownloads))
 	mux.Handle("GET /api/v1/downloads/{id}", http.HandlerFunc(s.handleGetDownload))
 	mux.Handle("GET /api/v1/activity", http.HandlerFunc(s.handleActivity))
+	mux.Handle("GET /api/v1/rejections", http.HandlerFunc(s.handleRejections))
 	mux.Handle("POST /api/v1/season-candidates/{id}/download", s.needDownloads(s.handleDownloadSeasonCandidate))
 	mux.Handle("POST /api/v1/downloads/{id}/cancel", s.needDownloads(s.handleCancelDownload))
 	mux.Handle("POST /api/v1/downloads/{id}/acknowledge", http.HandlerFunc(s.handleAcknowledgeDownload))
@@ -209,6 +210,17 @@ func (s *Server) handleActivity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, items)
+}
+
+// handleRejections counts the downloads the file check rejected, of the
+// shows in the library.
+func (s *Server) handleRejections(w http.ResponseWriter, r *http.Request) {
+	counts, err := s.store.Rejections(r.Context(), s.now())
+	if err != nil {
+		s.internalError(w, "count rejections", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, counts)
 }
 
 func (s *Server) handleGetDownload(w http.ResponseWriter, r *http.Request) {

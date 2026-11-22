@@ -212,6 +212,54 @@ func replaced(prev, next Download) bool {
 		gap >= -replaceWithin && gap <= replaceWithin
 }
 
+// Rejections counts the downloads the file check rejected, as of now.
+func (s *Store) Rejections(ctx context.Context, now time.Time) (api.Rejections, error) {
+	rows, err := s.q.ListRejectedDownloads(ctx)
+	if err != nil {
+		return api.Rejections{}, err
+	}
+	out := api.Rejections{Kinds: map[api.ProblemKind]int{}}
+	weekAgo := now.AddDate(0, 0, -7).Unix()
+	type episode struct {
+		lastRejected   int64
+		hasFile        bool
+		fileDownloadID int64
+	}
+	episodes := map[int64]*episode{}
+	for _, r := range rows {
+		d := Download{ID: r.ID, EpisodeID: r.EpisodeID, Import: Import{State: ImportRejected}}
+		if err := json.Unmarshal([]byte(r.ImportFiles), &d.Import.Files); err != nil {
+			return api.Rejections{}, fmt.Errorf("download %d import files: %w", r.ID, err)
+		}
+		out.Total++
+		if r.ImportUpdatedAt >= weekAgo {
+			out.LastWeek++
+		}
+		if at := time.Unix(r.ImportUpdatedAt, 0); out.Oldest.IsZero() || at.Before(out.Oldest) {
+			out.Oldest = at
+		}
+		for _, k := range d.RejectedFor() {
+			out.Kinds[k]++
+		}
+		e := episodes[r.EpisodeID]
+		if e == nil {
+			e = &episode{hasFile: r.FileEpisodeID.Valid, fileDownloadID: r.FileDownloadID.Int64}
+			episodes[r.EpisodeID] = e
+		}
+		e.lastRejected = max(e.lastRejected, r.ID)
+	}
+	out.Episodes = len(episodes)
+	for _, e := range episodes {
+		switch {
+		case !e.hasFile:
+			out.Missing++
+		case e.fileDownloadID > e.lastRejected:
+			out.Imported++
+		}
+	}
+	return out, nil
+}
+
 func (s *Store) FailedSince(ctx context.Context, episodeID int64, t time.Time) (int, error) {
 	n, err := s.q.CountFailedDownloadsSince(ctx, query.CountFailedDownloadsSinceParams{EpisodeID: episodeID, CreatedAt: t.Unix()})
 	return int(n), err

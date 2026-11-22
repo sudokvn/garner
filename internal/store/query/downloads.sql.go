@@ -572,6 +572,57 @@ func (q *Queries) ListEpisodeDownloads(ctx context.Context, episodeID int64) ([]
 	return items, nil
 }
 
+const listRejectedDownloads = `-- name: ListRejectedDownloads :many
+SELECT d.id, d.episode_id, d.import_files, d.import_updated_at,
+    f.episode_id AS file_episode_id, f.download_id AS file_download_id
+FROM downloads d
+LEFT JOIN episode_files f ON f.episode_id = d.episode_id
+WHERE d.import_state = 'rejected'
+ORDER BY d.id
+`
+
+type ListRejectedDownloadsRow struct {
+	ID              int64
+	EpisodeID       int64
+	ImportFiles     string
+	ImportUpdatedAt int64
+	FileEpisodeID   sql.NullInt64
+	FileDownloadID  sql.NullInt64
+}
+
+// Every download the file check rejected, with the download its
+// episode's file came from: NULL without a file or for one garner took
+// over.
+func (q *Queries) ListRejectedDownloads(ctx context.Context) ([]ListRejectedDownloadsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listRejectedDownloads)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRejectedDownloadsRow
+	for rows.Next() {
+		var i ListRejectedDownloadsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.EpisodeID,
+			&i.ImportFiles,
+			&i.ImportUpdatedAt,
+			&i.FileEpisodeID,
+			&i.FileDownloadID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setDownloadStopped = `-- name: SetDownloadStopped :exec
 UPDATE downloads SET stopped = ? WHERE id = ?
 `

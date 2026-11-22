@@ -77,5 +77,16 @@ WHERE d.id IN (SELECT max(id) FROM downloads GROUP BY episode_id)
     OR d.updated_at >= sqlc.arg(since) OR d.import_updated_at >= sqlc.arg(since))
 ORDER BY d.id DESC;
 
+-- Every download the file check rejected, with the download its
+-- episode's file came from: NULL without a file or for one garner took
+-- over.
+-- name: ListRejectedDownloads :many
+SELECT d.id, d.episode_id, d.import_files, d.import_updated_at,
+    f.episode_id AS file_episode_id, f.download_id AS file_download_id
+FROM downloads d
+LEFT JOIN episode_files f ON f.episode_id = d.episode_id
+WHERE d.import_state = 'rejected'
+ORDER BY d.id;
+
 -- name: CountOtherDownloadsWithJob :one
 SELECT count(*) FROM downloads WHERE job_id = sqlc.arg(job_id) AND id != sqlc.arg(download_id);

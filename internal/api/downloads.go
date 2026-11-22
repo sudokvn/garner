@@ -136,6 +136,29 @@ type ActivityItem struct {
 	Number        int        `json:"number"`
 }
 
+// Rejections counts the downloads the file check rejected. The counts
+// cover current shows only: a show's downloads are deleted with it.
+type Rejections struct {
+	// Total counts the rejected downloads and LastWeek those rejected in
+	// the last 7 days. Oldest is when the oldest of them was rejected;
+	// zero when there is none.
+	Total    int       `json:"total"`
+	LastWeek int       `json:"last_week"`
+	Oldest   time.Time `json:"oldest,omitzero"`
+	// Kinds counts the rejected downloads by kind of problem, as
+	// Download.RejectedFor names them: one rejected for problems of two
+	// kinds counts under both. ProblemUnclassified counts those whose
+	// problems were stored before garner kept kinds.
+	Kinds map[ProblemKind]int `json:"kinds"`
+	// Episodes counts the episodes with a rejected download. Of those,
+	// Imported have a file garner imported from a download started after
+	// their last rejected one, and Missing have no file. An episode that
+	// kept an earlier file counts as neither.
+	Episodes int `json:"episodes"`
+	Imported int `json:"imported"`
+	Missing  int `json:"missing"`
+}
+
 // ImportState is where the import of a finished download is; empty
 // before it starts.
 type ImportState string

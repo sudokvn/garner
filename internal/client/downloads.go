@@ -38,6 +38,13 @@ func (c *Client) DownloadSeasonCandidate(ctx context.Context, candidateID int64)
 	return d, c.do(ctx, http.MethodPost, "/api/v1/season-candidates/"+strconv.FormatInt(candidateID, 10)+"/download", nil, &d)
 }
 
+// Rejections counts the downloads the file check rejected, of the shows in
+// the library.
+func (c *Client) Rejections(ctx context.Context) (api.Rejections, error) {
+	var r api.Rejections
+	return r, c.do(ctx, http.MethodGet, "/api/v1/rejections", nil, &r)
+}
+
 // Activity lists what runs, what waits for the user, and what ended within
 // the last day.
 func (c *Client) Activity(ctx context.Context) ([]api.ActivityItem, error) {
