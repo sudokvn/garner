@@ -25,7 +25,7 @@ var everywhere = []string{
 	"gg G", "top, bottom", "esc", "back",
 	"ctrl+d u", "half page", "A", "activity",
 	"P", "profiles", "?", "this help",
-	"n", "next episode that needs you",
+	":", "commands: go to or do", "n", "next episode that needs you",
 	"q", "quit, from the Library",
 }
 

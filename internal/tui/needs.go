@@ -122,7 +122,7 @@ func (a *app) showNeeds(msg needsMsg) tea.Cmd {
 	}
 	c, capturing := a.screen.(capturer)
 	if msg.sess != a.sess || msg.ask != a.needs.asks || a.screen != a.needs.asked ||
-		a.help || capturing && c.captures() {
+		a.help || a.palette != nil || capturing && c.captures() {
 		// The user moved on, started typing or answering a question, or
 		// the session ended.
 		return nil

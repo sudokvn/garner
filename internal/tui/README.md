@@ -28,7 +28,7 @@ Success and info messages, such as `✓ Added Harbor Precinct`, disappear after 
 
 - **Full screen:** a place you navigate to and act from, such as Library, Show, Releases, Episode, Activity, Profiles, the profile editor, Import and About.
 - **Framed pane:** a secondary block inside a screen, such as WHY under Releases. It has square corners in the border colour, an uppercase title in the subtle colour cut into the top edge (`┌─ WHY ───`), two cells of padding and the width of the table above it.
-- **Overlay:** a question or a quick lookup, such as delete show, cancel download, profile or Help. It is a rounded box in the centre, with everything behind it in the faded colour and its keys inside the box. The cursor starts on the safe choice. Overlays have no `y` or `n` shortcuts, and `esc` closes them.
+- **Overlay:** a question or a quick lookup, such as delete show, cancel download, profile, Help or the command palette. It is a rounded box in the centre, with everything behind it in the faded colour and its keys inside the box. The cursor starts on the safe choice. Overlays have no `y` or `n` shortcuts, and `esc` closes them.
 - **Bottom line:** keys, a message or a prompt. A screen never has a second status row.
 
 ## Glyphs
@@ -96,11 +96,12 @@ Some keys mean the same everywhere:
 
 - `j k` move, `gg G` jump to the top or bottom, `ctrl+d u` move by half a page.
 - `enter` opens, `esc` goes back, `A` opens Activity, `P` opens Profiles, `?` opens Help, `q` quits from the Library.
+- `:` opens the command palette (`palette.go`). With nothing typed it lists the screen's actions from its `help()`, then what works anywhere. Typing filters them and adds shows, profiles and the open show's episodes. Choosing an action hands its key to the screen, so a new key in `help()` appears there by itself. Entries whose keys move the cursor, such as `j k`, `h l` or `tab`, are left out.
 - `n` opens the next episode that needs the user (`needs.go`): failures not cleared first, then files Jellyfin did not confirm. Pressed again on that episode, it moves on and wraps around, and the bottom line counts the queue.
 - `/` filters as you type in the bottom line; `enter` keeps the filter and `esc` clears it.
 - `s` sorts by the next column and `I` reverses the order. Where a row is an episode, as on the Show screen and the Library's Upcoming tab, `s` searches it now instead.
 - `d` deletes and is never a navigation key. `j k` never leave a pane; `tab` moves between panes. Where `tab` also switches categories, as in the Library, the preview takes it and `1` to `4` keep switching them.
-- While text is typed or a question is open, the screen takes every key, including `?`, `A` and `n`.
+- While text is typed or a question is open, the screen takes every key, including `?`, `A`, `:` and `n`.
 
 ## Text
 

@@ -631,10 +631,10 @@ func (s *libraryScreen) bottom(width, shown, total int) string {
 	}
 	if s.wide() {
 		return keyBar("j k", "move", "enter", "open", "tab", "into the pane", "1-4", "category", "i", "details",
-			"a", "add", "/", "filter", "P", "profiles", "A", "activity", "?", "help", "q", "quit")
+			"a", "add", "/", "filter", ":", "commands", "P", "profiles", "A", "activity", "?", "help", "q", "quit")
 	}
 	// d, s and tab category are in Help; the tabs show at the top.
-	return keyBar("j k", "move", "enter", "open", "i", "details", "a", "add", "/", "filter",
+	return keyBar("j k", "move", "enter", "open", "i", "details", "a", "add", "/", "filter", ":", "commands",
 		"P", "profiles", "A", "activity", "?", "help", "q", "quit")
 }
 
@@ -765,6 +765,15 @@ func episodes(sh api.Show) string { return fmt.Sprintf("%d/%d", sh.Imported, sh.
 func (s *libraryScreen) flashed() *flash { return &s.flash }
 
 func (s *libraryScreen) captures() bool { return s.typing || s.asking || s.deleting != "" }
+
+// enterHelp is the help() entry enter does: in the preview it opens the
+// episode, in the list the show.
+func (s *libraryScreen) enterHelp() string {
+	if s.pv.focused {
+		return "in the preview: open the episode"
+	}
+	return "open the show"
+}
 
 func (s *libraryScreen) help() (string, []string) {
 	if s.cat == catUpcoming {

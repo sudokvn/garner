@@ -75,6 +75,7 @@ type app struct {
 	screen        screen
 	library       *libraryScreen
 	stored        *client.Client // a stored connection to open on start
+	palette       *palette       // the command palette, while open
 	needs         needsState     // the queue n walks
 }
 
@@ -183,10 +184,15 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if a.help {
 			return a, a.helpKey(key)
 		}
+		if a.palette != nil {
+			return a, a.paletteKey(msg)
+		}
 		if c, ok := a.screen.(capturer); a.sess == nil || ok && c.captures() {
 			break
 		}
 		switch key {
+		case ":":
+			return a, a.openPalette()
 		case "n":
 			return a, a.nextNeeds()
 		case "?":
@@ -207,6 +213,16 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.screen = newProfiles(a.sess, a.screen)
 			return a, a.screen.init()
 		}
+	case tea.PasteMsg:
+		if a.palette != nil {
+			a.palette.setTyped(a.palette.typed + clean(msg.Content))
+			return a, nil
+		}
+	case paletteProfilesMsg:
+		if a.palette == msg.from {
+			a.palette.profiles = msg.profiles
+		}
+		return a, nil
 	case needsMsg:
 		return a, a.showNeeds(msg)
 	case connectedMsg:
@@ -242,7 +258,7 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.sess.stop()
 			a.sess = nil
 		}
-		a.library, a.needs = nil, needsState{}
+		a.library, a.palette, a.needs = nil, nil, needsState{}
 		a.screen = newConnect(a.path, msg.reason)
 		return a, a.screen.init()
 	case eventMsg:
@@ -298,6 +314,9 @@ func (a *app) View() tea.View {
 	v.WindowTitle = "garner"
 	if a.width > 0 && a.height > 0 {
 		v.Content = a.withNeeds(a.screen.view(a.width, a.height))
+		if a.palette != nil {
+			v.Content = overlay(v.Content, a.paletteLines(a.width, a.height), a.width, a.height)
+		}
 		if a.help {
 			// The box's borders and a line of margin above and below.
 			all := helpLines(a.screen, a.width-8)

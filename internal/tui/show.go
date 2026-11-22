@@ -509,6 +509,16 @@ func (s *showScreen) facts(now time.Time, width int) string {
 	return factLines(width, facts...)
 }
 
+// enterHelp is the help() entry enter does: none on a season row, where
+// it folds the season, or on an episode not aired yet.
+func (s *showScreen) enterHelp() string {
+	switch s.enterLabel() {
+	case "", "fold", "unfold":
+		return ""
+	}
+	return "open the episode"
+}
+
 func (s *showScreen) help() (string, []string) {
 	return "Show", []string{
 		"enter", "open the episode", "s", "search the episode, or the season for packs",
