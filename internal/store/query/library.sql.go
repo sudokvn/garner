@@ -370,6 +370,46 @@ func (q *Queries) ListSeriesBusyDownloads(ctx context.Context, seriesID int64) (
 	return items, nil
 }
 
+const listSeriesFileDownloads = `-- name: ListSeriesFileDownloads :many
+SELECT f.episode_id, d.manual, d.import_files
+FROM episode_files f
+JOIN episodes e ON e.id = f.episode_id
+JOIN downloads d ON d.id = f.download_id
+WHERE e.series_id = ?
+`
+
+type ListSeriesFileDownloadsRow struct {
+	EpisodeID   int64
+	Manual      int64
+	ImportFiles string
+}
+
+// The download each of a show's imported files came from: whether the
+// user chose it by hand, and its import's files with their checks. Files
+// garner took over have no download.
+func (q *Queries) ListSeriesFileDownloads(ctx context.Context, seriesID int64) ([]ListSeriesFileDownloadsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listSeriesFileDownloads, seriesID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSeriesFileDownloadsRow
+	for rows.Next() {
+		var i ListSeriesFileDownloadsRow
+		if err := rows.Scan(&i.EpisodeID, &i.Manual, &i.ImportFiles); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSeriesFileTiers = `-- name: ListSeriesFileTiers :many
 SELECT f.episode_id, f.tier FROM episode_files f JOIN episodes e ON e.id = f.episode_id WHERE e.series_id = ?
 `

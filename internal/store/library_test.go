@@ -109,6 +109,66 @@ func TestLibrary(t *testing.T) {
 	}
 }
 
+// TestShowStatusFileCheck gives an imported episode what the file check
+// found in its file and whether its release was chosen by hand, and a file
+// garner took over neither: the Show screen marks the file by them.
+func TestShowStatusFileCheck(t *testing.T) {
+	ctx := context.Background()
+	st, err := Open(ctx, t.TempDir(), slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	now := time.Date(2026, 10, 14, 12, 0, 0, 0, time.UTC)
+	pos := func(n int) map[string]Position { return map[string]Position{"official": {Season: 1, Number: n}} }
+	if err := st.SaveSeries(ctx, SeriesData{
+		Series: Series{ID: 42, Slug: "x", Name: "Harbor Precinct", OriginalLanguage: "eng", OriginalCountry: "usa",
+			Status: "Ended", DefaultOrder: "official", TVDBUpdated: "x", Type: "tv"},
+		Episodes: []Episode{{ID: 101, Aired: "2026-09-01", Numbers: pos(1)}, {ID: 102, Aired: "2026-09-08", Numbers: pos(2)}},
+	}, false, now); err != nil {
+		t.Fatal(err)
+	}
+	d, err := st.StartDownload(ctx, Download{EpisodeID: 101, Title: "Harbor.Precinct.S01E01.German.1080p.WEB-GRP", Link: "x",
+		Verdict: api.Reject, Tier: "German 1080p", Manual: true}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.State = Completed
+	if err := st.UpdateDownload(ctx, d, now); err != nil {
+		t.Fatal(err)
+	}
+	check := &api.FileCheck{Resolution: "1920x1080", Audio: []string{"English"}, Subtitles: []string{},
+		Notes: []string{"no German audio track; kept because the release was chosen by hand"}}
+	if err := st.UpdateImport(ctx, d.ID, Import{State: ImportDone, Files: []ImportFile{
+		{Source: "/dl/a.mkv", Target: "/lib/a.mkv", Episodes: []int64{101}, Check: check},
+	}}, now); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetEpisodeFile(ctx, EpisodeFile{EpisodeID: 101, Path: "/lib/a.mkv", Size: 1000, Tier: "German 1080p"}, d.ID, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.TakeOverFile(ctx, EpisodeFile{EpisodeID: 102, Path: "/lib/b.mkv", Size: 900}, now); err != nil {
+		t.Fatal(err)
+	}
+
+	_, states, err := st.ShowStatus(ctx, 42, now, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range states {
+		switch s.EpisodeID {
+		case 101:
+			if s.Check == nil || s.Check.Resolution != "1920x1080" || len(s.Check.Notes) != 1 || !s.ChosenByHand {
+				t.Errorf("imported episode: check %+v, chosen by hand %v; want the file's check, chosen by hand", s.Check, s.ChosenByHand)
+			}
+		case 102:
+			if s.State != EpisodeImported || s.Check != nil || s.ChosenByHand {
+				t.Errorf("taken-over episode: %+v; want imported without a check", s)
+			}
+		}
+	}
+}
+
 // TestUpdateSeriesKeepsDeleted checks that a refresh that finishes after
 // its show was deleted does not bring the show back.
 func TestUpdateSeriesKeepsDeleted(t *testing.T) {

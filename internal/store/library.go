@@ -3,8 +3,10 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/sudokvn/garner/internal/api"
@@ -49,6 +51,12 @@ func (s *Store) summarise(ctx context.Context, now time.Time, only int64, sc *Sc
 	f, err := s.loadFacts(ctx, only)
 	if err != nil {
 		return nil, nil, err
+	}
+	var origins map[int64]fileOrigin
+	if only > 0 {
+		if origins, err = s.fileOrigins(ctx, only); err != nil {
+			return nil, nil, err
+		}
 	}
 	today := now.Format(time.DateOnly)
 	shows := make([]Show, len(f.series))
@@ -109,6 +117,8 @@ func (s *Store) summarise(ctx context.Context, now time.Time, only int64, sc *Sc
 			st := EpisodeStatus{EpisodeID: e.ID, State: state, Attempts: f.attempts[e.ID], NextRetry: next}
 			if hasFile {
 				st.Size, st.Tier = file.Size, file.Tier
+				o := origins[e.ID]
+				st.Check, st.ChosenByHand = o.check, o.manual
 			}
 			if cleared || explains(state, d) {
 				st.Download = d
@@ -136,6 +146,38 @@ func (s *Store) summarise(ctx context.Context, now time.Time, only int64, sc *Sc
 		}
 	}
 	return shows, states, nil
+}
+
+// fileOrigin is what the download an imported file came from says about
+// it.
+type fileOrigin struct {
+	check  *api.FileCheck
+	manual bool
+}
+
+// fileOrigins maps a show's episodes whose file garner imported to the
+// file check of that file and whether its release was chosen by hand.
+func (s *Store) fileOrigins(ctx context.Context, seriesID int64) (map[int64]fileOrigin, error) {
+	rows, err := s.q.ListSeriesFileDownloads(ctx, seriesID)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[int64]fileOrigin, len(rows))
+	for _, r := range rows {
+		var files []ImportFile
+		if err := json.Unmarshal([]byte(r.ImportFiles), &files); err != nil {
+			return nil, fmt.Errorf("episode %d file's import files: %w", r.EpisodeID, err)
+		}
+		o := fileOrigin{manual: r.Manual != 0}
+		for _, f := range files {
+			if f.Check != nil && slices.Contains(f.Episodes, r.EpisodeID) {
+				o.check = f.Check
+				break
+			}
+		}
+		out[r.EpisodeID] = o
+	}
+	return out, nil
 }
 
 // explains reports whether an episode's latest download explains its

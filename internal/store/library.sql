@@ -22,6 +22,16 @@ SELECT episode_id, searched_at, outcome, summary, next_retry_at FROM searches;
 -- name: ListSeriesFileTiers :many
 SELECT f.episode_id, f.tier FROM episode_files f JOIN episodes e ON e.id = f.episode_id WHERE e.series_id = ?;
 
+-- The download each of a show's imported files came from: whether the
+-- user chose it by hand, and its import's files with their checks. Files
+-- garner took over have no download.
+-- name: ListSeriesFileDownloads :many
+SELECT f.episode_id, d.manual, d.import_files
+FROM episode_files f
+JOIN episodes e ON e.id = f.episode_id
+JOIN downloads d ON d.id = f.download_id
+WHERE e.series_id = ?;
+
 -- name: ListSeriesFiles :many
 SELECT f.path, f.size FROM episode_files f JOIN episodes e ON e.id = f.episode_id WHERE e.series_id = ?;
 

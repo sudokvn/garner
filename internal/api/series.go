@@ -260,6 +260,11 @@ type EpisodeStatus struct {
 	// the release it came from, such as "German 1080p".
 	Size int64  `json:"size,omitempty"`
 	Tier string `json:"tier,omitempty"`
+	// Check is what the file check found in the imported file, and
+	// ChosenByHand says the user chose its release by hand. Both are empty
+	// for a file garner took over from the library: it checked none.
+	Check        *FileCheck `json:"check,omitempty"`
+	ChosenByHand bool       `json:"chosen_by_hand,omitempty"`
 	// Attempts counts the downloads started for the episode.
 	Attempts int `json:"attempts,omitempty"`
 	// Download is the latest download when it explains the state.
