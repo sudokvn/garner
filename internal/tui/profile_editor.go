@@ -13,6 +13,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/sudokvn/garner/internal/api"
 	"github.com/sudokvn/garner/internal/client"
@@ -500,6 +501,9 @@ func (s *editorScreen) view(width, height int) string {
 		line(editorRow{rowResolution, i}, entry("Resolution", i, fmt.Sprintf("%dp", r), ""))
 	}
 	b.WriteString("\n")
+	// Below the designed width the explanations do not fit beside the
+	// values; the one for the row under the cursor gets a line of its own.
+	narrow := width < designWidth
 	for i, o := range profileOptions {
 		v := o.get(s.p)
 		line(editorRow{rowOption, i}, func(bg styler) string {
@@ -518,12 +522,27 @@ func (s *editorScreen) view(width, height int) string {
 				out += bg(st).Render(c)
 				cells += lipgloss.Width(c)
 			}
+			if narrow {
+				return out
+			}
 			// The explanations line up after the widest pair of values.
 			const optionsWidth = 24
 			return out + bg(lipgloss.NewStyle()).Render(strings.Repeat(" ", max(1, optionsWidth-cells))) + bg(sMuted).Render("· "+o.explain(v))
 		})
 	}
 	b.WriteString("\n")
+	if narrow {
+		// The line stays when the cursor is elsewhere, so nothing below moves.
+		explain := []string{""}
+		if row.kind == rowOption {
+			o := profileOptions[row.index]
+			explain = strings.Split(ansi.Wrap(o.explain(o.get(s.p)), max(20, width-6), ""), "\n")
+		}
+		for _, l := range explain {
+			b.WriteString(strings.TrimRight("   "+sMuted.Render(l), " ") + "\n")
+		}
+		b.WriteString("\n")
+	}
 	prefs := sMuted.Render("none yet")
 	if len(s.p.Audio) > 0 && len(s.p.Resolution) > 0 {
 		prefs = sNormal.Render(prefsLine(s.p))
