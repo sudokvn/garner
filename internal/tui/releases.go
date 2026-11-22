@@ -53,6 +53,10 @@ type releasesScreen struct {
 	confirm  int64 // a rejected release waiting for a second enter
 	busy     string
 	flash    flash
+
+	// leave is where esc goes when it is not back, such as the Library's
+	// Upcoming tab.
+	leave screen
 }
 
 // newReleases opens the releases of an episode; with fresh set it searches
@@ -172,6 +176,9 @@ func (s *releasesScreen) key(key string) tea.Cmd {
 	case "esc":
 		if s.cancel != nil {
 			s.cancel()
+		}
+		if s.leave != nil {
+			return func() tea.Msg { return switchMsg{s.leave} }
 		}
 		return func() tea.Msg { return switchMsg{s.back} }
 	case "j", "down":

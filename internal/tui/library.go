@@ -23,11 +23,13 @@ import (
 
 type category int
 
-// The library's tabs. Movies get one once garner manages them.
+// The library's tabs. Movies get one once garner manages them. Upcoming
+// lists episodes, not shows.
 const (
 	catAll category = iota
 	catTV
 	catAnime
+	catUpcoming
 	categories // how many there are
 )
 
@@ -42,11 +44,15 @@ const (
 	sortKeys
 )
 
-// libraryMsg answers one library's reload; from tells the app which.
+// libraryMsg answers one library's reload; from tells the app which. It
+// carries the upcoming episodes too, so they arrive whichever screen is
+// open.
 type libraryMsg struct {
-	from  *libraryScreen
-	shows []api.Show
-	err   error
+	from        *libraryScreen
+	shows       []api.Show
+	err         error
+	upcoming    api.Upcoming
+	upcomingErr error
 }
 
 type libraryScreen struct {
@@ -70,6 +76,12 @@ type libraryScreen struct {
 	choice   int
 	deleting string // its name
 	busy     string // what runs, such as "Deleting Harbor Precinct…"
+	// The Upcoming tab: its episodes as last loaded, or why they could
+	// not be, and the episode under its cursor.
+	upcoming    *api.Upcoming
+	upcomingErr error
+	upSelected  int64
+	upOffset    int
 }
 
 func newLibrary(sess *session) *libraryScreen {
@@ -119,8 +131,15 @@ func (s *libraryScreen) reload() tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		shows, err := cl.Library(ctx)
-		return libraryMsg{s, shows, err}
+		msg := libraryMsg{from: s}
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			msg.upcoming, msg.upcomingErr = cl.Upcoming(ctx)
+		}()
+		msg.shows, msg.err = cl.Library(ctx)
+		<-done
+		return msg
 	}
 }
 
@@ -137,6 +156,10 @@ func (s *libraryScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 			}
 		default:
 			s.sess.shows, s.loaded = msg.shows, true
+			if msg.upcomingErr == nil {
+				s.upcoming = &msg.upcoming
+			}
+			s.upcomingErr = msg.upcomingErr
 		}
 		if s.dirty {
 			s.dirty = false
@@ -231,27 +254,43 @@ func (s *libraryScreen) key(msg tea.KeyPressMsg) tea.Cmd {
 
 	prev := s.lastKey
 	s.lastKey = key
+	move := s.move
+	if s.cat == catUpcoming {
+		move = s.upMove
+		switch key {
+		case "enter":
+			if e, ok := s.cursorUpcoming(); ok {
+				next := newShow(s.sess, s, e.SeriesID, upcomingShow(e), "")
+				return func() tea.Msg { return switchMsg{next} }
+			}
+			return nil
+		case "s":
+			return s.upSearch()
+		case "i", "d", "I", "/":
+			return nil // they act on the shows of the other tabs
+		}
+	}
 	switch key {
 	case "j", "down":
-		s.move(1)
+		move(1)
 	case "k", "up":
-		s.move(-1)
+		move(-1)
 	case "g":
 		if prev == "g" {
-			s.move(-1 << 30)
+			move(-1 << 30)
 			s.lastKey = ""
 		}
 	case "G":
-		s.move(1 << 30)
+		move(1 << 30)
 	case "ctrl+d":
-		s.move(max(1, s.page/2))
+		move(max(1, s.page/2))
 	case "ctrl+u":
-		s.move(-max(1, s.page/2))
+		move(-max(1, s.page/2))
 	case "tab":
 		s.cat = (s.cat + 1) % categories
 	case "shift+tab":
 		s.cat = (s.cat + categories - 1) % categories
-	case "1", "2", "3":
+	case "1", "2", "3", "4":
 		s.cat = category(key[0] - '1')
 	case "s":
 		s.sort, s.reverse = (s.sort+1)%sortKeys, false
@@ -363,6 +402,8 @@ func (c category) holds(sh api.Show) bool {
 		return sh.Type != api.TypeAnime
 	case catAnime:
 		return sh.Type == api.TypeAnime
+	case catUpcoming:
+		return false
 	}
 	return true
 }
@@ -415,6 +456,10 @@ func (s *libraryScreen) view(width, height int) string {
 	var b strings.Builder
 	b.WriteString(header(width, s.sess, "garner", "Library") + "\n\n")
 	b.WriteString("   " + s.tabs() + "\n\n")
+	if s.cat == catUpcoming {
+		b.WriteString(s.upcomingView(width, time.Now()))
+		return screenLayout(width, height, b.String(), s.bottom(width, 0, 0))
+	}
 	cols := s.columns(width)
 	b.WriteString(cols.head(s.sort, s.reverse) + "\n")
 	b.WriteString("   " + sBorder.Render(strings.Repeat("─", max(0, width-6))) + "\n")
@@ -471,14 +516,21 @@ func (s *libraryScreen) tabs() string {
 			}
 		}
 	}
-	names := [categories]string{"All", "TV", "Anime"}
+	names := [categories]string{"All", "TV", "Anime", "Upcoming"}
 	parts := make([]string, categories)
 	for c := range categories {
 		label := sMuted.Render(names[c])
 		if c == s.cat {
 			label = sBold.Render(names[c])
 		}
-		parts[c] = label + " " + sMuted.Render(strconv.Itoa(counts[c]))
+		switch {
+		case c != catUpcoming:
+			parts[c] = label + " " + sMuted.Render(strconv.Itoa(counts[c]))
+		case s.upcoming != nil:
+			parts[c] = label + " " + sMuted.Render(strconv.Itoa(len(s.upcoming.Episodes)))
+		default:
+			parts[c] = label
+		}
 	}
 	return strings.Join(parts, "      ")
 }
@@ -493,6 +545,9 @@ func (s *libraryScreen) bottom(width, shown, total int) string {
 		return sMuted.Render(s.busy)
 	case s.flash.text != "":
 		return s.flash.text
+	case s.cat == catUpcoming:
+		return joinKeys(keyBar("j k", "move"), keySlot("enter", "open show", s.hasUpcoming()), s.upSearchSlot(),
+			keyBar("tab", "category", "A", "activity", "?", "help", "q", "quit"))
 	case s.loaded && len(s.sess.shows) == 0:
 		return keyBar("a", "add show", "?", "help", "q", "quit")
 	case s.filter != "":
@@ -633,10 +688,13 @@ func (s *libraryScreen) flashed() *flash { return &s.flash }
 func (s *libraryScreen) captures() bool { return s.typing || s.asking || s.deleting != "" }
 
 func (s *libraryScreen) help() (string, []string) {
+	if s.cat == catUpcoming {
+		return "Library", upcomingHelp
+	}
 	return "Library", []string{
 		"enter", "open the show", "i", "show details",
 		"a", "add a show", "d", "delete the show",
-		"tab", "next category", "1 2 3", "jump to a category",
+		"tab", "next category", "1 2 3 4", "jump to a category",
 		"/", "filter, esc clears", "s", "sort by the next column",
 		"I", "reverse the order", "q", "quit",
 	}
