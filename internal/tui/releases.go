@@ -355,10 +355,16 @@ const (
 func (s *releasesScreen) table(width, height int) string {
 	all := s.candidates()
 	cols := releaseCols{tier: len("Preference"), source: sourceWidth, audio: audioWidth, age: ageWidth}
+	reason := 0 // the longest decisive reason, up to maxReasonWidth
 	for _, c := range all {
 		tier, _ := tierLabel(c)
+		if c.Verdict == api.Reject {
+			reason = max(reason, min(maxReasonWidth, ansi.StringWidth(tier)))
+			continue
+		}
 		cols.tier = max(cols.tier, ansi.StringWidth(tier))
 	}
+
 	// Tried appears once garner tried one of the postings.
 	if slices.ContainsFunc(all, func(c api.Candidate) bool { return c.Attempt != nil }) {
 		cols.tried = triedWidth
@@ -374,6 +380,9 @@ func (s *releasesScreen) table(width, height int) string {
 		}
 		*col = 0
 	}
+	// Rejected releases' reasons take the room the names leave, cut at
+	// the end; names that tell releases apart come first.
+	cols.tier += max(0, min(reason-cols.tier, width-cols.fixed()-min(longest, reasonNameRoom)))
 	// As wide as the longest name, so the columns stay together.
 	cols.name = max(20, min(longest, width-cols.fixed()))
 	// The rule and the WHY frame end with the table.
@@ -423,6 +432,14 @@ func (s *releasesScreen) table(width, height int) string {
 
 // minReleaseName is the room release names keep on a narrow terminal.
 const minReleaseName = 30
+
+// maxReasonWidth is the most room a rejected release's reason takes in
+// the Preference column; WHY has it in full. The reasons take only room
+// the names leave beyond reasonNameRoom.
+const (
+	maxReasonWidth = 28
+	reasonNameRoom = 40
+)
 
 // releaseCols sizes the releases table; Tried, Source, Audio and Age are
 // 0 when left out, on a narrow terminal or, for Tried, when garner tried
@@ -505,13 +522,17 @@ func (cols releaseCols) row(c api.Candidate, width int, selected bool) string {
 }
 
 // tierLabel is what the Preference column shows for a release: the
-// preference it meets, or that it is only a last resort.
+// preference it meets, that it is only a last resort, or the reason that
+// decided its rejection.
 func tierLabel(c api.Candidate) (string, lipgloss.Style) {
 	switch c.Verdict {
 	case api.Fallback:
 		return "last resort", sAmber
 	case api.Reject:
-		return "", sSubtle
+		if len(c.Reasons) == 0 {
+			return "", sSubtle
+		}
+		return clean(c.Reasons[0]), sSubtle
 	}
 	return clean(c.Tier), sNormal
 }

@@ -69,13 +69,22 @@ func TestReleasesTried(t *testing.T) {
 }
 
 // TestReleasesPreferenceFits shows every release's preference in full,
-// however long its language's name.
+// however long its language's name, and a rejected release's decisive
+// reason in its place, cut at the end.
 func TestReleasesPreferenceFits(t *testing.T) {
 	s := &releasesScreen{sess: &session{}, back: &showScreen{name: "Lanterns and Tides"}, search: &api.Search{Candidates: []api.Candidate{
 		{ID: 1, Rank: 1, Title: "Lanterns.and.Tides.S01E11.1080p.WEB-DL.H.264-TIDE", Size: 780e6, Verdict: "accept", Tier: "Japanese 1080p"},
 		{ID: 2, Rank: 2, Title: "Lanterns.and.Tides.S01E11.720p.WEB-DL.H.264-TIDE", Size: 377e6, Verdict: "accept", Tier: "Japanese 720p"},
+		{ID: 3, Rank: 3, Title: "Lanterns.and.Tides.S01E11.English.Dub.1080p.WEB-DL.H.264-FERRY", Size: 780e6, Verdict: "reject",
+			Reasons: []string{"audio is English, not Japanese or German, as the indexer reports", "English audio"}, Decisive: 1},
 	}}, selected: 1}
-	if view := ansi.Strip(s.view(150, 30)); !strings.Contains(view, "Japanese 1080p") {
+	view := ansi.Strip(s.view(150, 30))
+	if !strings.Contains(view, "Japanese 1080p") {
 		t.Errorf("the preference is cut:\n%s", view)
+	}
+	for _, l := range strings.Split(view, "\n") {
+		if strings.Contains(l, "FERRY") && !strings.Contains(l, "audio is English, not Japan…") {
+			t.Errorf("the rejected row lacks its reason:\n%s", view)
+		}
 	}
 }
