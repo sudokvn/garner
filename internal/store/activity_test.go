@@ -229,8 +229,8 @@ func TestActivityRejectedAttempts(t *testing.T) {
 
 // TestActivityAttemptNumbers numbers an episode's attempts in Activity by
 // every download started for it, so "attempt 4 rejected" there is attempt
-// 4 on the Show and Episode screens too, however the downloads of other
-// episodes interleave.
+// 4 on the Show and Episode screens and in the Library's preview too,
+// however the downloads of other episodes interleave.
 func TestActivityAttemptNumbers(t *testing.T) {
 	ctx := context.Background()
 	st, err := Open(ctx, t.TempDir(), slog.New(slog.DiscardHandler))
@@ -316,6 +316,14 @@ func TestActivityAttemptNumbers(t *testing.T) {
 	}
 	j := slices.IndexFunc(states, func(s EpisodeStatus) bool { return s.EpisodeID == 101 })
 	if j < 0 || states[j].Attempts != it.Download.Attempt {
-		t.Errorf("the Show screen does not count %d attempts, as Activity numbers the latest", it.Download.Attempt)
+		t.Fatalf("the Show screen does not count %d attempts, as Activity numbers the latest", it.Download.Attempt)
+	}
+	// The Library's preview lists the same rejected attempts of the run.
+	var shown []int
+	for _, d := range states[j].Rejected {
+		shown = append(shown, d.Attempt)
+	}
+	if !slices.Equal(shown, got[1:]) {
+		t.Errorf("the show's status numbers the rejected attempts %v, Activity %v", shown, got[1:])
 	}
 }

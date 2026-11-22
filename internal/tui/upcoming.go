@@ -214,8 +214,8 @@ func (c upCols) row(r upRow, monitorOff string, now time.Time, selected bool) st
 }
 
 // upcomingView is the tab below the tabs: column names, a rule and the
-// rows.
-func (s *libraryScreen) upcomingView(width int, now time.Time) string {
+// rows. The cursor shows unless the preview has the keys.
+func (s *libraryScreen) upcomingView(width int, now time.Time, showCursor bool) string {
 	var b strings.Builder
 	switch {
 	case s.upcoming == nil && s.upcomingErr != nil:
@@ -235,7 +235,7 @@ func (s *libraryScreen) upcomingView(width int, now time.Time) string {
 	}
 	s.upOffset = max(0, min(s.upOffset, len(rows)-s.page))
 	for i := s.upOffset; i < min(len(rows), s.upOffset+s.page); i++ {
-		b.WriteString(cols.row(rows[i], s.upcoming.MonitorOff, now, i == cur) + "\n")
+		b.WriteString(cols.row(rows[i], s.upcoming.MonitorOff, now, i == cur && showCursor) + "\n")
 	}
 	return b.String()
 }
@@ -299,8 +299,9 @@ func (s *libraryScreen) hasUpcoming() bool {
 // the keys for the shows of the other tabs do nothing.
 var upcomingHelp = []string{
 	"enter", "open the show", "s", "search the episode now, once it aired",
-	"a", "add a show", "tab", "next category",
-	"1 2 3 4", "jump to a category", "q", "quit",
+	"a", "add a show", "tab", "next category, or the preview at 160 columns",
+	"1 2 3 4", "jump to a category", "enter", "in the preview: open the episode",
+	"q", "quit",
 }
 
 // upAired is the episode under the cursor when it has aired by the

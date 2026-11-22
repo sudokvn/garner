@@ -44,15 +44,21 @@ const (
 	sortKeys
 )
 
-// libraryMsg answers one library's reload; from tells the app which. It
-// carries the upcoming episodes too, so they arrive whichever screen is
-// open.
+// libraryMsg answers one library's reload; from tells the app which.
 type libraryMsg struct {
-	from        *libraryScreen
-	shows       []api.Show
-	err         error
-	upcoming    api.Upcoming
-	upcomingErr error
+	from  *libraryScreen
+	shows []api.Show
+	err   error
+}
+
+// upcomingMsg brings the upcoming episodes of a reload on their own, so a
+// slow schedule does not hold back the shows. They arrive whichever
+// screen is open.
+type upcomingMsg struct {
+	from     *libraryScreen
+	gen      int // which load, so an older answer does not replace a newer one
+	upcoming api.Upcoming
+	err      error
 }
 
 type libraryScreen struct {
@@ -82,6 +88,12 @@ type libraryScreen struct {
 	upcomingErr error
 	upSelected  int64
 	upOffset    int
+	upAsked     int // counts the upcoming loads asked for
+	upShown     int // the newest of them answered
+	// The preview of the show under the cursor, and the width of the
+	// last view, which tells whether it shows.
+	pv    preview
+	width int
 }
 
 func newLibrary(sess *session) *libraryScreen {
@@ -94,7 +106,7 @@ func (s *libraryScreen) init() tea.Cmd {
 	if !s.loaded {
 		return nil
 	}
-	return s.reload()
+	return tea.Batch(s.reload(), s.previewStale())
 }
 
 // showAdded selects a show just added, wherever the filter and tabs were,
@@ -127,20 +139,19 @@ func (s *libraryScreen) reload() tea.Cmd {
 		return nil
 	}
 	s.loading = true
-	cl := s.sess.client
-	return func() tea.Msg {
+	s.upAsked++
+	cl, gen := s.sess.client, s.upAsked
+	return tea.Batch(func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		msg := libraryMsg{from: s}
-		done := make(chan struct{})
-		go func() {
-			defer close(done)
-			msg.upcoming, msg.upcomingErr = cl.Upcoming(ctx)
-		}()
-		msg.shows, msg.err = cl.Library(ctx)
-		<-done
-		return msg
-	}
+		shows, err := cl.Library(ctx)
+		return libraryMsg{from: s, shows: shows, err: err}
+	}, func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		u, err := cl.Upcoming(ctx)
+		return upcomingMsg{from: s, gen: gen, upcoming: u, err: err}
+	})
 }
 
 func (s *libraryScreen) update(msg tea.Msg) (screen, tea.Cmd) {
@@ -156,10 +167,6 @@ func (s *libraryScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 			}
 		default:
 			s.sess.shows, s.loaded = msg.shows, true
-			if msg.upcomingErr == nil {
-				s.upcoming = &msg.upcoming
-			}
-			s.upcomingErr = msg.upcomingErr
 		}
 		if s.dirty {
 			s.dirty = false
@@ -171,16 +178,41 @@ func (s *libraryScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 				waiting = append(waiting, sh.Focus.Download)
 			}
 		}
-		return s, redrawWhenSlow(waiting...)
+		return s, tea.Batch(redrawWhenSlow(waiting...), s.wantPreview())
+	case upcomingMsg:
+		if msg.gen <= s.upShown {
+			return s, nil
+		}
+		s.upShown = msg.gen
+		if msg.err == nil {
+			s.upcoming = &msg.upcoming
+		}
+		s.upcomingErr = msg.err
+		return s, s.wantPreview()
+	case libraryPreviewMsg:
+		if msg.from == s {
+			return s, s.previewLoaded(msg)
+		}
+	case tea.WindowSizeMsg:
+		s.width = msg.Width
+		return s, s.wantPreview()
 	case eventMsg:
 		switch msg.Type {
 		case client.EventConnected, api.EventSeriesUpdated, api.EventSeriesDeleted, api.EventSearchFinished:
-			return s, s.reload()
+			return s, tea.Batch(s.reload(), s.previewStale())
+		case api.EventProfilesUpdated:
+			// A show's profile rules are in the preview.
+			return s, s.previewStale()
 		case api.EventDownloadUpdated:
 			var d api.Download
-			if json.Unmarshal(msg.Data, &d) != nil || !s.patch(d) {
-				return s, s.reload()
+			if json.Unmarshal(msg.Data, &d) != nil {
+				return s, tea.Batch(s.reload(), s.previewStale())
 			}
+			cmd := s.previewDownload(d)
+			if !s.patch(d) {
+				return s, tea.Batch(s.reload(), cmd)
+			}
+			return s, cmd
 		}
 	case deleteResultMsg:
 		name := s.deleting
@@ -219,7 +251,13 @@ func (s *libraryScreen) patch(d api.Download) bool {
 	return false
 }
 
+// key handles a key, then loads the show the cursor rests on for the
+// preview.
 func (s *libraryScreen) key(msg tea.KeyPressMsg) tea.Cmd {
+	return tea.Batch(s.keyed(msg), s.wantPreview())
+}
+
+func (s *libraryScreen) keyed(msg tea.KeyPressMsg) tea.Cmd {
 	key := msg.String()
 	if s.deleting != "" {
 		return nil
@@ -227,6 +265,13 @@ func (s *libraryScreen) key(msg tea.KeyPressMsg) tea.Cmd {
 	s.flash.clear()
 	if s.asking {
 		return s.answer(key)
+	}
+	if s.pv.focused && !s.typing {
+		if _, _, ok := s.previewShown(); ok && s.wide() {
+			return s.previewKey(key)
+		}
+		// The pane went away: the key is the list's.
+		s.pv.focused = false
 	}
 	if s.typing {
 		switch key {
@@ -286,10 +331,16 @@ func (s *libraryScreen) key(msg tea.KeyPressMsg) tea.Cmd {
 		move(max(1, s.page/2))
 	case "ctrl+u":
 		move(-max(1, s.page/2))
-	case "tab":
-		s.cat = (s.cat + 1) % categories
-	case "shift+tab":
-		s.cat = (s.cat + categories - 1) % categories
+	case "tab", "shift+tab":
+		// With the preview, tab moves into it; 1 to 4 change the category.
+		// A pane with no episode to take the keys leaves tab to them.
+		switch {
+		case s.wide() && s.focusPreview():
+		case key == "tab":
+			s.cat = (s.cat + 1) % categories
+		default:
+			s.cat = (s.cat + categories - 1) % categories
+		}
 	case "1", "2", "3", "4":
 		s.cat = category(key[0] - '1')
 	case "s":
@@ -452,15 +503,27 @@ func (s *libraryScreen) view(width, height int) string {
 		s.selected = rows[cursor].ID
 	}
 	s.offset = min(max(s.offset, cursor-s.page+1), cursor)
+	// Wide: the table takes the left half, the preview the right.
+	s.width = width
+	now, wide, tableWidth := time.Now(), s.wide(), width
+	if wide {
+		tableWidth = width / 2
+	} else {
+		s.pv.focused = false
+	}
 
 	var b strings.Builder
 	b.WriteString(header(width, s.sess, "garner", "Library") + "\n\n")
 	b.WriteString("   " + s.tabs() + "\n\n")
 	if s.cat == catUpcoming {
-		b.WriteString(s.upcomingView(width, time.Now()))
+		body := s.upcomingView(tableWidth, now, !s.pv.focused)
+		if wide && s.upcoming != nil {
+			body = s.besidePane(body, 2, tableWidth, width, now)
+		}
+		b.WriteString(body)
 		return screenLayout(width, height, b.String(), s.bottom(width, 0, 0))
 	}
-	cols := s.columns(width)
+	cols := s.columns(tableWidth)
 	b.WriteString(cols.head(s.sort, s.reverse) + "\n")
 	b.WriteString("   " + sBorder.Render(strings.Repeat("─", max(0, width-6))) + "\n")
 
@@ -476,9 +539,15 @@ func (s *libraryScreen) view(width, height int) string {
 	case len(rows) == 0:
 		b.WriteString("   " + sMuted.Render("No shows in this category."))
 	default:
+		var t strings.Builder
 		end := min(len(rows), s.offset+s.page)
 		for i := s.offset; i < end; i++ {
-			b.WriteString(cols.row(rows[i], i == cursor) + "\n")
+			t.WriteString(cols.row(rows[i], i == cursor && !s.pv.focused) + "\n")
+		}
+		if wide {
+			b.WriteString(s.besidePane(t.String(), 0, tableWidth, width, now))
+		} else {
+			b.WriteString(t.String())
 		}
 	}
 	page := screenLayout(width, height, b.String(), s.bottom(width, len(rows), total))
@@ -545,6 +614,12 @@ func (s *libraryScreen) bottom(width, shown, total int) string {
 		return sMuted.Render(s.busy)
 	case s.flash.text != "":
 		return s.flash.text
+	case s.pv.focused:
+		return keyBar("j k", "move", "enter", "open", "tab", "back to the list", "1-4", "category",
+			"A", "activity", "?", "help", "q", "quit")
+	case s.cat == catUpcoming && s.wide():
+		return joinKeys(keyBar("j k", "move"), keySlot("enter", "open show", s.hasUpcoming()), s.upSearchSlot(),
+			keyBar("tab", "into the pane", "1-4", "category", "A", "activity", "?", "help", "q", "quit"))
 	case s.cat == catUpcoming:
 		return joinKeys(keyBar("j k", "move"), keySlot("enter", "open show", s.hasUpcoming()), s.upSearchSlot(),
 			keyBar("tab", "category", "A", "activity", "?", "help", "q", "quit"))
@@ -553,6 +628,10 @@ func (s *libraryScreen) bottom(width, shown, total int) string {
 	case s.filter != "":
 		return keyBar("j k", "move", "enter", "open", "i", "details", "a", "add", "/", "filter",
 			"esc", "clear filter", "P", "profiles", "?", "help", "q", "quit")
+	}
+	if s.wide() {
+		return keyBar("j k", "move", "enter", "open", "tab", "into the pane", "1-4", "category", "i", "details",
+			"a", "add", "/", "filter", "P", "profiles", "A", "activity", "?", "help", "q", "quit")
 	}
 	// d, s and tab category are in Help; the tabs show at the top.
 	return keyBar("j k", "move", "enter", "open", "i", "details", "a", "add", "/", "filter",
@@ -694,7 +773,8 @@ func (s *libraryScreen) help() (string, []string) {
 	return "Library", []string{
 		"enter", "open the show", "i", "show details",
 		"a", "add a show", "d", "delete the show",
-		"tab", "next category", "1 2 3 4", "jump to a category",
+		"tab", "next category, or the preview at 160 columns", "1 2 3 4", "jump to a category",
+		"enter", "in the preview: open the episode",
 		"/", "filter, esc clears", "s", "sort by the next column",
 		"I", "reverse the order", "q", "quit",
 	}

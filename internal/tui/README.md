@@ -4,7 +4,7 @@ These are the conventions of `internal/tui`, garner's terminal interface. Follow
 
 ## Size
 
-Screens are designed for 120 by 36 cells (`designWidth` in `style.go`). A wider terminal keeps the layout at the left edge. Tables span the window, and their last column, usually State, takes the extra width. Framed panes and running text stay at 120 cells at most, so lines stay readable. On a narrower terminal, columns give way in a fixed order, and names keep at least `minName` cells.
+Screens are designed for 120 by 36 cells (`designWidth` in `style.go`). A wider terminal keeps the layout at the left edge, except the Library: from 160 columns (`previewWidth` in `preview.go`) its table takes the left half and a preview of the show under the cursor the right, behind a rule in the border colour. Tables span the window, and their last column, usually State, takes the extra width. Framed panes and running text stay at 120 cells at most, so lines stay readable. On a narrower terminal, columns give way in a fixed order, and names keep at least `minName` cells.
 
 ## Screen layout
 
@@ -95,8 +95,8 @@ Some keys mean the same everywhere:
 - `j k` move, `gg G` jump to the top or bottom, `ctrl+d u` move by half a page.
 - `enter` opens, `esc` goes back, `A` opens Activity, `P` opens Profiles, `?` opens Help, `q` quits from the Library.
 - `/` filters as you type in the bottom line; `enter` keeps the filter and `esc` clears it.
-- `s` sorts by the next column and `I` reverses the order.
-- `d` deletes and is never a navigation key. `j k` never leave a pane; `tab` moves between panes.
+- `s` sorts by the next column and `I` reverses the order. Where a row is an episode, as on the Show screen and the Library's Upcoming tab, `s` searches it now instead.
+- `d` deletes and is never a navigation key. `j k` never leave a pane; `tab` moves between panes. Where `tab` also switches categories, as in the Library, the preview takes it and `1` to `4` keep switching them.
 - While text is typed or a question is open, the screen takes every key, including `?` and `A`.
 
 ## Text

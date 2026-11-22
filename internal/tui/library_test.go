@@ -1,6 +1,9 @@
 package tui
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"slices"
 	"strings"
 	"testing"
@@ -10,6 +13,8 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/client"
+	"github.com/sudokvn/garner/internal/connect"
 )
 
 // TestLibraryTabs offers only the categories garner has shows of: All, TV
@@ -127,5 +132,60 @@ func TestUpcoming(t *testing.T) {
 	}
 	if sw, _ = rel.key("esc")().(switchMsg); sw.screen != s || s.upSelected != 1 {
 		t.Errorf("esc went to %#v with the cursor on %d, want the tab on episode 1", sw.screen, s.upSelected)
+	}
+}
+
+// TestLibraryBeforeUpcoming shows the shows as soon as the library
+// answers: a slow schedule must not keep the main list loading.
+func TestLibraryBeforeUpcoming(t *testing.T) {
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/series":
+			json.NewEncoder(w).Encode([]api.Show{{Series: api.Series{ID: 1, Name: "Harbor Precinct", Type: api.TypeTV}}})
+		case "/api/v1/upcoming":
+			<-release
+			json.NewEncoder(w).Encode(api.Upcoming{Today: "2026-11-22"})
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+	defer close(release)
+	cl, err := client.New(connect.Code{URL: srv.URL, Token: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := newLibrary(&session{client: cl})
+
+	msgs := make(chan tea.Msg, 4)
+	var run func(tea.Cmd)
+	run = func(cmd tea.Cmd) {
+		go func() {
+			msg := cmd()
+			if batch, ok := msg.(tea.BatchMsg); ok {
+				for _, c := range batch {
+					if c != nil {
+						run(c)
+					}
+				}
+				return
+			}
+			msgs <- msg
+		}()
+	}
+	run(s.reload())
+	select {
+	case msg := <-msgs:
+		if _, ok := msg.(libraryMsg); !ok {
+			t.Fatalf("the first answer is %T, not the library", msg)
+		}
+		s.update(msg)
+	case <-time.After(5 * time.Second):
+		t.Fatal("the library waits for the upcoming episodes")
+	}
+	if view := ansi.Strip(s.view(120, 36)); !strings.Contains(view, "Harbor Precinct") {
+		t.Errorf("the library does not list its show while Upcoming loads:\n%s", view)
 	}
 }
