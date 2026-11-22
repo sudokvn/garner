@@ -49,6 +49,7 @@ func (s *Server) setupSearch() error {
 func (s *Server) searchRoutes(mux router) {
 	mux.Handle("POST /api/v1/episodes/{id}/search", http.HandlerFunc(s.handleSearchEpisode))
 	mux.Handle("GET /api/v1/episodes/{id}/search", http.HandlerFunc(s.handleGetSearch))
+	mux.Handle("POST /api/v1/episodes/{id}/search/judge", http.HandlerFunc(s.handleJudgeSearch))
 	mux.Handle("POST /api/v1/series/{id}/seasons/{season}/search", http.HandlerFunc(s.handleSearchSeason))
 	mux.Handle("POST /api/v1/series/{id}/search", http.HandlerFunc(s.handleSearchShow))
 }
@@ -160,6 +161,35 @@ func (s *Server) handleGetSearch(w http.ResponseWriter, r *http.Request) {
 	sr.NextRetry = s.nextSearch(r.Context(), id)
 	withSources(&sr)
 	writeJSON(w, http.StatusOK, sr)
+}
+
+// handleJudgeSearch judges an episode's latest stored search again under
+// a profile sent as {"text": a profile}, beside the show's own profile.
+// It searches, stores and downloads nothing, so it needs no service.
+func (s *Server) handleJudgeSearch(w http.ResponseWriter, r *http.Request) {
+	id, ok := episodeID(w, r)
+	if !ok {
+		return
+	}
+	p, ok := profileText(w, r)
+	if !ok {
+		return
+	}
+	var rules func(int64) map[release.Service]string
+	if s.catalog != nil {
+		rules = s.catalog.ServiceOrders
+	}
+	j, err := search.Judge(r.Context(), s.store, id, rules, s.profileFor, p, s.now())
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		writeError(w, http.StatusNotFound, "this episode has not been searched yet")
+	case errors.Is(err, search.ErrTooOld):
+		writeError(w, http.StatusConflict, err.Error())
+	case err != nil:
+		s.internalError(w, "judge search", err)
+	default:
+		writeJSON(w, http.StatusOK, j)
+	}
 }
 
 // sourceNames are the sources as releases write them.

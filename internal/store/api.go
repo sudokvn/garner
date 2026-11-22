@@ -23,6 +23,7 @@ type (
 	Search        = api.Search
 	SearchIndexer = api.SearchIndexer
 	Candidate     = api.Candidate
+	IndexerReport = api.IndexerReport
 )
 
 // Show types, and episode, download, import and monitor states.

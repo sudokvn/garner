@@ -63,14 +63,9 @@ func (s *Service) Episode(ctx context.Context, episodeID int64) (store.Search, e
 	if err != nil {
 		return store.Search{}, err
 	}
-	i := slices.IndexFunc(d.Episodes, func(e store.Episode) bool { return e.ID == episodeID })
-	if i < 0 {
-		return store.Search{}, fmt.Errorf("episode %d: %w", episodeID, store.ErrNotFound)
-	}
-	ep := d.Episodes[i]
-	pos, ok := ep.Numbers["official"]
-	if !ok {
-		return store.Search{}, fmt.Errorf("episode %d has no aired-order position to search for", episodeID)
+	pos, err := position(d, episodeID)
+	if err != nil {
+		return store.Search{}, err
 	}
 
 	files, err := s.store.SeriesFileTiers(ctx, seriesID)
@@ -80,15 +75,13 @@ func (s *Service) Episode(ctx context.Context, episodeID int64) (store.Search, e
 	start := s.Now()
 	profile := s.profile(d.Series)
 	show := match.NewShow(d, match.Options{Anime: d.Series.Type == store.TypeAnime, ServiceOrders: s.rules(seriesID)})
-	original := selection.OriginalLanguage(d.Series.OriginalLanguage)
-	judge := selection.Context{Profile: profile, Show: show, Want: episodeID, Original: original,
-		Missing: missing(d, seasonEpisodes(d, "official", pos.Season), files, start), Have: files[episodeID]}
+	judge := episodeContext(d, episodeID, pos, files, profile, show, start)
 
 	sr := store.Search{EpisodeID: episodeID, Searched: start, Indexers: []store.SearchIndexer{}}
 	var hits []hit
 	indexers, err := s.prowlarr.Indexers(ctx)
 	if err != nil {
-		sr.Indexers = append(sr.Indexers, store.SearchIndexer{Name: "Prowlarr", Error: err.Error()})
+		sr.Indexers = append(sr.Indexers, store.SearchIndexer{Name: "Prowlarr", Error: err.Error(), Partial: new(bool)})
 	}
 	progress := api.SearchProgress{EpisodeID: episodeID, Indexers: make([]api.IndexerProgress, len(indexers))}
 	for i, ix := range indexers {
@@ -99,9 +92,8 @@ func (s *Service) Episode(ctx context.Context, episodeID int64) (store.Search, e
 	for _, text := range absoluteQueries(d.Series, show, episodeID, pos) {
 		queries = append(queries, prowlarr.Query{TVDBID: seriesID, Text: text})
 	}
-	var partial []string // indexers that answered only some queries
 	for i, ix := range indexers {
-		res := store.SearchIndexer{Name: ix.Name}
+		res := store.SearchIndexer{Name: ix.Name, Partial: new(bool)}
 		seen := map[string]bool{} // postings, as several queries may find one
 		answered, failure := false, ""
 		for _, q := range queries {
@@ -123,12 +115,7 @@ func (s *Service) Episode(ctx context.Context, episodeID int64) (store.Search, e
 				}
 				seen[r.Posting] = true
 				kept++
-				other := otherShow(show, d.Series, r, claims, &m)
-				eval := selection.Evaluate(judge, selection.Release{
-					Claims: claims, Match: m, IndexerLanguages: selection.IndexerLanguages(r.Languages),
-					OtherShow: other, Published: r.Published,
-					Size: r.Size, Runtime: runtimeOf(d, m.Episodes),
-				})
+				eval := evaluate(judge, d, r, claims, m)
 				hits = append(hits, hit{indexer: ix.Name, result: r, eval: eval, episodes: m.Episodes})
 				res.Results++
 			}
@@ -150,7 +137,7 @@ func (s *Service) Episode(ctx context.Context, episodeID int64) (store.Search, e
 		case !answered:
 			res.Error = failure
 		case failure != "":
-			partial = append(partial, ix.Name)
+			*res.Partial = true
 		}
 		sr.Indexers = append(sr.Indexers, res)
 		progress.Indexers[i] = api.IndexerProgress{Name: ix.Name, Done: true, Results: res.Results, Error: res.Error}
@@ -166,9 +153,6 @@ func (s *Service) Episode(ctx context.Context, episodeID int64) (store.Search, e
 		sr.Candidates = append(sr.Candidates, hits[i].candidate())
 	}
 	sr.Outcome, sr.Summary = outcome(selection.Summary(profile, judge.Have, evals), evals, sr.Indexers)
-	if len(partial) > 0 && sr.Outcome != api.SearchFailed {
-		sr.Summary += fmt.Sprintf(" (%s answered only some searches)", strings.Join(partial, ", "))
-	}
 	if err := s.store.SaveSearch(ctx, sr); err != nil {
 		return store.Search{}, err
 	}
@@ -270,12 +254,7 @@ func (s *Service) Season(ctx context.Context, seriesID int64, season int) (store
 				owner = wanted[k]
 			}
 			judge := selection.Context{Profile: profile, Show: show, Want: owner, Original: original, Missing: wanted}
-			other := otherShow(show, d.Series, r, claims, &m)
-			eval := selection.Evaluate(judge, selection.Release{
-				Claims: claims, Match: m, IndexerLanguages: selection.IndexerLanguages(r.Languages),
-				OtherShow: other, Published: r.Published,
-				Size: r.Size, Runtime: runtimeOf(d, m.Episodes),
-			})
+			eval := evaluate(judge, d, r, claims, m)
 			hits = append(hits, hit{indexer: ix.Name, result: r, eval: eval, episodes: m.Episodes, owner: owner})
 		}
 	}
@@ -305,13 +284,47 @@ func (s *Service) Season(ctx context.Context, seriesID int64, season int) (store
 	return saved, nil
 }
 
+// position is an episode's place in the aired order, which indexers know
+// it by.
+func position(d store.SeriesData, episodeID int64) (api.Position, error) {
+	i := slices.IndexFunc(d.Episodes, func(e store.Episode) bool { return e.ID == episodeID })
+	if i < 0 {
+		return api.Position{}, fmt.Errorf("episode %d: %w", episodeID, store.ErrNotFound)
+	}
+	pos, ok := d.Episodes[i].Numbers["official"]
+	if !ok {
+		return api.Position{}, fmt.Errorf("episode %d has no aired-order position to search for", episodeID)
+	}
+	return pos, nil
+}
+
+// episodeContext is what judging an episode's releases needs as of now:
+// the same for a search and for judging its results again.
+func episodeContext(d store.SeriesData, episodeID int64, pos api.Position, files map[int64]string, profile selection.Profile,
+	show *match.Show, now time.Time) selection.Context {
+	return selection.Context{Profile: profile, Show: show, Want: episodeID, Original: selection.OriginalLanguage(d.Series.OriginalLanguage),
+		Missing: missing(d, seasonEpisodes(d, "official", pos.Season), files, now), Have: files[episodeID]}
+}
+
+// evaluate judges a release an indexer returned, with the claims of its
+// name and its match to the show: the same for a search and for judging
+// its results again.
+func evaluate(judge selection.Context, d store.SeriesData, r prowlarr.Result, claims release.Claims, m match.Match) selection.Evaluation {
+	other := otherShow(judge.Show, d.Series, r.TVDBID, claims, &m)
+	return selection.Evaluate(judge, selection.Release{
+		Claims: claims, Match: m, IndexerLanguages: selection.IndexerLanguages(r.Languages),
+		OtherShow: other, Published: r.Published,
+		Size: r.Size, Runtime: runtimeOf(d, m.Episodes),
+	})
+}
+
 // otherShow reports whether the indexer files the release under another
-// show than the name does: the indexer's show counts, unless the name gives
-// the year the show first aired. Indexers confuse a show with its remake or
-// original of the same name; the year tells them apart. When the name
-// overrules the indexer, a note on the match says so.
-func otherShow(show *match.Show, sr store.Series, r prowlarr.Result, claims release.Claims, m *match.Match) bool {
-	if r.TVDBID == 0 || r.TVDBID == sr.ID {
+// show than the name does: the indexer's show, tvdbID, counts, unless the
+// name gives the year the show first aired. Indexers confuse a show with
+// its remake or original of the same name; the year tells them apart. When
+// the name overrules the indexer, a note on the match says so.
+func otherShow(show *match.Show, sr store.Series, tvdbID int64, claims release.Claims, m *match.Match) bool {
+	if tvdbID == 0 || tvdbID == sr.ID {
 		return false
 	}
 	if !show.NamesYear(claims) {
@@ -454,6 +467,7 @@ func (h hit) candidate() store.Candidate {
 		Indexer: h.indexer, Title: h.result.Title, Link: h.result.Link, Posting: h.result.Posting, Page: h.result.Page, Size: h.result.Size, Grabs: h.result.Grabs,
 		Verdict: h.eval.Verdict, Tier: h.eval.Tier, Reasons: h.eval.Reasons, Decisive: h.eval.Decisive,
 		Episodes: h.episodes,
+		Reported: &store.IndexerReport{Languages: slices.Clone(h.result.Languages), TVDBID: h.result.TVDBID},
 	}
 	if !h.result.Published.IsZero() {
 		p := h.result.Published
@@ -471,14 +485,22 @@ func (h hit) candidate() store.Candidate {
 // outcome sums up a search: found when a release is accepted, fallback
 // when only last resorts are left, failed when every indexer failed
 // without returning anything. An indexer that failed on a later page still
-// delivered the results before it.
+// delivered the results before it. The summary notes the indexers that
+// failed and those that answered only some queries, by name in order, so
+// judging a stored search again, whose indexers the store lists by name,
+// gives the same summary.
 func outcome(summary string, evals []selection.Evaluation, indexers []store.SearchIndexer) (api.SearchOutcome, string) {
-	var failed []string
+	var failed, partial []string
 	for _, ix := range indexers {
-		if ix.Error != "" {
+		switch {
+		case ix.Error != "":
 			failed = append(failed, ix.Name)
+		case ix.Partial != nil && *ix.Partial:
+			partial = append(partial, ix.Name)
 		}
 	}
+	slices.Sort(failed)
+	slices.Sort(partial)
 	if len(failed) == len(indexers) && len(evals) == 0 {
 		if len(indexers) == 0 {
 			return api.SearchFailed, "Search failed: Prowlarr has no enabled Usenet indexers"
@@ -487,6 +509,9 @@ func outcome(summary string, evals []selection.Evaluation, indexers []store.Sear
 	}
 	if len(failed) > 0 {
 		summary += fmt.Sprintf(" (%s failed)", strings.Join(failed, ", "))
+	}
+	if len(partial) > 0 {
+		summary += fmt.Sprintf(" (%s answered only some searches)", strings.Join(partial, ", "))
 	}
 	result := api.SearchNothing
 	for _, e := range evals {

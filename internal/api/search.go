@@ -45,6 +45,11 @@ type SearchIndexer struct {
 	Name    string `json:"name"`
 	Results int    `json:"results"`
 	Error   string `json:"error,omitempty"`
+	// Partial reports whether the indexer answered only some of an
+	// episode search's queries, which the search's summary notes; nil for
+	// searches stored before garner kept it, and for season searches.
+	// Never sent to clients.
+	Partial *bool `json:"-"`
 }
 
 // Candidate is a release a search found, with the verdict on it.
@@ -84,6 +89,21 @@ type Candidate struct {
 	// Attempt is the latest download of this posting for the episode the
 	// candidate is for; nil when garner never tried it.
 	Attempt *Download `json:"attempt,omitempty"`
+	// Reported is what the indexer reported about the release beyond its
+	// name, kept to judge it again; nil for candidates stored before
+	// garner kept it. Never sent to clients.
+	Reported *IndexerReport `json:"-"`
+}
+
+// IndexerReport is what an indexer reported about a release beyond its
+// name that judging it needs.
+type IndexerReport struct {
+	// Languages are the audio languages as the indexer writes them, such
+	// as "German"; empty when it reports none.
+	Languages []string
+	// TVDBID is the show the indexer files the release under; 0 when it
+	// names none.
+	TVDBID int64
 }
 
 // SamePosting reports whether the download is of this candidate's NZB
@@ -94,6 +114,65 @@ func (c Candidate) SamePosting(d Download) bool {
 		return c.Posting == d.Posting
 	}
 	return c.Title == d.Title && c.Size == d.Size
+}
+
+// Judgement is an episode's latest stored search judged again without
+// searching: its releases under the show's own profile (Before) and under
+// a profile sent with the request (After), both by the library and the
+// catalogue as they are now. Before is the stored judgement, unless the
+// library, the catalogue or garner's rules changed since the search, so
+// what differs between Before and After comes from the profile alone.
+// Judging stores and downloads nothing.
+type Judgement struct {
+	EpisodeID int64 `json:"episode_id"`
+	// Searched is when the stored search ran.
+	Searched time.Time    `json:"searched"`
+	Before   JudgedSearch `json:"before"`
+	After    JudgedSearch `json:"after"`
+	// Candidates are the search's releases, in the order After ranks them.
+	Candidates []JudgedCandidate `json:"candidates"`
+}
+
+// JudgedSearch is a search's outcome under one profile.
+type JudgedSearch struct {
+	// Profile names the profile; Rules describes its preferences for the
+	// show, as ProfileInfo does.
+	Profile string        `json:"profile"`
+	Rules   string        `json:"rules"`
+	Outcome SearchOutcome `json:"outcome"`
+	Summary string        `json:"summary"`
+}
+
+// JudgedCandidate is a stored release judged under both profiles.
+type JudgedCandidate struct {
+	// ID is the stored candidate's. Downloading it goes by the stored
+	// judgement, not by these.
+	ID      int64  `json:"id"`
+	Indexer string `json:"indexer"`
+	Title   string `json:"title"`
+	Size    int64  `json:"size"`
+	Before  Judged `json:"before"`
+	After   Judged `json:"after"`
+	// Attempt is the latest download of this posting for the episode; nil
+	// when garner never tried it. garner on its own skips a posting whose
+	// download failed or was cancelled.
+	Attempt *Download `json:"attempt,omitempty"`
+}
+
+// Judged is the verdict on a release under one profile.
+type Judged struct {
+	Verdict Verdict `json:"verdict"`
+	// Tier is the profile's preference the release meets, such as "German
+	// 1080p"; empty when it meets none.
+	Tier string `json:"tier,omitempty"`
+	// Rank is the release's place among the search's releases, 1 for the
+	// best.
+	Rank  int      `json:"rank"`
+	Audio []string `json:"audio"`
+	// Reasons explain the verdict; the first Decisive of them decided it,
+	// as in Candidate.
+	Reasons  []string `json:"reasons"`
+	Decisive int      `json:"decisive"`
 }
 
 // SearchProgress is a running search: every indexer, and what it answered

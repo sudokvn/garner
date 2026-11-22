@@ -126,27 +126,29 @@ func (q *Queries) GetSeasonSearch(ctx context.Context, arg GetSeasonSearchParams
 
 const insertCandidate = `-- name: InsertCandidate :exec
 INSERT INTO candidates (search_id, rank, indexer, title, link, posting, page, size, published, grabs, verdict, tier, audio, reasons, episodes,
-    decisive)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    decisive, indexer_languages, indexer_tvdb_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertCandidateParams struct {
-	SearchID  int64
-	Rank      int64
-	Indexer   string
-	Title     string
-	Link      string
-	Posting   string
-	Page      string
-	Size      int64
-	Published sql.NullInt64
-	Grabs     int64
-	Verdict   string
-	Tier      string
-	Audio     string
-	Reasons   string
-	Episodes  string
-	Decisive  int64
+	SearchID         int64
+	Rank             int64
+	Indexer          string
+	Title            string
+	Link             string
+	Posting          string
+	Page             string
+	Size             int64
+	Published        sql.NullInt64
+	Grabs            int64
+	Verdict          string
+	Tier             string
+	Audio            string
+	Reasons          string
+	Episodes         string
+	Decisive         int64
+	IndexerLanguages sql.NullString
+	IndexerTvdbID    sql.NullInt64
 }
 
 func (q *Queries) InsertCandidate(ctx context.Context, arg InsertCandidateParams) error {
@@ -167,6 +169,8 @@ func (q *Queries) InsertCandidate(ctx context.Context, arg InsertCandidateParams
 		arg.Reasons,
 		arg.Episodes,
 		arg.Decisive,
+		arg.IndexerLanguages,
+		arg.IndexerTvdbID,
 	)
 	return err
 }
@@ -198,7 +202,7 @@ func (q *Queries) InsertSearch(ctx context.Context, arg InsertSearchParams) (int
 }
 
 const insertSearchIndexer = `-- name: InsertSearchIndexer :exec
-INSERT INTO search_indexers (search_id, indexer, results, error) VALUES (?, ?, ?, ?)
+INSERT INTO search_indexers (search_id, indexer, results, error, partial) VALUES (?, ?, ?, ?, ?)
 `
 
 type InsertSearchIndexerParams struct {
@@ -206,6 +210,7 @@ type InsertSearchIndexerParams struct {
 	Indexer  string
 	Results  int64
 	Error    sql.NullString
+	Partial  sql.NullInt64
 }
 
 func (q *Queries) InsertSearchIndexer(ctx context.Context, arg InsertSearchIndexerParams) error {
@@ -214,33 +219,36 @@ func (q *Queries) InsertSearchIndexer(ctx context.Context, arg InsertSearchIndex
 		arg.Indexer,
 		arg.Results,
 		arg.Error,
+		arg.Partial,
 	)
 	return err
 }
 
 const insertSeasonCandidate = `-- name: InsertSeasonCandidate :exec
 INSERT INTO season_candidates (search_id, episode_id, rank, indexer, title, link, posting, page, size, published, verdict, tier,
-    audio, reasons, decisive, episodes)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    audio, reasons, decisive, episodes, indexer_languages, indexer_tvdb_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertSeasonCandidateParams struct {
-	SearchID  int64
-	EpisodeID int64
-	Rank      int64
-	Indexer   string
-	Title     string
-	Link      string
-	Posting   string
-	Page      string
-	Size      int64
-	Published sql.NullInt64
-	Verdict   string
-	Tier      string
-	Audio     string
-	Reasons   string
-	Decisive  int64
-	Episodes  string
+	SearchID         int64
+	EpisodeID        int64
+	Rank             int64
+	Indexer          string
+	Title            string
+	Link             string
+	Posting          string
+	Page             string
+	Size             int64
+	Published        sql.NullInt64
+	Verdict          string
+	Tier             string
+	Audio            string
+	Reasons          string
+	Decisive         int64
+	Episodes         string
+	IndexerLanguages sql.NullString
+	IndexerTvdbID    sql.NullInt64
 }
 
 func (q *Queries) InsertSeasonCandidate(ctx context.Context, arg InsertSeasonCandidateParams) error {
@@ -261,6 +269,8 @@ func (q *Queries) InsertSeasonCandidate(ctx context.Context, arg InsertSeasonCan
 		arg.Reasons,
 		arg.Decisive,
 		arg.Episodes,
+		arg.IndexerLanguages,
+		arg.IndexerTvdbID,
 	)
 	return err
 }
@@ -294,26 +304,29 @@ func (q *Queries) InsertSeasonSearch(ctx context.Context, arg InsertSeasonSearch
 }
 
 const listCandidates = `-- name: ListCandidates :many
-SELECT id, rank, indexer, title, posting, page, size, published, grabs, verdict, tier, audio, reasons, episodes, decisive
+SELECT id, rank, indexer, title, posting, page, size, published, grabs, verdict, tier, audio, reasons, episodes, decisive,
+    indexer_languages, indexer_tvdb_id
 FROM candidates WHERE search_id = ? ORDER BY rank
 `
 
 type ListCandidatesRow struct {
-	ID        int64
-	Rank      int64
-	Indexer   string
-	Title     string
-	Posting   string
-	Page      string
-	Size      int64
-	Published sql.NullInt64
-	Grabs     int64
-	Verdict   string
-	Tier      string
-	Audio     string
-	Reasons   string
-	Episodes  string
-	Decisive  int64
+	ID               int64
+	Rank             int64
+	Indexer          string
+	Title            string
+	Posting          string
+	Page             string
+	Size             int64
+	Published        sql.NullInt64
+	Grabs            int64
+	Verdict          string
+	Tier             string
+	Audio            string
+	Reasons          string
+	Episodes         string
+	Decisive         int64
+	IndexerLanguages sql.NullString
+	IndexerTvdbID    sql.NullInt64
 }
 
 // Candidates without their download links.
@@ -342,6 +355,8 @@ func (q *Queries) ListCandidates(ctx context.Context, searchID int64) ([]ListCan
 			&i.Reasons,
 			&i.Episodes,
 			&i.Decisive,
+			&i.IndexerLanguages,
+			&i.IndexerTvdbID,
 		); err != nil {
 			return nil, err
 		}
@@ -357,13 +372,14 @@ func (q *Queries) ListCandidates(ctx context.Context, searchID int64) ([]ListCan
 }
 
 const listSearchIndexers = `-- name: ListSearchIndexers :many
-SELECT indexer, results, error FROM search_indexers WHERE search_id = ? ORDER BY indexer
+SELECT indexer, results, error, partial FROM search_indexers WHERE search_id = ? ORDER BY indexer
 `
 
 type ListSearchIndexersRow struct {
 	Indexer string
 	Results int64
 	Error   sql.NullString
+	Partial sql.NullInt64
 }
 
 func (q *Queries) ListSearchIndexers(ctx context.Context, searchID int64) ([]ListSearchIndexersRow, error) {
@@ -375,7 +391,12 @@ func (q *Queries) ListSearchIndexers(ctx context.Context, searchID int64) ([]Lis
 	var items []ListSearchIndexersRow
 	for rows.Next() {
 		var i ListSearchIndexersRow
-		if err := rows.Scan(&i.Indexer, &i.Results, &i.Error); err != nil {
+		if err := rows.Scan(
+			&i.Indexer,
+			&i.Results,
+			&i.Error,
+			&i.Partial,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -449,26 +470,29 @@ func (q *Queries) ListSeasonCandidateLinks(ctx context.Context, arg ListSeasonCa
 }
 
 const listSeasonCandidates = `-- name: ListSeasonCandidates :many
-SELECT id, episode_id, rank, indexer, title, posting, page, size, published, verdict, tier, audio, reasons, decisive, episodes
+SELECT id, episode_id, rank, indexer, title, posting, page, size, published, verdict, tier, audio, reasons, decisive, episodes,
+    indexer_languages, indexer_tvdb_id
 FROM season_candidates WHERE search_id = ? ORDER BY rank
 `
 
 type ListSeasonCandidatesRow struct {
-	ID        int64
-	EpisodeID int64
-	Rank      int64
-	Indexer   string
-	Title     string
-	Posting   string
-	Page      string
-	Size      int64
-	Published sql.NullInt64
-	Verdict   string
-	Tier      string
-	Audio     string
-	Reasons   string
-	Decisive  int64
-	Episodes  string
+	ID               int64
+	EpisodeID        int64
+	Rank             int64
+	Indexer          string
+	Title            string
+	Posting          string
+	Page             string
+	Size             int64
+	Published        sql.NullInt64
+	Verdict          string
+	Tier             string
+	Audio            string
+	Reasons          string
+	Decisive         int64
+	Episodes         string
+	IndexerLanguages sql.NullString
+	IndexerTvdbID    sql.NullInt64
 }
 
 // Candidates without their download links.
@@ -497,6 +521,8 @@ func (q *Queries) ListSeasonCandidates(ctx context.Context, searchID int64) ([]L
 			&i.Reasons,
 			&i.Decisive,
 			&i.Episodes,
+			&i.IndexerLanguages,
+			&i.IndexerTvdbID,
 		); err != nil {
 			return nil, err
 		}

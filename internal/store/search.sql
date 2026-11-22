@@ -15,22 +15,23 @@ INSERT INTO searches (episode_id, searched_at, outcome, summary, next_retry_at) 
 RETURNING id;
 
 -- name: InsertSearchIndexer :exec
-INSERT INTO search_indexers (search_id, indexer, results, error) VALUES (?, ?, ?, ?);
+INSERT INTO search_indexers (search_id, indexer, results, error, partial) VALUES (?, ?, ?, ?, ?);
 
 -- name: InsertCandidate :exec
 INSERT INTO candidates (search_id, rank, indexer, title, link, posting, page, size, published, grabs, verdict, tier, audio, reasons, episodes,
-    decisive)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    decisive, indexer_languages, indexer_tvdb_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetSearch :one
 SELECT * FROM searches WHERE episode_id = ?;
 
 -- name: ListSearchIndexers :many
-SELECT indexer, results, error FROM search_indexers WHERE search_id = ? ORDER BY indexer;
+SELECT indexer, results, error, partial FROM search_indexers WHERE search_id = ? ORDER BY indexer;
 
 -- Candidates without their download links.
 -- name: ListCandidates :many
-SELECT id, rank, indexer, title, posting, page, size, published, grabs, verdict, tier, audio, reasons, episodes, decisive
+SELECT id, rank, indexer, title, posting, page, size, published, grabs, verdict, tier, audio, reasons, episodes, decisive,
+    indexer_languages, indexer_tvdb_id
 FROM candidates WHERE search_id = ? ORDER BY rank;
 
 -- name: DeleteSeasonSearch :exec
@@ -45,15 +46,16 @@ RETURNING id;
 
 -- name: InsertSeasonCandidate :exec
 INSERT INTO season_candidates (search_id, episode_id, rank, indexer, title, link, posting, page, size, published, verdict, tier,
-    audio, reasons, decisive, episodes)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    audio, reasons, decisive, episodes, indexer_languages, indexer_tvdb_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetSeasonSearch :one
 SELECT * FROM season_searches WHERE series_id = ? AND season = ?;
 
 -- Candidates without their download links.
 -- name: ListSeasonCandidates :many
-SELECT id, episode_id, rank, indexer, title, posting, page, size, published, verdict, tier, audio, reasons, decisive, episodes
+SELECT id, episode_id, rank, indexer, title, posting, page, size, published, verdict, tier, audio, reasons, decisive, episodes,
+    indexer_languages, indexer_tvdb_id
 FROM season_candidates WHERE search_id = ? ORDER BY rank;
 
 -- name: GetSeasonCandidateLink :one

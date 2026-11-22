@@ -44,10 +44,12 @@ func (s *Store) SaveSeasonSearch(ctx context.Context, seriesID int64, sr Search,
 		if c.Published != nil {
 			published = sql.NullInt64{Int64: c.Published.Unix(), Valid: true}
 		}
+		languages, tvdbID := reportColumns(c.Reported)
 		if err := q.InsertSeasonCandidate(ctx, query.InsertSeasonCandidateParams{
 			SearchID: id, EpisodeID: owners[i], Rank: int64(i + 1), Indexer: c.Indexer, Title: c.Title, Link: c.Link,
 			Posting: c.Posting, Page: c.Page, Size: c.Size, Published: published, Verdict: string(c.Verdict), Tier: c.Tier, Audio: strings.Join(c.Audio, ","),
 			Reasons: string(reasons), Decisive: int64(c.Decisive), Episodes: string(episodes),
+			IndexerLanguages: languages, IndexerTvdbID: tvdbID,
 		}); err != nil {
 			return fmt.Errorf("save season candidate %q: %w", c.Title, err)
 		}
@@ -92,6 +94,9 @@ func (s *Store) LoadSeasonSearch(ctx context.Context, seriesID int64, season int
 		}
 		if err := json.Unmarshal([]byte(c.Episodes), &cand.Episodes); err != nil {
 			return sr, fmt.Errorf("season candidate %d episodes: %w", c.ID, err)
+		}
+		if cand.Reported, err = reportFromColumns(c.IndexerLanguages, c.IndexerTvdbID); err != nil {
+			return sr, fmt.Errorf("season candidate %d: %w", c.ID, err)
 		}
 		if _, ok := downloads[c.EpisodeID]; !ok {
 			if downloads[c.EpisodeID], err = s.EpisodeDownloads(ctx, c.EpisodeID); err != nil {

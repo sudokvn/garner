@@ -26,23 +26,25 @@ type Backup struct {
 }
 
 type Candidate struct {
-	ID        int64
-	SearchID  int64
-	Rank      int64
-	Indexer   string
-	Title     string
-	Link      string
-	Size      int64
-	Published sql.NullInt64
-	Grabs     int64
-	Verdict   string
-	Tier      string
-	Audio     string
-	Reasons   string
-	Episodes  string
-	Decisive  int64
-	Posting   string
-	Page      string
+	ID               int64
+	SearchID         int64
+	Rank             int64
+	Indexer          string
+	Title            string
+	Link             string
+	Size             int64
+	Published        sql.NullInt64
+	Grabs            int64
+	Verdict          string
+	Tier             string
+	Audio            string
+	Reasons          string
+	Episodes         string
+	Decisive         int64
+	Posting          string
+	Page             string
+	IndexerLanguages sql.NullString
+	IndexerTvdbID    sql.NullInt64
 }
 
 type Download struct {
@@ -157,26 +159,29 @@ type SearchIndexer struct {
 	Indexer  string
 	Results  int64
 	Error    sql.NullString
+	Partial  sql.NullInt64
 }
 
 type SeasonCandidate struct {
-	ID        int64
-	SearchID  int64
-	EpisodeID int64
-	Rank      int64
-	Indexer   string
-	Title     string
-	Link      string
-	Size      int64
-	Published sql.NullInt64
-	Verdict   string
-	Tier      string
-	Audio     string
-	Reasons   string
-	Decisive  int64
-	Episodes  string
-	Posting   string
-	Page      string
+	ID               int64
+	SearchID         int64
+	EpisodeID        int64
+	Rank             int64
+	Indexer          string
+	Title            string
+	Link             string
+	Size             int64
+	Published        sql.NullInt64
+	Verdict          string
+	Tier             string
+	Audio            string
+	Reasons          string
+	Decisive         int64
+	Episodes         string
+	Posting          string
+	Page             string
+	IndexerLanguages sql.NullString
+	IndexerTvdbID    sql.NullInt64
 }
 
 type SeasonSearch struct {
