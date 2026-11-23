@@ -57,7 +57,7 @@ type releasesScreen struct {
 	flash    flash
 
 	// leave is where esc goes when it is not back, such as the Library's
-	// Upcoming tab.
+	// Upcoming tab or the Episode screen.
 	leave screen
 }
 
@@ -142,8 +142,12 @@ func (s *releasesScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 			return s, nil
 		}
 		// The episode screen follows the download; a pack's belongs to its
-		// first missing episode.
+		// first missing episode. Opened from that episode, the screen goes
+		// back to it, so esc there still leads where it led before.
 		next := newEpisode(s.sess, s.back, msg.download.EpisodeID)
+		if from, ok := s.leave.(*episodeScreen); ok && from.id == msg.download.EpisodeID {
+			next = from
+		}
 		return s, func() tea.Msg { return switchMsg{next} }
 	case eventMsg:
 		if msg.Type == api.EventSearchProgress {

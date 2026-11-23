@@ -290,6 +290,7 @@ func (s *episodeScreen) again() tea.Cmd {
 		return nil
 	}
 	next := newReleases(s.sess, s.show, row, label == againSearch)
+	next.leave = s // esc comes back here, not to the show
 	return func() tea.Msg { return switchMsg{next} }
 }
 
