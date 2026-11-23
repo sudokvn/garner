@@ -110,6 +110,7 @@ func (s *releasesScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		}
 		fresh := s.searching
 		s.searching = false
+		s.forget() // the list under the warning may have changed
 		var server *client.ServerError
 		switch {
 		case errors.Is(msg.err, client.ErrUnauthorized):
@@ -692,6 +693,15 @@ func (s *releasesScreen) bottom() string {
 }
 
 func (s *releasesScreen) flashed() *flash { return &s.flash }
+
+// forget drops a rejected release waiting for its second enter, and the
+// warning that asks for it.
+func (s *releasesScreen) forget() {
+	if s.confirm != 0 {
+		s.confirm = 0
+		s.flash.clear()
+	}
+}
 
 func (s *releasesScreen) captures() bool { return s.busy != "" }
 

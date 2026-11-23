@@ -88,3 +88,45 @@ func TestReleasesPreferenceFits(t *testing.T) {
 		}
 	}
 }
+
+// TestRejectedReleaseForgotten keeps a rejected release from downloading
+// on a single enter after its warning went out of sight: a detour through
+// a screen or an overlay the app opens before Releases sees the key, or a
+// reload of the list, drops the release waiting for its second enter.
+func TestRejectedReleaseForgotten(t *testing.T) {
+	sess := &session{}
+	search := api.Search{Candidates: []api.Candidate{
+		{ID: 1, Rank: 1, Title: "Harbor.Precinct.S01E01.English.1080p.WEB-GRP", Verdict: api.Reject,
+			Reasons: []string{"audio is English, not German"}, Decisive: 1},
+	}}
+	show := &showScreen{name: "Harbor Precinct"}
+	for _, detour := range [][]string{{"A", "esc"}, {"P", "esc"}, {"?", "esc"}, {":", "esc"}, {"n"}, {"reload"}} {
+		s := &releasesScreen{sess: sess, back: show, search: &search, selected: 1}
+		a := &app{sess: sess, screen: s, width: 120, height: 36}
+		sendKeys(a, "enter")
+		if s.confirm != 1 || !strings.Contains(ansi.Strip(s.flash.text), "again to download it anyway") {
+			t.Fatalf("enter on a rejected release did not warn: %q", ansi.Strip(s.flash.text))
+		}
+		for _, k := range detour {
+			if k == "reload" {
+				a.update(releasesMsg{from: s, search: search})
+				continue
+			}
+			cmd := sendKeys(a, k)
+			// esc leaves Activity and Profiles; follow it back.
+			if k == "esc" && cmd != nil {
+				if m, ok := cmd().(switchMsg); ok {
+					a.update(m)
+				}
+			}
+		}
+		if a.screen != screen(s) {
+			t.Fatalf("after %v the screen is %T, not Releases", detour, a.screen)
+		}
+		sendKeys(a, "enter")
+		if s.busy != "" || !strings.Contains(ansi.Strip(s.flash.text), "again to download it anyway") {
+			t.Errorf("after %v, one enter started the download of the rejected release (busy %q, bottom %q)",
+				detour, s.busy, ansi.Strip(s.flash.text))
+		}
+	}
+}

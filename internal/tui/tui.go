@@ -26,6 +26,13 @@ type screen interface {
 	view(width, height int) string
 }
 
+// forgetter is a screen with a step that waits for its next key, such as
+// a rejected release on Releases that a second enter downloads. Every key
+// the screen receives ends the step; forget ends it when the app takes a
+// key first, to open an overlay or another screen, so no detour leaves
+// the step waiting with its warning out of sight.
+type forgetter interface{ forget() }
+
 // session is one connection to the server, shared by all screens.
 type session struct {
 	client  *client.Client
@@ -189,6 +196,9 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if c, ok := a.screen.(capturer); a.sess == nil || ok && c.captures() {
 			break
+		}
+		if f, ok := a.screen.(forgetter); ok && paletteGlobal[key] {
+			f.forget()
 		}
 		switch key {
 		case ":":
