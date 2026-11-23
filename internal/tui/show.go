@@ -497,8 +497,12 @@ func (s *showScreen) facts(now time.Time, width int) string {
 
 // action says which keys run on the row under the cursor, and what s
 // searches there. enter opens an episode that aired; on a season row it
-// folds the season, which h l do too, so it is no action of its own.
+// folds the season, which h l do too, so it is no action of its own. A
+// show without episodes has no row for either.
 func (s *showScreen) action(key, label string) (string, bool) {
+	if (key == "enter" || key == "s") && len(s.rows()) == 0 {
+		return label, false
+	}
 	switch key {
 	case "enter":
 		switch s.enterLabel() {
@@ -526,12 +530,12 @@ func (s *showScreen) bottom() string {
 	if s.flash.text != "" {
 		return s.flash.text
 	}
-	search, _ := s.action("s", "")
+	search, row := s.action("s", "")
 	enter := s.enterLabel()
 	return joinKeys(
-		keySlot("enter", enter, enter != "", enterLabels...),
+		keySlot("enter", enter, enter != "" && row, enterLabels...),
 		keyBar("h l", "fold", "tab", "season"),
-		keySlot("s", search, true, "new search", "search season"),
+		keySlot("s", search, row, "new search", "search season"),
 		keyBar("S", "search missing", "i", "show details", "A", "activity", "?", "help", "esc", "back"),
 	)
 }
@@ -559,10 +563,12 @@ var enterLabels = []string{"fold", "unfold", "search", "releases", "details"}
 
 // enterLabel is what enter does on the cursor row, for the key bar: on a
 // season row it folds or unfolds the season. Empty on an episode not aired
-// yet.
+// yet, and on a show without episodes.
 func (s *showScreen) enterLabel() string {
 	e, ok := s.cursorEpisode()
 	switch {
+	case len(s.rows()) == 0:
+		return ""
 	case !ok && s.cursor.episode == 0:
 		switch folded := s.sess.folded[s.id]; {
 		case folded == nil:

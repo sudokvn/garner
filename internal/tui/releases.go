@@ -705,7 +705,9 @@ func (s *releasesScreen) bottom() string {
 	case !can(s, "s"):
 		return keyBar("esc", "back") // searching
 	}
-	return keyBar("j k", "move", "enter", "download", "s", "search again", "A", "activity", "?", "help", "esc", "back")
+	// A search that found nothing has no release to download.
+	return joinKeys(keyBar("j k", "move"), keySlot("enter", "download", can(s, "enter")),
+		keyBar("s", "search again", "A", "activity", "?", "help", "esc", "back"))
 }
 
 func (s *releasesScreen) flashed() *flash { return &s.flash }

@@ -275,6 +275,10 @@ func TestListKeys(t *testing.T) {
 		}},
 		{name: "Command palette", screen: "libraryScreen", keys: typedListKeys, open: func(t *testing.T) cursorList {
 			a, _ := libraryList(t, catAll)
+			// Drawn first, as the program does: the cursor's show then has
+			// its actions in the palette.
+			a.width, a.height = 120, 36
+			a.View()
 			a.palette = &palette{}
 			return inApp(a, func() int { return a.palette.choice }, len(a.paletteEntries()), func() int { return a.palette.page })
 		}},

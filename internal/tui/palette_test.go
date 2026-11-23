@@ -15,6 +15,7 @@ import (
 	"github.com/sudokvn/garner/internal/api"
 	"github.com/sudokvn/garner/internal/client"
 	"github.com/sudokvn/garner/internal/connect"
+	"github.com/sudokvn/garner/internal/profile"
 )
 
 // TestPalette checks that the palette lists a screen's actions and runs
@@ -259,7 +260,14 @@ func TestPaletteOffersWhatRuns(t *testing.T) {
 	library.pv = preview{focused: true, details: map[int64]*api.SeriesDetail{42: show.detail}, cursor: 101}
 	library.width = previewWidth
 	check("Library, in the preview", library, library.bottom(previewWidth, 1, 1), "enter", "s")
-	library.pv, library.width, library.sess = preview{}, 0, sess
+	library.pv, library.width = preview{}, 0
+	// With no show under the cursor, the keys that act on one grey out
+	// and the palette leaves them out.
+	library.filter = "zzz"
+	check("Library, filter matches nothing", library, library.bottom(120, 0, 1), "enter", "i", "d")
+	library.filter, library.cat = "", catAnime
+	check("Library, empty category", library, library.bottom(120, 0, 0), "enter", "i", "d")
+	library.cat, library.sess = catAll, sess
 	library.cat = catUpcoming
 	library.upcoming = &api.Upcoming{Today: "2026-11-22"}
 	check("Upcoming, empty", library, library.bottom(120, 0, 0), "enter", "s", "i")
@@ -278,6 +286,29 @@ func TestPaletteOffersWhatRuns(t *testing.T) {
 	check("Releases", releases, releases.bottom(), "enter", "s", "r")
 	releases.searching = true
 	check("Releases, searching", releases, releases.bottom(), "enter", "s", "r")
+	releases.searching, releases.selected = false, 0
+	releases.search = &api.Search{Summary: "No matching release found"}
+	check("Releases, nothing found", releases, releases.bottom(), "enter", "s")
+
+	noEpisodes := newShow(sess, nil, 43, "Glass Orchard", "")
+	noEpisodes.setDetail(api.SeriesDetail{SeriesData: api.SeriesData{Series: api.Series{ID: 43, Name: "Glass Orchard", DefaultOrder: "official"}}})
+	check("Show, no episodes", noEpisodes, noEpisodes.bottom(), "enter", "s")
+
+	activity.items = []api.ActivityItem{}
+	check("Activity, empty", activity, activity.bottom(), "enter", "x", "c")
+
+	// Profiles edits with enter or e; the palette runs the first.
+	profiles := newProfiles(sess, nil)
+	profiles.set(nil)
+	check("Profiles, none", profiles, lastLine(profiles.view(120, 36)), "d", "x", "u", "e")
+	if slices.ContainsFunc(screenActions(profiles), func(e paletteEntry) bool { return e.key == "enter" }) {
+		t.Error("the palette offers to edit a profile while none is listed")
+	}
+	profiles.set([]api.Profile{{ID: 1, Name: "German", Text: profile.Encode(german)}})
+	check("Profiles", profiles, lastLine(profiles.view(120, 36)), "d", "x", "u")
+	if !slices.ContainsFunc(screenActions(profiles), func(e paletteEntry) bool { return e.key == "enter" }) {
+		t.Error("the palette does not offer to edit the profile under the cursor")
+	}
 
 	preview := &previewScreen{sess: sess}
 	check("Add show, loading", preview, preview.bottom(), "a", "o")

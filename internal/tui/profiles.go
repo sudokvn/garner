@@ -855,7 +855,21 @@ func (s *profilesScreen) bottom() string {
 	case s.flash.text != "":
 		return s.flash.text
 	}
-	return keyBar("e", "edit", "a", "new", "d", "delete", "i", "import", "x", "export", "u", "use for new shows", "?", "help", "esc", "back")
+	// The keys for a profile grey out while none is listed.
+	row := can(s, "e")
+	return joinKeys(keySlot("e", "edit", row), keyBar("a", "new"), keySlot("d", "delete", row), keyBar("i", "import"),
+		keySlot("x", "export", row), keySlot("u", "use for new shows", row), keyBar("?", "help", "esc", "back"))
+}
+
+// action says which keys run now: those for a profile only while one is
+// under the cursor.
+func (s *profilesScreen) action(key, label string) (string, bool) {
+	switch key {
+	case "enter", "e", "d", "x", "u":
+		_, ok := s.cursor()
+		return label, ok
+	}
+	return label, true
 }
 
 func (s *profilesScreen) flashed() *flash { return &s.flash }

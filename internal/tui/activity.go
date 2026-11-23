@@ -482,11 +482,13 @@ func (s *activityScreen) bottom() string {
 	}
 	var parts []string
 	if len(s.items) > 0 {
-		// x and c keep their place on rows they do not apply to.
-		parts = append(parts, keyBar("j k", "move", "enter", "episode"),
-			keySlot("x", "cancel", can(s, "x")),
-			keySlot("c", "clear failure", can(s, "c")))
+		parts = append(parts, keyBar("j k", "move"))
 	}
+	// enter, x and c keep their place on rows they do not apply to, and
+	// grey out when no row is listed.
+	parts = append(parts, keySlot("enter", "episode", can(s, "enter")),
+		keySlot("x", "cancel", can(s, "x")),
+		keySlot("c", "clear failure", can(s, "c")))
 	return joinKeys(append(parts, keyBar("?", "help", "esc", "back"))...)
 }
 

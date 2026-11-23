@@ -625,17 +625,22 @@ func (s *libraryScreen) bottom(width, shown, total int) string {
 			keyBar("tab", "category", "A", "activity", "?", "help", "q", "quit"))
 	case s.loaded && len(s.sess.shows) == 0:
 		return keyBar("a", "add show", "?", "help", "q", "quit")
-	case s.filter != "":
-		return keyBar("j k", "move", "enter", "open", "i", "details", "a", "add", "/", "filter",
-			"esc", "clear filter", "P", "profiles", "?", "help", "q", "quit")
 	}
-	if s.wide() {
-		return keyBar("j k", "move", "enter", "open", "l", "into the pane", "tab", "category", "i", "details",
-			"a", "add", "/", "filter", ":", "commands", "P", "profiles", "A", "activity", "?", "help", "q", "quit")
+	// enter and i need a show under the cursor; a filter that matches
+	// nothing or an empty tab greys them out.
+	_, row := s.cursorShow()
+	open, details := keySlot("enter", "open", row), keySlot("i", "details", row)
+	switch {
+	case s.filter != "":
+		return joinKeys(keyBar("j k", "move"), open, details, keyBar("a", "add", "/", "filter",
+			"esc", "clear filter", "P", "profiles", "?", "help", "q", "quit"))
+	case s.wide():
+		return joinKeys(keyBar("j k", "move"), open, keyBar("l", "into the pane", "tab", "category"), details,
+			keyBar("a", "add", "/", "filter", ":", "commands", "P", "profiles", "A", "activity", "?", "help", "q", "quit"))
 	}
 	// d, o, I and tab category are in Help; the tabs show at the top.
-	return keyBar("j k", "move", "enter", "open", "i", "details", "a", "add", "/", "filter", ":", "commands",
-		"P", "profiles", "A", "activity", "?", "help", "q", "quit")
+	return joinKeys(keyBar("j k", "move"), open, details, keyBar("a", "add", "/", "filter", ":", "commands",
+		"P", "profiles", "A", "activity", "?", "help", "q", "quit"))
 }
 
 // columns holds the table's column widths: glyph, show, episodes, size,
@@ -776,14 +781,16 @@ const inPreview = "in the preview: "
 // any episode, as on the Show screen; on the show tabs it does nothing
 // else. The Upcoming tab's enter and i need an episode and its s one
 // that has aired. An empty library offers only adding a show and
-// quitting.
+// quitting, and the show tabs open, detail or delete a show only when
+// one is under the cursor.
 func (s *libraryScreen) action(key, label string) (string, bool) {
 	if (key == "enter" || key == "s") && strings.HasPrefix(label, inPreview) != s.pv.focused {
 		return label, false
 	}
 	switch {
-	case s.pv.focused && (key == "enter" || key == "s"):
-		return label, true
+	case s.pv.focused:
+		// The pane takes the keys: its own enter and s, and q.
+		return label, key == "enter" || key == "s" || key == "q"
 	case s.cat == catUpcoming && (key == "enter" || key == "i"):
 		return label, s.hasUpcoming()
 	case s.cat == catUpcoming && key == "s":
@@ -793,6 +800,9 @@ func (s *libraryScreen) action(key, label string) (string, bool) {
 		return label, false
 	case s.cat != catUpcoming && s.loaded && len(s.sess.shows) == 0:
 		return label, key == "a" || key == "q"
+	case s.cat != catUpcoming && (key == "enter" || key == "i" || key == "d"):
+		_, ok := s.cursorShow()
+		return label, ok
 	}
 	return label, true
 }
