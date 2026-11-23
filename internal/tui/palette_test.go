@@ -102,6 +102,25 @@ func TestPalette(t *testing.T) {
 		t.Error("esc did not close the palette")
 	}
 
+	// Help opens About with enter, not with a, which the Library lists
+	// just above for adding a show; the palette's entry says so.
+	anywhere := a.anywhere()
+	if i := slices.IndexFunc(anywhere, func(e paletteEntry) bool { return e.label == "About garner" }); i < 0 || anywhere[i].key != "enter" {
+		t.Errorf("the palette's About garner is not on enter in Help: %+v", anywhere)
+	}
+	sendKeys(a, "?", "a")
+	if !a.help || a.screen != screen(library) {
+		t.Errorf("a in Help closed it (%v) for %T", !a.help, a.screen)
+	}
+	if !strings.Contains(ansi.Strip(a.View().Content), "enter about garner") {
+		t.Errorf("Help's footer lacks enter about garner:\n%s", ansi.Strip(a.View().Content))
+	}
+	sendKeys(a, "enter")
+	if _, ok := a.screen.(*aboutScreen); a.help || !ok {
+		t.Errorf("enter in Help opened %T, Help still open %v; want About", a.screen, a.help)
+	}
+	a.screen = library
+
 	// The palette leaves out a key that does not apply on the row. One
 	// that turns out to do nothing all the same says so rather than
 	// closing without a word.

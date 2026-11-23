@@ -257,10 +257,10 @@ func (a *app) anywhere() []paletteEntry {
 			}})
 	}
 	if _, there := a.screen.(*aboutScreen); !there {
-		out = append(out, paletteEntry{label: "About garner", key: "a", where: "in Help", kind: kindPlace,
+		out = append(out, paletteEntry{label: "About garner", key: "enter", where: "in Help", kind: kindPlace,
 			run: func(a *app) tea.Cmd {
 				a.help = true
-				return a.helpKey("a")
+				return a.helpKey("enter")
 			}})
 	}
 	return out

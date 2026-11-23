@@ -344,7 +344,8 @@ func (a *app) View() tea.View {
 }
 
 // helpKey handles a key while the Help overlay is open: ? and esc close it,
-// a opens About.
+// enter opens About. Not a: the screen's own a, such as adding a show,
+// is listed just above.
 func (a *app) helpKey(key string) tea.Cmd {
 	if a.helpScroll.key(key) {
 		return nil
@@ -352,7 +353,7 @@ func (a *app) helpKey(key string) tea.Cmd {
 	switch key {
 	case "?", "esc":
 		a.help = false
-	case "a":
+	case "enter":
 		a.help = false
 		a.screen = newAbout(a.sess, a.screen, a.path, a.version)
 		return a.screen.init()

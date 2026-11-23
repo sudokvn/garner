@@ -62,7 +62,7 @@ SABnzbd, garner and Jellyfin see the media at `/srv/media`. SABnzbd downloads in
     docker compose exec garner garnerd token create laptop
     ```
 
-    Install `garner` on that device as the [README](../../README.md#get-started) describes, run it and paste the connection code. Press `?`, then `a`, to open the About screen: it shows whether Prowlarr, SABnzbd, Jellyfin and TheTVDB answer.
+    Install `garner` on that device as the [README](../../README.md#get-started) describes, run it and paste the connection code. Press `?`, then `enter`, to open the About screen: it shows whether Prowlarr, SABnzbd, Jellyfin and TheTVDB answer.
 12. garner starts with the profile Original language, which wants each show in its original audio. For another language, set up a profile as [Manage profiles in garner](../../docs/profiles.md#manage-profiles-in-garner) describes.
 
 At start, garner warns that the services' API keys travel over plain HTTP. Between containers on one machine, they never leave it.
