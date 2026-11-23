@@ -495,14 +495,23 @@ func (s *showScreen) facts(now time.Time, width int) string {
 	return factLines(width, facts...)
 }
 
-// enterHelp is the help() entry enter does: none on a season row, where
-// it folds the season, or on an episode not aired yet.
-func (s *showScreen) enterHelp() string {
-	switch s.enterLabel() {
-	case "", "fold", "unfold":
-		return ""
+// action says which keys run on the row under the cursor, and what s
+// searches there. enter opens an episode that aired; on a season row it
+// folds the season, which h l do too, so it is no action of its own.
+func (s *showScreen) action(key, label string) (string, bool) {
+	switch key {
+	case "enter":
+		switch s.enterLabel() {
+		case "", "fold", "unfold":
+			return label, false
+		}
+	case "s":
+		if _, ok := s.cursorEpisode(); ok {
+			return "new search", true
+		}
+		return "search season", true // for its packs
 	}
-	return "open the episode"
+	return label, true
 }
 
 func (s *showScreen) help() (string, []string) {
@@ -517,10 +526,7 @@ func (s *showScreen) bottom() string {
 	if s.flash.text != "" {
 		return s.flash.text
 	}
-	search := "search season" // for its packs
-	if _, ok := s.cursorEpisode(); ok {
-		search = "new search"
-	}
+	search, _ := s.action("s", "")
 	enter := s.enterLabel()
 	return joinKeys(
 		keySlot("enter", enter, enter != "", enterLabels...),

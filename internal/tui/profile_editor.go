@@ -684,11 +684,20 @@ func (s *editorScreen) bottom(row editorRow) string {
 		add = "add resolution"
 	}
 	return joinKeys(keyBar("e", "edit", "h l", "choose", "a", add, "d", "remove", "K J", "move"),
-		keySlot("t", "another show", s.changed() && s.shows > 1),
+		keySlot("t", "another show", can(s, "t")),
 		keyBar("enter", "save", "esc", "cancel", "?", "help"))
 }
 
 func (s *editorScreen) flashed() *flash { return &s.flash }
+
+// action says whether t runs: with unsaved changes and another show to
+// try them on.
+func (s *editorScreen) action(key, label string) (string, bool) {
+	if key == "t" {
+		return label, s.changed() && s.shows > 1
+	}
+	return label, true
+}
 
 // captures: the editor keeps every key while typing or a question is open.
 func (s *editorScreen) captures() bool {

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -100,15 +101,154 @@ func TestPalette(t *testing.T) {
 		t.Error("esc did not close the palette")
 	}
 
-	// help() lists keys that need a row; chosen elsewhere, the palette
-	// says that they do nothing rather than closing without a word.
+	// The palette leaves out a key that does not apply on the row. One
+	// that turns out to do nothing all the same says so rather than
+	// closing without a word.
 	episode := newEpisode(sess, show, 101)
 	episode.detail = &api.EpisodeDetail{}
 	a.screen = episode
 	sendKeys(a, ":")
-	typed("cancel the download")
-	sendKeys(a, "enter")
+	for _, e := range a.paletteEntries() {
+		if e.key == "x" {
+			t.Errorf("the palette offers %q on an episode without a download", e.label)
+		}
+	}
+	sendKeys(a, "esc")
+	a.pressSaying("x", "Cancel the download")
 	if !strings.Contains(ansi.Strip(episode.flash.text), "Cancel the download does not apply here") || episode.asking {
 		t.Errorf("cancelling without a download said %q", ansi.Strip(episode.flash.text))
 	}
+}
+
+// TestPaletteOffersWhatRuns walks each screen that answers for its keys
+// over rows where they differ: the palette offers a key the key bar
+// shows, and leaves out one it greys out or leaves out, so choosing an
+// action never meets "does not apply here". A key whose meaning depends
+// on the row carries the key bar's label.
+func TestPaletteOffersWhatRuns(t *testing.T) {
+	// keyState finds key in a key bar: on, greyed out or absent, with its
+	// label there.
+	keyState := func(bar, key string) (string, string) {
+		for _, part := range strings.Split(bar, keyGap) {
+			plain := strings.TrimSpace(strings.ReplaceAll(ansi.Strip(part), "\u00a0", " "))
+			if k, label, _ := strings.Cut(plain, " "); k == key {
+				if strings.Contains(part, sKey.Render(key)) {
+					return "on", label
+				}
+				return "greyed out", label
+			}
+		}
+		return "absent", ""
+	}
+	check := func(name string, s screen, bar string, keys ...string) {
+		t.Helper()
+		_, pairs := s.(keyHelper).help()
+		for _, key := range keys {
+			state, barLabel := keyState(bar, key)
+			var offered []string
+			for _, e := range screenActions(s) {
+				if e.key == key {
+					offered = append(offered, e.label)
+				}
+			}
+			switch {
+			case state == "on" && len(offered) == 0:
+				t.Errorf("%s: the key bar offers %s, the palette does not\n%s", name, key, ansi.Strip(bar))
+			case state != "on" && len(offered) > 0:
+				t.Errorf("%s: %s is %s in the key bar, the palette offers %q\n%s", name, key, state, offered, ansi.Strip(bar))
+			}
+			for _, label := range offered {
+				known := label == upperFirst(barLabel)
+				for i := 0; i+1 < len(pairs); i += 2 {
+					known = known || strings.Fields(pairs[i])[0] == key && label == upperFirst(pairs[i+1])
+				}
+				if !known {
+					t.Errorf("%s: the palette calls %s %q, the key bar %q", name, key, label, barLabel)
+				}
+			}
+		}
+	}
+	lastLine := func(view string) string { lines := strings.Split(view, "\n"); return lines[len(lines)-1] }
+	sess := &session{}
+
+	activity := newActivity(sess, nil)
+	activity.items = []api.ActivityItem{
+		{Download: api.Download{EpisodeID: 1, State: api.Downloading}},
+		{Download: api.Download{EpisodeID: 2, State: api.Failed}},
+		{Download: api.Download{EpisodeID: 3, State: api.Completed, Import: api.Import{State: api.ImportDone}}},
+	}
+	for _, id := range []int64{1, 2, 3} {
+		activity.selected = id
+		check(fmt.Sprintf("Activity, row %d", id), activity, activity.bottom(), "enter", "x", "c")
+	}
+
+	data := api.SeriesData{
+		Series: api.Series{ID: 42, Name: "Harbor Precinct", DefaultOrder: "official", Type: api.TypeTV},
+		Episodes: []api.Episode{
+			{ID: 101, Aired: "2026-01-01", Numbers: map[string]api.Position{"official": {Season: 1, Number: 1}}},
+			{ID: 102, Aired: "2026-01-08", Numbers: map[string]api.Position{"official": {Season: 1, Number: 2}}},
+			{ID: 103, Aired: "2026-01-15", Numbers: map[string]api.Position{"official": {Season: 1, Number: 3}}},
+			{ID: 104, Aired: "2099-01-01", Numbers: map[string]api.Position{"official": {Season: 1, Number: 4}}},
+		},
+	}
+	show := newShow(sess, nil, 42, "Harbor Precinct", "")
+	show.setDetail(api.SeriesDetail{SeriesData: data, States: []api.EpisodeStatus{
+		{EpisodeID: 101, State: api.EpisodeImported}, {EpisodeID: 102, State: api.EpisodeNotSearched},
+		{EpisodeID: 103, State: api.EpisodeWaiting}, {EpisodeID: 104, State: api.EpisodeUpcoming},
+	}})
+	for _, id := range []int64{101, 102, 103, 104} {
+		show.cursor = rowKey{season: 1, episode: id}
+		check(fmt.Sprintf("Show, episode %d", id), show, show.bottom(), "enter", "s")
+	}
+	show.cursor = rowKey{season: 1}
+	check("Show, season row", show, show.bottom(), "s")
+
+	episode := newEpisode(sess, show, 101)
+	for name, downloads := range map[string][]api.Download{
+		"never downloaded": nil,
+		"downloading":      {{State: api.Downloading}},
+		"download failed":  {{State: api.Failed}},
+		"import failed":    {{State: api.Completed, Import: api.Import{State: api.ImportFailed}}},
+		"importing":        {{State: api.Completed, Import: api.Import{State: api.ImportPending}}},
+		"imported":         {{State: api.Completed, Import: api.Import{State: api.ImportDone}}},
+	} {
+		episode.detail = &api.EpisodeDetail{Downloads: downloads}
+		check("Episode, "+name, episode, episode.bottom(), "x", "r", "c")
+	}
+
+	library := newLibrary(sess)
+	library.loaded = true
+	check("Library, empty", library, library.bottom(120, 0, 0), "enter", "a", "i")
+	library.cat = catUpcoming
+	library.upcoming = &api.Upcoming{Today: "2026-11-22"}
+	check("Upcoming, empty", library, library.bottom(120, 0, 0), "enter", "s")
+	library.upcoming.Episodes = []api.UpcomingEpisode{
+		{EpisodeID: 1, SeriesID: 7, SeriesName: "Harbor Precinct", Season: 1, Number: 1, Aired: "2026-11-21", State: api.EpisodeWaiting},
+		{EpisodeID: 2, SeriesID: 7, SeriesName: "Harbor Precinct", Season: 1, Number: 2, Aired: "2026-11-26", State: api.EpisodeUpcoming},
+	}
+	for _, id := range []int64{1, 2} {
+		library.upSelected = id
+		check(fmt.Sprintf("Upcoming, episode %d", id), library, library.bottom(120, 0, 0), "enter", "s")
+	}
+
+	releases := &releasesScreen{sess: sess, back: show, search: &api.Search{Candidates: []api.Candidate{
+		{ID: 1, Rank: 1, Title: "Harbor.Precinct.S01E01.German.DL.1080p.WEB-GRP", Verdict: api.Accept, Tier: "German 1080p"},
+	}}, selected: 1}
+	check("Releases", releases, releases.bottom(), "enter", "r")
+	releases.searching = true
+	check("Releases, searching", releases, releases.bottom(), "enter", "r")
+
+	preview := &previewScreen{sess: sess}
+	check("Add show, loading", preview, preview.bottom(), "a", "o")
+	preview.preview = &api.Preview{}
+	check("Add show", preview, preview.bottom(), "a", "o")
+	preview.preview.Added = true
+	check("Add show, in the library", preview, preview.bottom(), "a", "o")
+
+	_, cl := newRecorder(t)
+	_, editor := editorApp(cl, 1)
+	editor.shows = 2
+	check("Profile editor", editor, lastLine(editor.view(120, 36)), "t")
+	editor.p.Description += " and more"
+	check("Profile editor, changed", editor, lastLine(editor.view(120, 36)), "t")
 }

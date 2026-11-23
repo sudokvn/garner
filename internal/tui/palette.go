@@ -18,8 +18,8 @@ import (
 )
 
 // The command palette is an overlay that : opens on any screen that is not
-// capturing keys. With nothing typed it lists the screen's actions, taken
-// from its help(), then what works anywhere. Typing filters them and adds
+// capturing keys. With nothing typed it lists the screen's actions that
+// run now, taken from its help(), then what works anywhere. Typing filters them and adds
 // shows, profiles and the open show's episodes.
 //
 // Choosing an action hands its key to the screen the way a key press
@@ -155,24 +155,32 @@ var paletteMoves = map[string]bool{
 // lists them under Anywhere.
 var paletteGlobal = map[string]bool{"A": true, "P": true, "?": true, "n": true, ":": true}
 
-// enterer is a screen whose help() lists what enter does in each place,
-// such as on a season row or in the Library's preview. enterHelp is the
-// label of the entry that enter does now, or "" when it does none.
-type enterer interface{ enterHelp() string }
+// actioner is a screen whose keys do not all run everywhere, such as
+// cancelling a download on a finished row. action answers for the help()
+// entry of key with label whether it runs now, and under which label: for
+// a key whose meaning depends on the row, the words the key bar shows for
+// it. The key bar greys keys out by the same answer, so the bar and the
+// palette agree. Help lists every key all the same.
+type actioner interface {
+	action(key, label string) (string, bool)
+}
+
+// can reports whether key runs now on a screen that answers for its keys.
+func can(s actioner, key string) bool {
+	_, ok := s.action(key, "")
+	return ok
+}
 
 // screenActions are the screen's help() entries that do something: those
 // whose keys neither move nor work everywhere. An entry with alternatives,
-// such as "enter e", runs its first key. Of an enterer's enter entries,
-// only the one enter does now is listed.
+// such as "enter e", runs its first key. Of an actioner's entries, only
+// those that run now are listed, under the label that applies now.
 func screenActions(s screen) []paletteEntry {
 	h, ok := s.(keyHelper)
 	if !ok {
 		return nil
 	}
-	enter, byPlace := "", false
-	if e, ok := s.(enterer); ok {
-		enter, byPlace = e.enterHelp(), true
-	}
+	act, _ := s.(actioner)
 	_, pairs := h.help()
 	var out []paletteEntry
 	for i := 0; i+1 < len(pairs); i += 2 {
@@ -180,10 +188,14 @@ func screenActions(s screen) []paletteEntry {
 		if len(keys) == 0 || slices.ContainsFunc(keys, func(k string) bool { return paletteMoves[k] || paletteGlobal[k] }) {
 			continue
 		}
-		if byPlace && keys[0] == "enter" && pairs[i+1] != enter {
-			continue
+		key, label := keys[0], pairs[i+1]
+		if act != nil {
+			var runs bool
+			if label, runs = act.action(key, label); !runs {
+				continue
+			}
 		}
-		key, label := keys[0], upperFirst(pairs[i+1])
+		label = upperFirst(label)
 		out = append(out, paletteEntry{label: label, key: key, kind: kindAction,
 			run: func(a *app) tea.Cmd { return a.pressSaying(key, label) }})
 	}
@@ -191,8 +203,9 @@ func screenActions(s screen) []paletteEntry {
 }
 
 // pressSaying hands a key to the screen like press, and says so when it
-// changed nothing: help() lists keys that need a row, such as cancelling
-// a download, and the key does nothing elsewhere.
+// changed nothing: a screen that does not answer for its keys lists keys
+// that need a row, such as cancelling a download, and the row may have
+// changed since.
 func (a *app) pressSaying(key, label string) tea.Cmd {
 	// Every key clears the screen's notice, so that change is no action.
 	if f, ok := a.screen.(flasher); ok {

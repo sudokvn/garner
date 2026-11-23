@@ -483,15 +483,29 @@ func (s *activityScreen) bottom() string {
 	var parts []string
 	if len(s.items) > 0 {
 		// x and c keep their place on rows they do not apply to.
-		it, _ := s.cursor()
 		parts = append(parts, keyBar("j k", "move", "enter", "episode"),
-			keySlot("x", "cancel", cancellable(it.Download)),
-			keySlot("c", "clear failure", it.Download.CanAcknowledge()))
+			keySlot("x", "cancel", can(s, "x")),
+			keySlot("c", "clear failure", can(s, "c")))
 	}
 	return joinKeys(append(parts, keyBar("?", "help", "esc", "back"))...)
 }
 
 func (s *activityScreen) flashed() *flash { return &s.flash }
+
+// action says which keys run on the row under the cursor: x on a download
+// SABnzbd still has, c on a failure not cleared.
+func (s *activityScreen) action(key, label string) (string, bool) {
+	it, ok := s.cursor()
+	switch key {
+	case "enter":
+		return label, ok
+	case "x":
+		return label, ok && cancellable(it.Download)
+	case "c":
+		return label, ok && it.Download.CanAcknowledge()
+	}
+	return label, true
+}
 
 func (s *activityScreen) captures() bool { return s.asking || s.busy != "" }
 

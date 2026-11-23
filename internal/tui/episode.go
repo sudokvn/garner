@@ -560,19 +560,36 @@ func (s *episodeScreen) bottom() string {
 		return s.flash.text
 	}
 	var keys []string
-	if _, ok := s.cancellable(); ok {
+	if can(s, "x") {
 		keys = append(keys, "x", "cancel")
 	}
-	if label := s.againLabel(); label != "" && s.detail != nil {
+	if label, ok := s.action("r", ""); ok {
 		keys = append(keys, "r", label)
 	}
-	if d, ok := s.latest(); ok && d.CanAcknowledge() {
+	if can(s, "c") {
 		keys = append(keys, "c", "clear failure")
 	}
 	return keyBar(append(keys, "A", "activity", "?", "help", "esc", "back")...)
 }
 
 func (s *episodeScreen) flashed() *flash { return &s.flash }
+
+// action says which keys run on the episode now, and what r does: look
+// at other releases, search again or retry the import.
+func (s *episodeScreen) action(key, label string) (string, bool) {
+	switch key {
+	case "x":
+		_, ok := s.cancellable()
+		return label, ok
+	case "r":
+		again := s.againLabel()
+		return again, again != "" && s.detail != nil
+	case "c":
+		d, ok := s.latest()
+		return label, ok && d.CanAcknowledge()
+	}
+	return label, true
+}
 
 func (s *episodeScreen) captures() bool { return s.asking || s.busy != "" }
 

@@ -202,9 +202,8 @@ func (s *releasesScreen) key(key string) tea.Cmd {
 }
 
 func (s *releasesScreen) download() tea.Cmd {
-	c, ok := s.cursor()
-	if !ok || s.searching || s.err != nil {
-		// While an error shows, the list underneath is not on screen.
+	c, ok := s.downloadable()
+	if !ok {
 		return nil
 	}
 	if c.Verdict == api.Reject && s.confirm != c.ID {
@@ -244,6 +243,14 @@ func (s *releasesScreen) candidates() []api.Candidate {
 		return cmp.Or(cmp.Compare(order[a.Verdict], order[b.Verdict]), cmp.Compare(a.Rank, b.Rank))
 	})
 	return c
+}
+
+// downloadable is the release enter downloads: the one under the cursor,
+// once the search is done. While an error shows, the list underneath is
+// not on screen.
+func (s *releasesScreen) downloadable() (api.Candidate, bool) {
+	c, ok := s.cursor()
+	return c, ok && !s.searching && s.err == nil
 }
 
 func (s *releasesScreen) cursor() (api.Candidate, bool) {
@@ -686,13 +693,25 @@ func (s *releasesScreen) bottom() string {
 		return sMuted.Render(s.busy)
 	case s.flash.text != "":
 		return s.flash.text
-	case s.searching:
-		return keyBar("esc", "back")
+	case !can(s, "r"):
+		return keyBar("esc", "back") // searching
 	}
 	return keyBar("j k", "move", "enter", "download", "r", "search again", "A", "activity", "?", "help", "esc", "back")
 }
 
 func (s *releasesScreen) flashed() *flash { return &s.flash }
+
+// action says which keys run now: none but esc while the search runs.
+func (s *releasesScreen) action(key, label string) (string, bool) {
+	switch key {
+	case "enter":
+		_, ok := s.downloadable()
+		return label, ok
+	case "r":
+		return label, !s.searching
+	}
+	return label, true
+}
 
 // forget drops a rejected release waiting for its second enter, and the
 // warning that asks for it.

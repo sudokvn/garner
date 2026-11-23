@@ -638,12 +638,28 @@ func (s *previewScreen) bottom() string {
 		return s.flash.text
 	case s.err != nil:
 		return keyBar("r", "try again", "esc", "back")
-	case s.preview == nil:
-		return keyBar("esc", "back")
-	case s.preview.Added:
-		return keyBar("o", "open on TVDB", "esc", "back")
 	}
-	return keyBar("a", "add to library", "o", "open on TVDB", "esc", "back")
+	var keys []string
+	if can(s, "a") {
+		keys = append(keys, "a", "add to library")
+	}
+	if can(s, "o") {
+		keys = append(keys, "o", "open on TVDB")
+	}
+	return keyBar(append(keys, "esc", "back")...)
+}
+
+// action says which keys run: o once the show's details are here, a too
+// while the show is not in the library.
+func (s *previewScreen) action(key, label string) (string, bool) {
+	loaded := s.err == nil && s.preview != nil
+	switch key {
+	case "a":
+		return label, loaded && !s.preview.Added
+	case "o":
+		return label, loaded
+	}
+	return label, true
 }
 
 func (s *previewScreen) flashed() *flash { return &s.flash }

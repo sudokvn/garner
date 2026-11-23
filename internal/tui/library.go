@@ -762,6 +762,25 @@ func (s *libraryScreen) enterHelp() string {
 	return "open the show"
 }
 
+// action says which help() entries run now, by what the key bar shows:
+// enter does what enterHelp says, and on the Upcoming tab only on an
+// episode; s there searches an episode that has aired. An empty library
+// offers only adding a show and quitting.
+func (s *libraryScreen) action(key, label string) (string, bool) {
+	switch {
+	case key == "enter" && label != s.enterHelp():
+		return label, false
+	case key == "enter" && s.cat == catUpcoming && !s.pv.focused:
+		return label, s.hasUpcoming()
+	case key == "s" && s.cat == catUpcoming:
+		_, aired := s.upAired()
+		return label, aired
+	case s.cat != catUpcoming && s.loaded && len(s.sess.shows) == 0:
+		return label, key == "a" || key == "q"
+	}
+	return label, true
+}
+
 func (s *libraryScreen) help() (string, []string) {
 	if s.cat == catUpcoming {
 		return "Library", upcomingHelp
