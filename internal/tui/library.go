@@ -267,11 +267,17 @@ func (s *libraryScreen) keyed(msg tea.KeyPressMsg) tea.Cmd {
 		return s.answer(key)
 	}
 	if s.pv.focused && !s.typing {
-		if _, _, ok := s.previewShown(); ok && s.wide() {
-			return s.previewKey(key)
+		switch key {
+		case "tab", "shift+tab", "1", "2", "3", "4":
+			// A new category: the keys go back to the list, which takes it.
+			s.pv.focused = false
+		default:
+			if _, _, ok := s.previewShown(); ok && s.wide() {
+				return s.previewKey(key)
+			}
+			// The pane went away: the key is the list's.
+			s.pv.focused = false
 		}
-		// The pane went away: the key is the list's.
-		s.pv.focused = false
 	}
 	if s.typing {
 		switch key {
@@ -318,15 +324,14 @@ func (s *libraryScreen) keyed(msg tea.KeyPressMsg) tea.Cmd {
 		}
 	}
 	switch key {
-	case "tab", "shift+tab":
-		// With the preview, tab moves into it; 1 to 4 change the category.
-		// A pane with no episode to take the keys leaves tab to them.
-		switch {
-		case s.wide() && s.focusPreview():
-		case key == "tab":
-			s.cat = (s.cat + 1) % categories
-		default:
-			s.cat = (s.cat + categories - 1) % categories
+	case "tab":
+		s.cat = (s.cat + 1) % categories
+	case "shift+tab":
+		s.cat = (s.cat + categories - 1) % categories
+	case "l", "right":
+		// Into the preview, when it shows an episode to take the keys.
+		if s.wide() {
+			s.focusPreview()
 		}
 	case "1", "2", "3", "4":
 		s.cat = category(key[0] - '1')
@@ -602,11 +607,11 @@ func (s *libraryScreen) bottom(width, shown, total int) string {
 	case s.flash.text != "":
 		return s.flash.text
 	case s.pv.focused:
-		return keyBar("j k", "move", "enter", "open", "tab", "back to the list", "1-4", "category",
+		return keyBar("j k", "move", "enter", "open", "h", "back to the list", "tab", "category",
 			"A", "activity", "?", "help", "q", "quit")
 	case s.cat == catUpcoming && s.wide():
 		return joinKeys(keyBar("j k", "move"), keySlot("enter", "open show", s.hasUpcoming()), s.upSearchSlot(),
-			keyBar("tab", "into the pane", "1-4", "category", "A", "activity", "?", "help", "q", "quit"))
+			keyBar("l", "into the pane", "tab", "category", "A", "activity", "?", "help", "q", "quit"))
 	case s.cat == catUpcoming:
 		return joinKeys(keyBar("j k", "move"), keySlot("enter", "open show", s.hasUpcoming()), s.upSearchSlot(),
 			keyBar("tab", "category", "A", "activity", "?", "help", "q", "quit"))
@@ -617,7 +622,7 @@ func (s *libraryScreen) bottom(width, shown, total int) string {
 			"esc", "clear filter", "P", "profiles", "?", "help", "q", "quit")
 	}
 	if s.wide() {
-		return keyBar("j k", "move", "enter", "open", "tab", "into the pane", "1-4", "category", "i", "details",
+		return keyBar("j k", "move", "enter", "open", "l", "into the pane", "tab", "category", "i", "details",
 			"a", "add", "/", "filter", ":", "commands", "P", "profiles", "A", "activity", "?", "help", "q", "quit")
 	}
 	// d, s and tab category are in Help; the tabs show at the top.
@@ -788,7 +793,8 @@ func (s *libraryScreen) help() (string, []string) {
 	return "Library", []string{
 		"enter", "open the show", "i", "show details",
 		"a", "add a show", "d", "delete the show",
-		"tab", "next category, or the preview at 160 columns", "1 2 3 4", "jump to a category",
+		"tab", "next category", "1 2 3 4", "jump to a category",
+		"l right", "into the preview, from 160 columns", "h left esc", "out of the preview",
 		"enter", "in the preview: open the episode",
 		"/", "filter, esc clears", "s", "sort by the next column",
 		"I", "reverse the order", "q", "quit",

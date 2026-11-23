@@ -299,8 +299,9 @@ func (s *libraryScreen) hasUpcoming() bool {
 // the keys for the shows of the other tabs do nothing.
 var upcomingHelp = []string{
 	"enter", "open the show", "s", "search the episode now, once it aired",
-	"a", "add a show", "tab", "next category, or the preview at 160 columns",
-	"1 2 3 4", "jump to a category", "enter", "in the preview: open the episode",
+	"a", "add a show", "tab", "next category",
+	"1 2 3 4", "jump to a category", "l right", "into the preview, from 160 columns",
+	"h left esc", "out of the preview", "enter", "in the preview: open the episode",
 	"q", "quit",
 }
 

@@ -164,9 +164,9 @@ func TestListKeys(t *testing.T) {
 				return slices.IndexFunc(se.episodes, func(e episodeRow) bool { return e.episode.ID == s.pv.cursor })
 			}, 60, func() int { return max(1, s.page-5) })
 			l.draw()
-			l.press(tea.KeyPressMsg{Code: tea.KeyTab})
+			l.press(listKeyPress(t, "l"))
 			if !s.pv.focused {
-				t.Fatal("tab did not move into the preview")
+				t.Fatal("l did not move into the preview")
 			}
 			return l
 		}},

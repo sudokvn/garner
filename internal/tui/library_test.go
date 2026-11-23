@@ -18,8 +18,8 @@ import (
 )
 
 // TestLibraryTabs offers only the categories garner has shows of: All, TV
-// and Anime, then Upcoming. tab and shift+tab go round them, and 1 to 4
-// jump to one.
+// and Anime, then Upcoming. tab and shift+tab go round them at every
+// width, also where the preview shows, and 1 to 4 jump to one.
 func TestLibraryTabs(t *testing.T) {
 	sess := &session{}
 	a := &app{sess: sess, library: newLibrary(sess)}
@@ -47,18 +47,26 @@ func TestLibraryTabs(t *testing.T) {
 		}
 		a.update(tea.KeyPressMsg{Code: code, Mod: mod, Text: text})
 	}
-	var seen []category
-	for range 5 {
-		press(tea.KeyTab, 0)
-		seen = append(seen, a.library.cat)
-	}
-	if want := []category{catTV, catAnime, catUpcoming, catAll, catTV}; !slices.Equal(seen, want) {
-		t.Errorf("tab went through %v, want %v", seen, want)
-	}
-	press(tea.KeyTab, tea.ModShift) // from TV
-	press(tea.KeyTab, tea.ModShift)
-	if a.library.cat != catUpcoming {
-		t.Errorf("shift+tab twice from TV ended on %v, want Upcoming", a.library.cat)
+	for _, width := range []int{120, previewWidth} {
+		a.width, a.height, a.library.cat = width, 36, catAll
+		a.View()
+		if a.library.wide() != (width >= previewWidth) {
+			t.Fatalf("at %d columns the preview shows: %v", width, a.library.wide())
+		}
+		var seen []category
+		for range 5 {
+			press(tea.KeyTab, 0)
+			a.View()
+			seen = append(seen, a.library.cat)
+		}
+		if want := []category{catTV, catAnime, catUpcoming, catAll, catTV}; !slices.Equal(seen, want) {
+			t.Errorf("at %d columns tab went through %v, want %v", width, seen, want)
+		}
+		press(tea.KeyTab, tea.ModShift) // from TV
+		press(tea.KeyTab, tea.ModShift)
+		if a.library.cat != catUpcoming {
+			t.Errorf("at %d columns shift+tab twice from TV ended on %v, want Upcoming", width, a.library.cat)
+		}
 	}
 	press('2', 0)
 	press('5', 0)

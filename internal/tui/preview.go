@@ -20,7 +20,8 @@ import (
 // The Library's preview: on a terminal previewWidth cells wide or more,
 // the right half shows the show under the cursor, its facts and its
 // newest season's episodes, with the rejected attempts of a download in
-// flight under its episode. tab moves into it and back.
+// flight under its episode. l and right move into it, h, left and esc
+// back to the list; tab still changes the category, from either.
 
 const previewWidth = 160
 
@@ -202,7 +203,8 @@ func (s *libraryScreen) focusPreview() bool {
 	return true
 }
 
-// previewKey handles a key while the pane has the keys.
+// previewKey handles a key while the pane has the keys. The keys that
+// change the category never reach it: they go back to the list.
 func (s *libraryScreen) previewKey(key string) tea.Cmd {
 	_, se, ok := s.previewShown()
 	if !ok || !s.wide() {
@@ -217,11 +219,8 @@ func (s *libraryScreen) previewKey(key string) tea.Cmd {
 		return nil
 	}
 	switch key {
-	case "tab", "shift+tab", "esc":
+	case "h", "left", "esc":
 		s.pv.focused = false
-	case "1", "2", "3", "4":
-		s.pv.focused = false
-		s.cat = category(key[0] - '1')
 	case "enter":
 		return s.openPreviewEpisode(se.episodes[i])
 	case "q":
