@@ -209,8 +209,12 @@ func (s *episodeScreen) key(key string) tea.Cmd {
 			s.busy = "Clearing the failure…"
 			return acknowledgeFailure(s.sess.client, d.ID)
 		}
+	case "enter":
+		return s.releases(false)
+	case "s":
+		return s.releases(true)
 	case "r":
-		return s.again()
+		return s.retryImport()
 	}
 	return nil
 }
@@ -246,51 +250,46 @@ func (s *episodeScreen) answer(key string) tea.Cmd {
 	return nil
 }
 
-// Labels for r, by what the episode needs.
-const (
-	againReleases = "other releases"
-	againSearch   = "search again"
-	againImport   = "retry import"
-)
-
-// againLabel is what r does: look at the last search's other releases, run
-// a new search, or retry a failed import. Empty while an import runs.
-func (s *episodeScreen) againLabel() string {
+// retryable reports whether r retries the latest download's import: it
+// failed, or Jellyfin did not confirm the file.
+func (s *episodeScreen) retryable() (api.Download, bool) {
 	d, ok := s.latest()
-	switch {
-	case !ok:
-		return againSearch
-	case d.Import.State == api.ImportFailed, d.Import.State == api.ImportUnverified:
-		return againImport
-	case d.Active():
-		return againReleases
-	case d.State == api.Completed && d.Import.State != api.ImportDone:
-		return "" // being imported
-	case d.State == api.Completed:
-		return againSearch // a better release may have come out
-	}
-	return againReleases
+	return d, ok && (d.Import.State == api.ImportFailed || d.Import.State == api.ImportUnverified)
 }
 
-func (s *episodeScreen) again() tea.Cmd {
-	label := s.againLabel()
-	if label == againImport {
-		d, _ := s.latest()
-		s.busy = "Retrying the import…"
-		cl := s.sess.client
-		return func() tea.Msg {
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
-			d, err := cl.RetryImport(ctx, d.ID)
-			return retriedMsg{d, err}
-		}
-	}
-	row, ok := s.row()
-	if label == "" || !ok {
+func (s *episodeScreen) retryImport() tea.Cmd {
+	d, ok := s.retryable()
+	if !ok {
 		return nil
 	}
-	next := newReleases(s.sess, s.show, row, label == againSearch)
-	next.leave = s // esc comes back here, not to the show
+	s.busy = "Retrying the import…"
+	cl := s.sess.client
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		d, err := cl.RetryImport(ctx, d.ID)
+		return retriedMsg{d, err}
+	}
+}
+
+// searched reports whether the episode has a last search to show: the
+// show reports one, or a download was chosen from it. A cleared failure
+// hides the show's report, not the search.
+func (s *episodeScreen) searched() bool {
+	row, ok := s.row()
+	return ok && s.detail != nil && (row.status.Summary != "" || len(s.detail.Downloads) > 0)
+}
+
+// releases opens the episode's releases: with fresh, a new search, as s on
+// its row of the Show screen does; otherwise the last search's, as it
+// stands. esc there comes back here, not to the show.
+func (s *episodeScreen) releases(fresh bool) tea.Cmd {
+	row, ok := s.row()
+	if !ok || !fresh && !s.searched() {
+		return nil
+	}
+	next := newReleases(s.sess, s.show, row, fresh)
+	next.leave, next.stored = s, !fresh
 	return func() tea.Msg { return switchMsg{next} }
 }
 
@@ -559,31 +558,35 @@ func (s *episodeScreen) bottom() string {
 	case s.flash.text != "":
 		return s.flash.text
 	}
-	var keys []string
-	if can(s, "x") {
-		keys = append(keys, "x", "cancel")
-	}
-	if label, ok := s.action("r", ""); ok {
-		keys = append(keys, "r", label)
-	}
-	if can(s, "c") {
-		keys = append(keys, "c", "clear failure")
-	}
-	return keyBar(append(keys, "A", "activity", "?", "help", "esc", "back")...)
+	// Every key keeps its place, greyed out where it does not apply.
+	return joinKeys(
+		keySlot("x", "cancel", can(s, "x")),
+		keySlot("enter", "releases", can(s, "enter")),
+		keySlot("s", "new search", can(s, "s")),
+		keySlot("r", "retry import", can(s, "r")),
+		keySlot("c", "clear failure", can(s, "c")),
+		keyBar("A", "activity", "?", "help", "esc", "back"),
+	)
 }
 
 func (s *episodeScreen) flashed() *flash { return &s.flash }
 
-// action says which keys run on the episode now, and what r does: look
-// at other releases, search again or retry the import.
+// action says which keys run on the episode now: s once the show has the
+// episode, as on its row there, enter when it has a last search, r when
+// its import can be retried.
 func (s *episodeScreen) action(key, label string) (string, bool) {
 	switch key {
 	case "x":
 		_, ok := s.cancellable()
 		return label, ok
+	case "enter":
+		return label, s.searched()
+	case "s":
+		_, ok := s.row()
+		return label, ok
 	case "r":
-		again := s.againLabel()
-		return again, again != "" && s.detail != nil
+		_, ok := s.retryable()
+		return label, ok
 	case "c":
 		d, ok := s.latest()
 		return label, ok && d.CanAcknowledge()
@@ -595,7 +598,8 @@ func (s *episodeScreen) captures() bool { return s.asking || s.busy != "" }
 
 func (s *episodeScreen) help() (string, []string) {
 	return "Episode", []string{
-		"x", "cancel the download", "r", "other releases, search again or retry the import",
+		"enter", "the last search's releases, without searching", "s", "search the episode again",
+		"r", "retry the import", "x", "cancel the download",
 		"c", "clear the latest download failure",
 	}
 }

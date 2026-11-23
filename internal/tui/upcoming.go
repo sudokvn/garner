@@ -296,12 +296,14 @@ func (s *libraryScreen) hasUpcoming() bool {
 }
 
 // upcomingHelp is the Library's help() on this tab: s searches here, and
-// the keys for the shows of the other tabs do nothing.
+// the keys that sort, filter or delete the shows of the other tabs do
+// nothing.
 var upcomingHelp = []string{
 	"enter", "open the show", "s", "search the episode now, once it aired",
-	"a", "add a show", "tab", "next category",
-	"1 2 3 4", "jump to a category", "l right", "into the preview, from 160 columns",
-	"h left esc", "out of the preview", "enter", "in the preview: open the episode",
+	"i", "show details", "a", "add a show",
+	"tab", "next category", "1 2 3 4", "jump to a category",
+	"l right", "into the preview, from 160 columns", "h left esc", "out of the preview",
+	"enter", inPreview + "open the episode", "s", inPreview + "search the episode",
 	"q", "quit",
 }
 

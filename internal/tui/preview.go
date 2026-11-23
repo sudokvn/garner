@@ -21,7 +21,8 @@ import (
 // the right half shows the show under the cursor, its facts and its
 // newest season's episodes, with the rejected attempts of a download in
 // flight under its episode. l and right move into it, h, left and esc
-// back to the list; tab still changes the category, from either.
+// back to the list; tab still changes the category, from either. In the
+// pane, enter opens the episode under its cursor and s searches it.
 
 const previewWidth = 160
 
@@ -223,6 +224,8 @@ func (s *libraryScreen) previewKey(key string) tea.Cmd {
 		s.pv.focused = false
 	case "enter":
 		return s.openPreviewEpisode(se.episodes[i])
+	case "s":
+		return s.searchPreviewEpisode(se.episodes[i])
 	case "q":
 		return tea.Quit
 	}
@@ -247,6 +250,21 @@ func (s *libraryScreen) openPreviewEpisode(e episodeRow) tea.Cmd {
 	}
 	// An episode not aired yet has nothing to open; its show says so.
 	return func() tea.Msg { return switchMsg{show} }
+}
+
+// searchPreviewEpisode searches an episode of the pane now and opens its
+// releases, as s on its row of the Show screen does. esc there comes back
+// to the Library, the pane and its cursor as they were.
+func (s *libraryScreen) searchPreviewEpisode(e episodeRow) tea.Cmd {
+	d, _, ok := s.previewShown()
+	if !ok {
+		return nil
+	}
+	show := newShow(s.sess, s, d.Series.ID, cmp.Or(d.Series.NameEng, d.Series.Name), "")
+	show.setDetail(*d)
+	next := newReleases(s.sess, show, e, true)
+	next.leave = s
+	return func() tea.Msg { return switchMsg{next} }
 }
 
 // previewLines draws the pane, width cells wide and at most height rows.

@@ -19,7 +19,8 @@ import (
 
 // TestLibraryTabs offers only the categories garner has shows of: All, TV
 // and Anime, then Upcoming. tab and shift+tab go round them at every
-// width, also where the preview shows, and 1 to 4 jump to one.
+// width, also where the preview shows, and 1 to 4 jump to one. o sorts
+// the show tabs by the next column; s, which searches, leaves them be.
 func TestLibraryTabs(t *testing.T) {
 	sess := &session{}
 	a := &app{sess: sess, library: newLibrary(sess)}
@@ -73,13 +74,21 @@ func TestLibraryTabs(t *testing.T) {
 	if a.library.cat != catTV {
 		t.Errorf("after 2 and 5 the category is %v, want TV: 5 names no category", a.library.cat)
 	}
+	press('s', 0)
+	if a.library.sort != byState {
+		t.Errorf("s sorted the TV tab by %v", a.library.sort)
+	}
+	press('o', 0)
+	if a.library.sort != byName {
+		t.Errorf("o sorted the TV tab by %v, want the next column, the name", a.library.sort)
+	}
 }
 
 // TestUpcoming gives every day from two days ago to a week ahead a row,
 // empty days too, then lists later episodes under Later. The last column
-// says what garner will do, and enter opens the episode's show. s searches
-// an aired episode now and esc comes back to the tab; on an episode that
-// has not aired, s does nothing.
+// says what garner will do, and enter opens the episode's show and i its
+// details. s searches an aired episode now and esc comes back to the tab;
+// on an episode that has not aired, s does nothing.
 func TestUpcoming(t *testing.T) {
 	sess := &session{}
 	s := newLibrary(sess)
@@ -120,6 +129,13 @@ func TestUpcoming(t *testing.T) {
 	sw, ok := cmd().(switchMsg)
 	if show, isShow := sw.screen.(*showScreen); !ok || !isShow || show.id != 11 {
 		t.Errorf("enter opened %#v, want the show Night Ferry", sw.screen)
+	}
+	if cmd = s.key(tea.KeyPressMsg{Code: 'i', Text: "i"}); cmd == nil {
+		t.Fatal("i opened nothing")
+	}
+	sw, _ = cmd().(switchMsg)
+	if det, isDetails := sw.screen.(*showDetailsScreen); !isDetails || det.show.id != 11 || det.back != screen(s) {
+		t.Errorf("i opened %#v, want the details of Night Ferry, leading back to the tab", sw.screen)
 	}
 
 	if cmd := s.key(tea.KeyPressMsg{Code: 's', Text: "s"}); cmd != nil {

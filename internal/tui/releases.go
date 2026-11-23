@@ -46,15 +46,18 @@ type releasesScreen struct {
 	searching bool
 	// cancel stops the running search, so leaving the screen cannot let
 	// its late result replace a newer search's.
-	cancel   context.CancelFunc
-	err      error
-	selected int64 // candidate ID
-	offset   int
-	page     int // lines on screen, from the last view
-	keys     listKeys
-	confirm  int64 // a rejected release waiting for a second enter
-	busy     string
-	flash    flash
+	cancel context.CancelFunc
+	err    error
+	// stored opens the last search as it stands and never searches by
+	// itself; none says the episode has no search of its own.
+	stored, none bool
+	selected     int64 // candidate ID
+	offset       int
+	page         int // lines on screen, from the last view
+	keys         listKeys
+	confirm      int64 // a rejected release waiting for a second enter
+	busy         string
+	flash        flash
 
 	// leave is where esc goes when it is not back, such as the Library's
 	// Upcoming tab or the Episode screen.
@@ -87,7 +90,7 @@ func (s *releasesScreen) init() tea.Cmd {
 
 // run searches the indexers. It takes as long as they take to answer.
 func (s *releasesScreen) run() tea.Cmd {
-	s.searching, s.progress, s.err, s.confirm = true, nil, nil, 0
+	s.searching, s.progress, s.err, s.confirm, s.none = true, nil, nil, 0, false
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	s.cancel = cancel
 	cl, id, series, season := s.sess.client, s.episode.episode.ID, s.back.id, s.season
@@ -115,6 +118,10 @@ func (s *releasesScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		switch {
 		case errors.Is(msg.err, client.ErrUnauthorized):
 			return s, func() tea.Msg { return disconnectedMsg{errRevoked} }
+		case errors.As(msg.err, &server) && server.Status == http.StatusNotFound && !fresh && s.stored:
+			// Asked to show, not to search: say there is nothing to show.
+			s.none = true
+			return s, nil
 		case errors.As(msg.err, &server) && server.Status == http.StatusNotFound && !fresh:
 			// Never searched: search now.
 			return s, s.run()
@@ -191,7 +198,7 @@ func (s *releasesScreen) key(key string) tea.Cmd {
 			return func() tea.Msg { return switchMsg{s.leave} }
 		}
 		return func() tea.Msg { return switchMsg{s.back} }
-	case "r":
+	case "s":
 		if !s.searching {
 			return s.run()
 		}
@@ -284,7 +291,9 @@ func (s *releasesScreen) view(width, height int) string {
 	case s.searching:
 		b.WriteString(s.progressLines())
 	case s.err != nil:
-		b.WriteString("   " + gFailed + " " + sRed.Render(clean(s.err.Error())) + sMuted.Render(" Press ") + sKey.Render("r") + sMuted.Render(" to search again."))
+		b.WriteString("   " + gFailed + " " + sRed.Render(clean(s.err.Error())) + sMuted.Render(" Press ") + sKey.Render("s") + sMuted.Render(" to search again."))
+	case s.none:
+		b.WriteString("   " + gWaiting + " " + sNormal.Render("This episode has no search of its own yet.") + sMuted.Render(" Press ") + sKey.Render("s") + sMuted.Render(" to search."))
 	case s.search != nil:
 		b.WriteString(s.table(width, height))
 	}
@@ -693,10 +702,10 @@ func (s *releasesScreen) bottom() string {
 		return sMuted.Render(s.busy)
 	case s.flash.text != "":
 		return s.flash.text
-	case !can(s, "r"):
+	case !can(s, "s"):
 		return keyBar("esc", "back") // searching
 	}
-	return keyBar("j k", "move", "enter", "download", "r", "search again", "A", "activity", "?", "help", "esc", "back")
+	return keyBar("j k", "move", "enter", "download", "s", "search again", "A", "activity", "?", "help", "esc", "back")
 }
 
 func (s *releasesScreen) flashed() *flash { return &s.flash }
@@ -707,7 +716,7 @@ func (s *releasesScreen) action(key, label string) (string, bool) {
 	case "enter":
 		_, ok := s.downloadable()
 		return label, ok
-	case "r":
+	case "s":
 		return label, !s.searching
 	}
 	return label, true
@@ -726,7 +735,7 @@ func (s *releasesScreen) captures() bool { return s.busy != "" }
 
 func (s *releasesScreen) help() (string, []string) {
 	return "Releases", []string{
-		"enter", "download; a rejected one asks twice", "r", "search again",
+		"enter", "download; a rejected one asks twice", "s", "search again",
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -194,7 +195,7 @@ func TestPaletteOffersWhatRuns(t *testing.T) {
 	show := newShow(sess, nil, 42, "Harbor Precinct", "")
 	show.setDetail(api.SeriesDetail{SeriesData: data, States: []api.EpisodeStatus{
 		{EpisodeID: 101, State: api.EpisodeImported}, {EpisodeID: 102, State: api.EpisodeNotSearched},
-		{EpisodeID: 103, State: api.EpisodeWaiting}, {EpisodeID: 104, State: api.EpisodeUpcoming},
+		{EpisodeID: 103, State: api.EpisodeWaiting, Summary: "No matching release found"}, {EpisodeID: 104, State: api.EpisodeUpcoming},
 	}})
 	for _, id := range []int64{101, 102, 103, 104} {
 		show.cursor = rowKey{season: 1, episode: id}
@@ -204,39 +205,60 @@ func TestPaletteOffersWhatRuns(t *testing.T) {
 	check("Show, season row", show, show.bottom(), "s")
 
 	episode := newEpisode(sess, show, 101)
+	episode.detail = &api.EpisodeDetail{}
+	episode.id = 102 // never searched
+	check("Episode, never searched", episode, episode.bottom(), "x", "enter", "s", "r", "c")
+	episode.id = 103 // searched, nothing downloaded
+	check("Episode, searched", episode, episode.bottom(), "x", "enter", "s", "r", "c")
+	episode.id = 999 // not in the show as loaded
+	check("Episode, show without it", episode, episode.bottom(), "x", "enter", "s", "r", "c")
+	episode.id = 101
 	for name, downloads := range map[string][]api.Download{
 		"never downloaded": nil,
 		"downloading":      {{State: api.Downloading}},
 		"download failed":  {{State: api.Failed}},
 		"import failed":    {{State: api.Completed, Import: api.Import{State: api.ImportFailed}}},
+		"needs you":        {{State: api.Completed, Import: api.Import{State: api.ImportUnverified}}},
 		"importing":        {{State: api.Completed, Import: api.Import{State: api.ImportPending}}},
 		"imported":         {{State: api.Completed, Import: api.Import{State: api.ImportDone}}},
 	} {
 		episode.detail = &api.EpisodeDetail{Downloads: downloads}
-		check("Episode, "+name, episode, episode.bottom(), "x", "r", "c")
+		check("Episode, "+name, episode, episode.bottom(), "x", "enter", "s", "r", "c")
 	}
 
 	library := newLibrary(sess)
 	library.loaded = true
 	check("Library, empty", library, library.bottom(120, 0, 0), "enter", "a", "i")
+	// The show tabs sort with o; s searches only in the preview.
+	library.sess = &session{shows: []api.Show{{Series: api.Series{ID: 42, Name: "Harbor Precinct", Type: api.TypeTV}}}}
+	library.selected = 42
+	check("Library", library, library.bottom(120, 1, 1), "enter", "i", "s")
+	// o is in Help, not the key bar, as d is; the palette offers it.
+	if !slices.ContainsFunc(screenActions(library), func(e paletteEntry) bool { return e.key == "o" && e.label == "Sort by the next column" }) {
+		t.Errorf("the Library's palette lacks o, Sort by the next column: %v", screenActions(library))
+	}
+	library.pv = preview{focused: true, details: map[int64]*api.SeriesDetail{42: show.detail}, cursor: 101}
+	library.width = previewWidth
+	check("Library, in the preview", library, library.bottom(previewWidth, 1, 1), "enter", "s")
+	library.pv, library.width, library.sess = preview{}, 0, sess
 	library.cat = catUpcoming
 	library.upcoming = &api.Upcoming{Today: "2026-11-22"}
-	check("Upcoming, empty", library, library.bottom(120, 0, 0), "enter", "s")
+	check("Upcoming, empty", library, library.bottom(120, 0, 0), "enter", "s", "i")
 	library.upcoming.Episodes = []api.UpcomingEpisode{
 		{EpisodeID: 1, SeriesID: 7, SeriesName: "Harbor Precinct", Season: 1, Number: 1, Aired: "2026-11-21", State: api.EpisodeWaiting},
 		{EpisodeID: 2, SeriesID: 7, SeriesName: "Harbor Precinct", Season: 1, Number: 2, Aired: "2026-11-26", State: api.EpisodeUpcoming},
 	}
 	for _, id := range []int64{1, 2} {
 		library.upSelected = id
-		check(fmt.Sprintf("Upcoming, episode %d", id), library, library.bottom(120, 0, 0), "enter", "s")
+		check(fmt.Sprintf("Upcoming, episode %d", id), library, library.bottom(120, 0, 0), "enter", "s", "i")
 	}
 
 	releases := &releasesScreen{sess: sess, back: show, search: &api.Search{Candidates: []api.Candidate{
 		{ID: 1, Rank: 1, Title: "Harbor.Precinct.S01E01.German.DL.1080p.WEB-GRP", Verdict: api.Accept, Tier: "German 1080p"},
 	}}, selected: 1}
-	check("Releases", releases, releases.bottom(), "enter", "r")
+	check("Releases", releases, releases.bottom(), "enter", "s", "r")
 	releases.searching = true
-	check("Releases, searching", releases, releases.bottom(), "enter", "r")
+	check("Releases, searching", releases, releases.bottom(), "enter", "s", "r")
 
 	preview := &previewScreen{sess: sess}
 	check("Add show, loading", preview, preview.bottom(), "a", "o")

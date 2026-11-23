@@ -319,7 +319,13 @@ func (s *libraryScreen) keyed(msg tea.KeyPressMsg) tea.Cmd {
 			return nil
 		case "s":
 			return s.upSearch()
-		case "i", "d", "I", "/":
+		case "i":
+			if e, ok := s.cursorUpcoming(); ok {
+				next := newShowDetails(s.sess, newShow(s.sess, s, e.SeriesID, upcomingShow(e), ""), s)
+				return func() tea.Msg { return switchMsg{next} }
+			}
+			return nil
+		case "d", "o", "I", "/":
 			return nil // they act on the shows of the other tabs
 		}
 	}
@@ -335,7 +341,7 @@ func (s *libraryScreen) keyed(msg tea.KeyPressMsg) tea.Cmd {
 		}
 	case "1", "2", "3", "4":
 		s.cat = category(key[0] - '1')
-	case "s":
+	case "o":
 		s.sort, s.reverse = (s.sort+1)%sortKeys, false
 	case "I":
 		s.reverse = !s.reverse
@@ -607,13 +613,15 @@ func (s *libraryScreen) bottom(width, shown, total int) string {
 	case s.flash.text != "":
 		return s.flash.text
 	case s.pv.focused:
-		return keyBar("j k", "move", "enter", "open", "h", "back to the list", "tab", "category",
+		return keyBar("j k", "move", "enter", "open", "s", "new search", "h", "back to the list", "tab", "category",
 			"A", "activity", "?", "help", "q", "quit")
 	case s.cat == catUpcoming && s.wide():
 		return joinKeys(keyBar("j k", "move"), keySlot("enter", "open show", s.hasUpcoming()), s.upSearchSlot(),
+			keySlot("i", "details", s.hasUpcoming()),
 			keyBar("l", "into the pane", "tab", "category", "A", "activity", "?", "help", "q", "quit"))
 	case s.cat == catUpcoming:
 		return joinKeys(keyBar("j k", "move"), keySlot("enter", "open show", s.hasUpcoming()), s.upSearchSlot(),
+			keySlot("i", "details", s.hasUpcoming()),
 			keyBar("tab", "category", "A", "activity", "?", "help", "q", "quit"))
 	case s.loaded && len(s.sess.shows) == 0:
 		return keyBar("a", "add show", "?", "help", "q", "quit")
@@ -625,7 +633,7 @@ func (s *libraryScreen) bottom(width, shown, total int) string {
 		return keyBar("j k", "move", "enter", "open", "l", "into the pane", "tab", "category", "i", "details",
 			"a", "add", "/", "filter", ":", "commands", "P", "profiles", "A", "activity", "?", "help", "q", "quit")
 	}
-	// d, s and tab category are in Help; the tabs show at the top.
+	// d, o, I and tab category are in Help; the tabs show at the top.
 	return keyBar("j k", "move", "enter", "open", "i", "details", "a", "add", "/", "filter", ":", "commands",
 		"P", "profiles", "A", "activity", "?", "help", "q", "quit")
 }
@@ -758,28 +766,31 @@ func (s *libraryScreen) flashed() *flash { return &s.flash }
 
 func (s *libraryScreen) captures() bool { return s.typing || s.asking || s.deleting != "" }
 
-// enterHelp is the help() entry enter does: in the preview it opens the
-// episode, in the list the show.
-func (s *libraryScreen) enterHelp() string {
-	if s.pv.focused {
-		return "in the preview: open the episode"
-	}
-	return "open the show"
-}
+// inPreview starts the help() entries of keys the preview takes while it
+// has the keys: enter opens its episode and s searches it.
+const inPreview = "in the preview: "
 
-// action says which help() entries run now, by what the key bar shows:
-// enter does what enterHelp says, and on the Upcoming tab only on an
-// episode; s there searches an episode that has aired. An empty library
-// offers only adding a show and quitting.
+// action says which help() entries run now, by what the key bar shows.
+// enter and s have an entry for the list and one for the preview, and
+// only the one for where the keys are runs. In the preview s searches
+// any episode, as on the Show screen; on the show tabs it does nothing
+// else. The Upcoming tab's enter and i need an episode and its s one
+// that has aired. An empty library offers only adding a show and
+// quitting.
 func (s *libraryScreen) action(key, label string) (string, bool) {
-	switch {
-	case key == "enter" && label != s.enterHelp():
+	if (key == "enter" || key == "s") && strings.HasPrefix(label, inPreview) != s.pv.focused {
 		return label, false
-	case key == "enter" && s.cat == catUpcoming && !s.pv.focused:
+	}
+	switch {
+	case s.pv.focused && (key == "enter" || key == "s"):
+		return label, true
+	case s.cat == catUpcoming && (key == "enter" || key == "i"):
 		return label, s.hasUpcoming()
-	case key == "s" && s.cat == catUpcoming:
+	case s.cat == catUpcoming && key == "s":
 		_, aired := s.upAired()
 		return label, aired
+	case s.cat != catUpcoming && key == "s":
+		return label, false
 	case s.cat != catUpcoming && s.loaded && len(s.sess.shows) == 0:
 		return label, key == "a" || key == "q"
 	}
@@ -795,8 +806,8 @@ func (s *libraryScreen) help() (string, []string) {
 		"a", "add a show", "d", "delete the show",
 		"tab", "next category", "1 2 3 4", "jump to a category",
 		"l right", "into the preview, from 160 columns", "h left esc", "out of the preview",
-		"enter", "in the preview: open the episode",
-		"/", "filter, esc clears", "s", "sort by the next column",
+		"enter", inPreview + "open the episode", "s", inPreview + "search the episode",
+		"/", "filter, esc clears", "o", "sort by the next column",
 		"I", "reverse the order", "q", "quit",
 	}
 }

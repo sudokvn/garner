@@ -14,7 +14,8 @@ import (
 // columns, and leaves narrower terminals as they were. l and right move
 // into the pane, h, left and esc back to the list; tab and 1 to 4 change
 // the category from either and leave the keys with the list. enter opens
-// the episode under the pane's cursor.
+// the episode under the pane's cursor and s searches it, and esc on its
+// releases comes back to the pane as it was.
 func TestPreview(t *testing.T) {
 	sess := &session{shows: []api.Show{
 		{Series: api.Series{ID: 1, Name: "Harbor Precinct", Type: api.TypeTV}, Aired: 2, Imported: 1,
@@ -115,6 +116,18 @@ func TestPreview(t *testing.T) {
 		t.Errorf("enter in the pane gave %#v, want a switch", opened)
 	} else if r, ok := sw.screen.(*releasesScreen); !ok || r.back == nil || r.back.back != screen(s) {
 		t.Errorf("enter in the pane opened %T, want the releases with the show and the library behind", sw.screen)
+	}
+	var searched tea.Msg
+	if cmd := press("s"); cmd != nil {
+		searched = cmd()
+	}
+	sw, _ := searched.(switchMsg)
+	r, ok := sw.screen.(*releasesScreen)
+	if !ok || !r.searching || r.episode.episode.ID != 102 || r.back.id != 1 || r.leave != screen(s) {
+		t.Fatalf("s in the pane gave %#v, want a new search of S01E02 leading back to the library", searched)
+	}
+	if sw, _ = r.key("esc")().(switchMsg); sw.screen != screen(s) || !s.pv.focused || s.pv.cursor != 102 {
+		t.Errorf("esc on the releases went to %T, pane focused %v on %d; want the library's pane on 102", sw.screen, s.pv.focused, s.pv.cursor)
 	}
 	for _, out := range []string{"h", "left", "esc"} {
 		press("right")

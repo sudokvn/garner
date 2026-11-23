@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/sudokvn/garner/internal/api"
+	"github.com/sudokvn/garner/internal/client"
 )
 
 // lanterns is a show whose S01E11 garner downloaded: the first release
@@ -77,5 +79,69 @@ func TestEpisodeFileCheck(t *testing.T) {
 	markCaveat(steps, dub, "Japanese 1080p")
 	if steps[3].glyph == gDone {
 		t.Error("the file check of the kept dub is a plain pass")
+	}
+}
+
+// TestEpisodeSearchKeys splits what r once did by state: enter shows the
+// last search's releases without searching, s searches anew wherever the
+// Show screen's s would, and r only retries an import. esc on the
+// releases comes back to the episode. An episode never searched has no
+// releases to show.
+func TestEpisodeSearchKeys(t *testing.T) {
+	show, downloads := lanterns(t)
+	open := func(e *episodeScreen, key string) *releasesScreen {
+		t.Helper()
+		cmd := e.key(key)
+		if cmd == nil {
+			return nil
+		}
+		sw, _ := cmd().(switchMsg)
+		r, ok := sw.screen.(*releasesScreen)
+		if !ok {
+			t.Fatalf("%s opened %T, want Releases", key, sw.screen)
+		}
+		if r.leave != screen(e) || r.episode.episode.ID != 111 {
+			t.Errorf("%s opened the releases of %d, leading back to %T", key, r.episode.episode.ID, r.leave)
+		}
+		return r
+	}
+	for _, c := range []struct {
+		name      string
+		downloads []api.Download
+		summary   string
+		stored    bool // enter shows the last search
+		retry     bool // r retries the import
+	}{
+		{name: "never searched"},
+		{name: "searched, nothing found", summary: "No matching release found", stored: true},
+		{name: "downloading", downloads: []api.Download{{ID: 9, EpisodeID: 111, State: api.Downloading}}, stored: true},
+		{name: "import failed", downloads: []api.Download{{ID: 9, EpisodeID: 111, State: api.Completed,
+			Import: api.Import{State: api.ImportFailed, Detail: "permission denied"}}}, stored: true, retry: true},
+		{name: "needs you", downloads: []api.Download{{ID: 9, EpisodeID: 111, State: api.Completed,
+			Import: api.Import{State: api.ImportUnverified}}}, stored: true, retry: true},
+		{name: "imported", downloads: downloads, stored: true},
+	} {
+		show.detail.States[0].Summary = c.summary
+		e := newEpisode(&session{}, show, 111)
+		e.detail = &api.EpisodeDetail{Downloads: c.downloads}
+		if r := open(e, "s"); r == nil || !r.searching {
+			t.Errorf("%s: s did not start a new search", c.name)
+		}
+		switch r := open(e, "enter"); {
+		case c.stored && (r == nil || r.searching):
+			t.Errorf("%s: enter did not show the last search as it stands", c.name)
+		case !c.stored && r != nil:
+			t.Errorf("%s: enter opened releases of an episode never searched", c.name)
+		case c.stored:
+			// A download from a season pack leaves the episode without a
+			// search of its own: enter must say so, not search.
+			_, cmd := r.update(releasesMsg{from: r, err: &client.ServerError{Status: http.StatusNotFound}})
+			if cmd != nil || r.searching || !strings.Contains(ansi.Strip(r.view(120, 36)), "no search of its own") {
+				t.Errorf("%s: enter searched, or did not say that the episode has no search of its own", c.name)
+			}
+		}
+		if cmd := e.key("r"); (cmd != nil) != c.retry || c.retry && e.busy != "Retrying the import…" {
+			t.Errorf("%s: r retried the import %v (busy %q), want %v", c.name, cmd != nil, e.busy, c.retry)
+		}
 	}
 }

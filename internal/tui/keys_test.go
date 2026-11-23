@@ -383,3 +383,88 @@ func TestListKeys(t *testing.T) {
 		}
 	}
 }
+
+// TestOneJobPerLetter guards the rule that a letter means one action
+// across the program: on every screen whose help() lists s, s searches
+// for releases, and r retries or refreshes the thing in front of the
+// user. The palette's label for the key, which may depend on the row,
+// must say the same. A screen with a help() not checked here fails.
+func TestOneJobPerLetter(t *testing.T) {
+	jobs := map[string][]string{
+		"s": {"search"},
+		"r": {"retry", "refresh"},
+	}
+	show := newShow(&session{}, nil, 1, "Harbor Precinct", "")
+	show.setDetail(manyEpisodes(1, "Harbor Precinct"))
+	// The Show screen's s says what it searches on the row: a season or
+	// an episode.
+	onEpisode := newShow(&session{}, nil, 1, "Harbor Precinct", "")
+	onEpisode.setDetail(manyEpisodes(1, "Harbor Precinct"))
+	onEpisode.cursor = rowKey{season: 1, episode: 101}
+	upcoming := newLibrary(&session{})
+	upcoming.cat = catUpcoming
+	pane := newLibrary(&session{})
+	pane.pv.focused = true
+	screens := map[string][]screen{
+		"libraryScreen":       {newLibrary(&session{}), upcoming, pane},
+		"showScreen":          {show, onEpisode},
+		"episodeScreen":       {newEpisode(&session{}, show, 101)},
+		"releasesScreen":      {&releasesScreen{back: show}},
+		"activityScreen":      {newActivity(&session{}, nil)},
+		"profilesScreen":      {newProfiles(&session{}, nil)},
+		"editorScreen":        {&editorScreen{}},
+		"importPreviewScreen": {&importPreviewScreen{}},
+		"aboutScreen":         {&aboutScreen{}},
+		"showDetailsScreen":   {newShowDetails(&session{}, show, nil)},
+		"previewScreen":       {&previewScreen{}},
+	}
+	about := func(label string, words []string) bool {
+		return slices.ContainsFunc(words, func(w string) bool { return strings.Contains(strings.ToLower(label), w) })
+	}
+	for typ, list := range screens {
+		for _, s := range list {
+			name, pairs := s.(keyHelper).help()
+			act, _ := s.(actioner)
+			for i := 0; i+1 < len(pairs); i += 2 {
+				for _, key := range strings.Fields(pairs[i]) {
+					words, ruled := jobs[key]
+					if !ruled {
+						continue
+					}
+					if !about(pairs[i+1], words) {
+						t.Errorf("%s (%s): %s is %q, not about %s", name, typ, key, pairs[i+1], strings.Join(words, " or "))
+					}
+					if act == nil {
+						continue
+					}
+					if label, _ := act.action(key, pairs[i+1]); !about(label, words) {
+						t.Errorf("%s (%s): the palette calls %s %q, not about %s", name, typ, key, label, strings.Join(words, " or "))
+					}
+				}
+			}
+		}
+	}
+
+	files, _ := filepath.Glob("*.go")
+	fset := token.NewFileSet()
+	for _, file := range files {
+		if strings.HasSuffix(file, "_test.go") {
+			continue
+		}
+		f, err := parser.ParseFile(fset, file, nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, decl := range f.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv == nil || fn.Name.Name != "help" {
+				continue
+			}
+			if star, ok := fn.Recv.List[0].Type.(*ast.StarExpr); ok {
+				if typ := star.X.(*ast.Ident).Name; screens[typ] == nil {
+					t.Errorf("%s (%s) lists keys in help() but is not checked here", typ, file)
+				}
+			}
+		}
+	}
+}
