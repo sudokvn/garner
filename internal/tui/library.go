@@ -75,7 +75,7 @@ type libraryScreen struct {
 	offset   int
 	page     int // table rows on screen, from the last view
 	flash    flash
-	lastKey  string
+	keys     listKeys
 	// The delete question for the show under the cursor, and the show
 	// being deleted.
 	asking   bool
@@ -285,10 +285,9 @@ func (s *libraryScreen) keyed(msg tea.KeyPressMsg) tea.Cmd {
 			}
 		case "ctrl+u":
 			s.filter = ""
-		case "up":
-			s.move(-1)
-		case "down":
-			s.move(1)
+		case "up", "down", "pgup", "pgdown", "home", "end":
+			// Letters are the filter's; these keys still move.
+			s.keys.key(key, s.page, s.move)
 		default:
 			if msg.Text != "" && msg.Mod == 0 || msg.Text != "" && msg.Mod == tea.ModShift {
 				s.filter += clean(msg.Text)
@@ -297,11 +296,14 @@ func (s *libraryScreen) keyed(msg tea.KeyPressMsg) tea.Cmd {
 		return nil
 	}
 
-	prev := s.lastKey
-	s.lastKey = key
 	move := s.move
 	if s.cat == catUpcoming {
 		move = s.upMove
+	}
+	if s.keys.key(key, s.page, move) {
+		return nil
+	}
+	if s.cat == catUpcoming {
 		switch key {
 		case "enter":
 			if e, ok := s.cursorUpcoming(); ok {
@@ -316,21 +318,6 @@ func (s *libraryScreen) keyed(msg tea.KeyPressMsg) tea.Cmd {
 		}
 	}
 	switch key {
-	case "j", "down":
-		move(1)
-	case "k", "up":
-		move(-1)
-	case "g":
-		if prev == "g" {
-			move(-1 << 30)
-			s.lastKey = ""
-		}
-	case "G":
-		move(1 << 30)
-	case "ctrl+d":
-		move(max(1, s.page/2))
-	case "ctrl+u":
-		move(-max(1, s.page/2))
 	case "tab", "shift+tab":
 		// With the preview, tab moves into it; 1 to 4 change the category.
 		// A pane with no episode to take the keys leaves tab to them.

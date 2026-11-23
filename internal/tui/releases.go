@@ -50,6 +50,8 @@ type releasesScreen struct {
 	err      error
 	selected int64 // candidate ID
 	offset   int
+	page     int // lines on screen, from the last view
+	keys     listKeys
 	confirm  int64 // a rejected release waiting for a second enter
 	busy     string
 	flash    flash
@@ -172,6 +174,9 @@ func (s *releasesScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 }
 
 func (s *releasesScreen) key(key string) tea.Cmd {
+	if s.keys.key(key, s.page, s.move) {
+		return nil
+	}
 	switch key {
 	case "esc":
 		if s.cancel != nil {
@@ -181,18 +186,6 @@ func (s *releasesScreen) key(key string) tea.Cmd {
 			return func() tea.Msg { return switchMsg{s.leave} }
 		}
 		return func() tea.Msg { return switchMsg{s.back} }
-	case "j", "down":
-		s.move(1)
-	case "k", "up":
-		s.move(-1)
-	case "g", "home":
-		s.move(-1 << 30)
-	case "G", "end":
-		s.move(1 << 30)
-	case "ctrl+d", "pgdown":
-		s.move(10)
-	case "ctrl+u", "pgup":
-		s.move(-10)
 	case "r":
 		if !s.searching {
 			return s.run()
@@ -423,6 +416,7 @@ func (s *releasesScreen) table(width, height int) string {
 
 	why := s.why(tableWidth)
 	page := max(3, height-showTop-barHeight-len(why)-1)
+	s.page = page
 	cursor := max(0, slices.Index(keys, s.selected))
 	s.offset = min(max(s.offset, cursor-page+1), cursor)
 	if s.offset > 0 && cursor < page {

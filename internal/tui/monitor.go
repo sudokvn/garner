@@ -28,16 +28,20 @@ func monitorIndex(mode string) int {
 	return slices.IndexFunc(monitorModes, func(m struct{ mode, label, means string }) bool { return m.mode == mode })
 }
 
-// monitorKey moves the choice in the monitor question or answers it. done
-// closes the question; mode is the answer, empty when cancelled.
-func monitorKey(key string, chosen *int) (done bool, mode string) {
+// monitorKey moves the choice in the monitor question with keys or answers
+// it. done closes the question; mode is the answer, empty when cancelled.
+func monitorKey(key string, keys *listKeys, chosen *int) (done bool, mode string) {
+	last := len(monitorModes) - 1
+	if keys.key(key, len(monitorModes), func(n int) { *chosen = min(last, max(0, *chosen+n)) }) {
+		return false, ""
+	}
 	switch key {
 	case "esc":
 		return true, ""
-	case "k", "up", "shift+tab":
+	case "shift+tab":
 		*chosen = max(0, *chosen-1)
-	case "j", "down", "tab":
-		*chosen = min(len(monitorModes)-1, *chosen+1)
+	case "tab":
+		*chosen = min(last, *chosen+1)
 	case "enter":
 		return true, monitorModes[*chosen].mode
 	}

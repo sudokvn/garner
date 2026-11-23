@@ -62,6 +62,7 @@ type addScreen struct {
 	adding    string         // the show being added
 	asking    *api.FoundShow // the show the monitor question is about
 	choice    int
+	keys      listKeys
 	flash     flash
 }
 
@@ -128,7 +129,7 @@ func (s *addScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		}
 		s.flash.clear()
 		if r := s.asking; r != nil {
-			done, mode := monitorKey(msg.String(), &s.choice)
+			done, mode := monitorKey(msg.String(), &s.keys, &s.choice)
 			if done {
 				s.asking = nil
 			}
@@ -168,17 +169,15 @@ func (s *addScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 				return p, p.init()
 			}
 			return s, nil
-		case "up", "ctrl+p":
+		case "ctrl+p":
 			s.move(-1)
 			return s, nil
-		case "down", "ctrl+n":
+		case "ctrl+n":
 			s.move(1)
 			return s, nil
-		case "pgup":
-			s.move(-s.rowsShown)
-			return s, nil
-		case "pgdown":
-			s.move(s.rowsShown)
+		case "up", "down", "pgup", "pgdown":
+			// Letters, home and end are the search field's.
+			s.keys.key(msg.String(), s.rowsShown, s.move)
 			return s, nil
 		}
 	}
@@ -358,6 +357,7 @@ type previewScreen struct {
 	adding  bool
 	asking  bool // the monitor question is open
 	choice  int
+	keys    listKeys // in the monitor question
 	flash   flash
 	scroll  scroller
 }
@@ -422,7 +422,7 @@ func (s *previewScreen) update(msg tea.Msg) (screen, tea.Cmd) {
 		}
 		s.flash.clear()
 		if s.asking {
-			done, mode := monitorKey(msg.String(), &s.choice)
+			done, mode := monitorKey(msg.String(), &s.keys, &s.choice)
 			if done {
 				s.asking = false
 			}

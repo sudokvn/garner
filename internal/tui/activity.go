@@ -49,6 +49,8 @@ type activityScreen struct {
 	loading, dirty bool
 	selected       int64 // episode ID
 	offset         int
+	page           int // lines on screen, from the last view
+	keys           listKeys
 	asking         bool // the cancel question
 	choice         int
 	busy           string
@@ -175,21 +177,12 @@ func (s *activityScreen) apply(d api.Download) tea.Cmd {
 }
 
 func (s *activityScreen) key(key string) tea.Cmd {
+	if s.keys.key(key, s.page, s.move) {
+		return nil
+	}
 	switch key {
 	case "esc":
 		return func() tea.Msg { return switchMsg{s.back} }
-	case "j", "down":
-		s.move(1)
-	case "k", "up":
-		s.move(-1)
-	case "g", "home":
-		s.move(-1 << 30)
-	case "G", "end":
-		s.move(1 << 30)
-	case "ctrl+d", "pgdown":
-		s.move(10)
-	case "ctrl+u", "pgup":
-		s.move(-10)
 	case "enter":
 		it, ok := s.cursor()
 		if !ok {
@@ -374,6 +367,7 @@ func (s *activityScreen) view(width, height int) string {
 			}
 		}
 		page := max(3, height-activityTop-barHeight)
+		s.page = page
 		// The cursor row shows with its rejected attempts where they fit.
 		s.offset = min(max(s.offset, last-page+1), cursor)
 		for _, l := range lines[s.offset:min(len(lines), s.offset+page)] {

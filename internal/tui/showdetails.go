@@ -55,6 +55,7 @@ type showDetailsScreen struct {
 	busy    string // what runs, such as "Refreshing from TVDB…"
 	flash   flash
 	scroll  scroller
+	keys    listKeys // in the profile and monitor questions
 	files   filesPrompt
 }
 
@@ -198,7 +199,7 @@ func (s *showDetailsScreen) overlayKey(key string) tea.Cmd {
 		return deleteShow(s.sess.client, s.show.id, a.keep)
 	}
 	if s.overlay == monitorOverlay {
-		done, mode := monitorKey(key, &s.choice)
+		done, mode := monitorKey(key, &s.keys, &s.choice)
 		if done {
 			s.overlay = noOverlay
 		}
@@ -216,15 +217,16 @@ func (s *showDetailsScreen) overlayKey(key string) tea.Cmd {
 	}
 	// The profile and type overlay: the two types, then the profiles.
 	options := len(showTypes) + len(d.Profiles)
+	if s.keys.key(key, options, func(n int) { s.choice = min(options-1, max(0, s.choice+n)) }) {
+		return nil
+	}
 	switch key {
 	case "esc":
 		s.overlay = noOverlay
-	case "k", "up", "shift+tab":
+	case "shift+tab":
 		s.choice = max(0, s.choice-1)
-	case "j", "down", "tab":
+	case "tab":
 		s.choice = min(options-1, s.choice+1)
-	case "G":
-		s.choice = options - 1
 	case "P":
 		s.overlay = noOverlay
 		next := newProfiles(s.sess, s)

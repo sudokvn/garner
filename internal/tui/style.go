@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"cmp"
 	"image/color"
 	"slices"
 	"strings"
@@ -407,40 +408,58 @@ func (f *flash) expire() tea.Cmd {
 	return tea.Tick(flashFor, func(time.Time) tea.Msg { return flashDoneMsg{f, seq} })
 }
 
-// scroller moves through content taller than the screen: j k a line,
-// ctrl+d u half a page, gg G to the ends. Screens with tables move their
-// cursor instead.
-type scroller struct {
-	offset, page, max int
-	last              string // the key before, for gg
-}
+// toEnd moves a cursor as far as it goes.
+const toEnd = 1 << 30
 
-// key moves the content for a scrolling key and reports whether it was one.
-func (s *scroller) key(key string) bool {
-	prev := s.last
-	s.last = key
+// listKeys are the keys that move through a list, the same in every list:
+// j k and the arrows a row, ctrl+d u and pgdown pgup half a page, gg and
+// home to the top, G and end to the bottom. It remembers the key before,
+// for gg, so a list hands it every key before its own.
+type listKeys struct{ last string }
+
+// key moves by calling move with a number of rows, or with -toEnd or toEnd
+// for the ends, in a list that shows page rows at a time. It reports
+// whether key is a moving key; a first g is one and moves nothing.
+func (l *listKeys) key(key string, page int, move func(n int)) bool {
+	prev := l.last
+	l.last = key
+	n := 0
 	switch key {
 	case "j", "down":
-		s.offset++
+		n = 1
 	case "k", "up":
-		s.offset--
+		n = -1
 	case "ctrl+d", "pgdown":
-		s.offset += max(1, s.page/2)
+		n = max(1, page/2)
 	case "ctrl+u", "pgup":
-		s.offset -= max(1, s.page/2)
+		n = -max(1, page/2)
 	case "G", "end":
-		s.offset = s.max
+		n = toEnd
 	case "home":
-		s.offset = 0
+		n = -toEnd
 	case "g":
 		if prev == "g" {
-			s.offset, s.last = 0, ""
+			n, l.last = -toEnd, ""
 		}
 	default:
 		return false
 	}
-	s.offset = min(max(0, s.offset), s.max)
+	if n != 0 {
+		move(n)
+	}
 	return true
+}
+
+// scroller moves through content taller than the screen with listKeys.
+// Screens with tables move their cursor instead.
+type scroller struct {
+	offset, page, max int
+	keys              listKeys
+}
+
+// key moves the content for a scrolling key and reports whether it was one.
+func (s *scroller) key(key string) bool {
+	return s.keys.key(key, s.page, func(n int) { s.offset = min(max(0, s.offset+n), s.max) })
 }
 
 // window shows room of the lines from the offset; the first and last line
@@ -491,27 +510,47 @@ type pickList struct {
 	choice     int // index into items, never a header
 	labelWidth int // the label column, gap included
 	width      int // of a row, borders excluded
+	page       int // rows shown, from the last lines
+	keys       listKeys
 }
 
 // key moves the cursor or answers: done closes the list, chosen is the
 // index of the choice, or -1 when cancelled.
 func (p *pickList) key(key string) (done bool, chosen int) {
+	if p.keys.key(key, cmp.Or(p.page, len(p.items)), p.move) {
+		return false, -1
+	}
 	switch key {
 	case "esc":
 		return true, -1
-	case "k", "up", "shift+tab":
+	case "shift+tab":
 		p.step(-1)
-	case "j", "down", "tab":
+	case "tab":
 		p.step(1)
-	case "G", "end":
-		p.choice = len(p.items)
-		p.step(-1)
 	case "enter":
 		if p.choice >= 0 && p.choice < len(p.items) && !p.items[p.choice].header {
 			return true, p.choice
 		}
 	}
 	return false, -1
+}
+
+// move moves the cursor n rows. On a header it goes on to the next
+// choice in the same direction, or back to the nearest one at the end.
+func (p *pickList) move(n int) {
+	dir := 1
+	if n < 0 {
+		dir = -1
+	}
+	at := min(max(0, p.choice+n), len(p.items)-1)
+	for _, d := range []int{dir, -dir} {
+		for i := at; i >= 0 && i < len(p.items); i += d {
+			if !p.items[i].header {
+				p.choice = i
+				return
+			}
+		}
+	}
 }
 
 // step moves the cursor past headers in direction dir.
@@ -538,6 +577,7 @@ func (p *pickList) lines(title string, height int) []string {
 		last = first + shown
 		lines = append(lines, sMuted.Render(mark(first > 0, " ↑")))
 	}
+	p.page = last - first
 	for i := first; i < last; i++ {
 		it := p.items[i]
 		switch {

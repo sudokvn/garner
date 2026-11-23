@@ -40,12 +40,12 @@ type showScreen struct {
 	dirty   bool
 	// cursor is the selected row: a season header (episode 0) or an
 	// episode.
-	cursor  rowKey
-	placed  bool // the cursor was set once; the Specials header is the zero key
-	offset  int
-	page    int
-	flash   flash
-	lastKey string
+	cursor rowKey
+	placed bool // the cursor was set once; the Specials header is the zero key
+	offset int
+	page   int
+	flash  flash
+	keys   listKeys
 	// asking is the question before searching every missing episode;
 	// choice 1 is Search.
 	asking bool
@@ -304,28 +304,14 @@ func (s *showScreen) rows() []rowKey {
 }
 
 func (s *showScreen) key(key string) tea.Cmd {
-	prev := s.lastKey
-	s.lastKey = key
 	s.flash.clear()
+	if s.keys.key(key, s.page, s.move) {
+		return nil
+	}
 	folded := s.sess.folded[s.id]
 	switch key {
 	case "esc":
 		return func() tea.Msg { return switchMsg{s.back} }
-	case "j", "down":
-		s.move(1)
-	case "k", "up":
-		s.move(-1)
-	case "g":
-		if prev == "g" {
-			s.move(-1 << 30)
-			s.lastKey = ""
-		}
-	case "G":
-		s.move(1 << 30)
-	case "ctrl+d":
-		s.move(max(1, s.page/2))
-	case "ctrl+u":
-		s.move(-max(1, s.page/2))
 	case "h", "left":
 		if folded != nil {
 			folded[s.cursor.season] = true

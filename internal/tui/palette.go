@@ -55,6 +55,8 @@ type palette struct {
 	typed    string
 	choice   int // index into the selectable entries
 	profiles []api.Profile
+	page     int // rows shown, from the last lines
+	keys     listKeys
 }
 
 // paletteProfilesMsg brings the profiles to the palette that asked.
@@ -86,10 +88,13 @@ func (a *app) paletteKey(msg tea.KeyPressMsg) tea.Cmd {
 	switch key := msg.String(); key {
 	case "esc":
 		a.palette = nil
-	case "up", "ctrl+p", "shift+tab":
+	case "ctrl+p", "shift+tab":
 		p.choice = max(0, p.choice-1)
-	case "down", "ctrl+n", "tab":
+	case "ctrl+n", "tab":
 		p.choice = min(len(entries)-1, p.choice+1)
+	case "up", "down", "pgup", "pgdown", "home", "end":
+		// Letters are the field's; these keys still move.
+		p.keys.key(key, p.page, func(n int) { p.choice = min(len(entries)-1, max(0, p.choice+n)) })
 	case "enter":
 		if p.choice < 0 || p.choice >= len(entries) {
 			return nil
@@ -445,6 +450,7 @@ func (a *app) paletteLines(width, height int) []string {
 		last = first + shown
 		lines = append(lines, sMuted.Render(mark(first > 0, " ↑")))
 	}
+	p.page = last - first
 	for _, r := range rows[first:last] {
 		switch {
 		case r.entry < 0 && r.header == "":

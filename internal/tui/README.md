@@ -94,7 +94,7 @@ The key bar stays in place as the cursor moves. A key whose label or action depe
 
 Some keys mean the same everywhere:
 
-- `j k` move, `gg G` jump to the top or bottom, `ctrl+d u` move by half a page.
+- `j k` or `up down` move, `gg G` or `home end` jump to the top or bottom, `ctrl+d u` or `pgdown pgup` move by half the rows the list shows. Every list with a cursor takes these keys through `listKeys` in `style.go`, and `TestListKeys` walks each list; add a new one there. While text is typed, as in the `/` filter or the command palette, only `up down`, `home end` and `pgdown pgup` move; in Add show, `home` and `end` move in the search field instead. In the profile editor, `ctrl+d u` and `pgdown pgup` scroll down to the unsaved changes instead.
 - `enter` opens, `esc` goes back, `A` opens Activity, `P` opens Profiles, `?` opens Help, `q` quits from the Library.
 - `:` opens the command palette (`palette.go`). With nothing typed it lists the screen's actions from its `help()`, then what works anywhere. Typing filters them and adds shows, profiles and the open show's episodes. Choosing an action hands its key to the screen, so a new key in `help()` appears there by itself. Entries whose keys move the cursor, such as `j k`, `h l` or `tab`, are left out.
 - `n` opens the next episode that needs the user (`needs.go`): failures not cleared first, then files Jellyfin did not confirm. Pressed again on that episode, it moves on and wraps around, and the bottom line counts the queue.

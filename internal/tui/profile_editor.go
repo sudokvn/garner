@@ -67,6 +67,7 @@ type editorScreen struct {
 	flash    flash
 	server   []string // problems the server answered with
 	scroll   scroller
+	keys     listKeys
 	trial    trial // the unsaved profile tried on a show's last search
 }
 
@@ -223,9 +224,18 @@ func (s *editorScreen) key(key string) tea.Cmd {
 	row := s.row()
 	switch key {
 	case "ctrl+d", "ctrl+u", "pgdown", "pgup":
+		// The changes pane may reach below a short terminal; these keys
+		// scroll down to it instead of moving the cursor.
+		s.keys = listKeys{}
+		s.scroll.key(key)
+		return nil
 	default:
 		// Any other key works on the settings, which start at the top.
 		s.scroll.offset = 0
+		rows := len(s.rows())
+		if s.keys.key(key, rows, func(n int) { s.cursor = min(rows-1, max(0, s.cursor+n)) }) {
+			return nil
+		}
 	}
 	switch key {
 	case "esc":
@@ -233,15 +243,6 @@ func (s *editorScreen) key(key string) tea.Cmd {
 			return func() tea.Msg { return switchMsg{s.back} }
 		}
 		s.discard, s.choice = true, 0
-	case "j", "down":
-		s.cursor = min(len(s.rows())-1, s.cursor+1)
-	case "k", "up":
-		s.cursor = max(0, s.cursor-1)
-	case "G":
-		s.cursor = len(s.rows()) - 1
-	case "ctrl+d", "ctrl+u", "pgdown", "pgup":
-		// The changes pane may reach below a short terminal.
-		s.scroll.key(key)
 	case "enter":
 		return s.save()
 	case "e":

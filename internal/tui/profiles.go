@@ -71,7 +71,7 @@ type profilesScreen struct {
 	selected int64
 	offset   int
 	page     int
-	lastKey  string
+	keys     listKeys
 	flash    flash
 	busy     string
 	overlay  profilesOverlay
@@ -199,26 +199,12 @@ func (s *profilesScreen) move(n int) {
 }
 
 func (s *profilesScreen) key(key string) tea.Cmd {
-	prev := s.lastKey
-	s.lastKey = key
+	if s.keys.key(key, s.page, s.move) {
+		return nil
+	}
 	switch key {
 	case "esc":
 		return func() tea.Msg { return switchMsg{s.back} }
-	case "j", "down":
-		s.move(1)
-	case "k", "up":
-		s.move(-1)
-	case "g":
-		if prev == "g" {
-			s.move(-1 << 30)
-			s.lastKey = ""
-		}
-	case "G":
-		s.move(1 << 30)
-	case "ctrl+d":
-		s.move(max(1, s.page/2))
-	case "ctrl+u":
-		s.move(-max(1, s.page/2))
 	case "i":
 		next := newImport(s.sess, s)
 		return func() tea.Msg { return switchMsg{next} }
@@ -295,12 +281,15 @@ func (s *profilesScreen) overlayKey(msg tea.KeyPressMsg) tea.Cmd {
 			}
 		}
 	case useForOverlay:
+		if s.keys.key(key, 3, func(n int) { s.choice = min(2, max(0, s.choice+n)) }) {
+			return nil
+		}
 		switch key {
 		case "esc":
 			s.overlay = profilesNoOverlay
-		case "k", "up", "shift+tab":
+		case "shift+tab":
 			s.choice = max(0, s.choice-1)
-		case "j", "down", "tab":
+		case "tab":
 			s.choice = min(2, s.choice+1)
 		case "enter":
 			s.overlay = profilesNoOverlay

@@ -204,8 +204,6 @@ func (s *libraryScreen) focusPreview() bool {
 
 // previewKey handles a key while the pane has the keys.
 func (s *libraryScreen) previewKey(key string) tea.Cmd {
-	prev := s.lastKey
-	s.lastKey = key
 	_, se, ok := s.previewShown()
 	if !ok || !s.wide() {
 		s.pv.focused = false
@@ -215,25 +213,12 @@ func (s *libraryScreen) previewKey(key string) tea.Cmd {
 	move := func(n int) {
 		s.pv.cursor = se.episodes[min(len(se.episodes)-1, max(0, i+n))].episode.ID
 	}
-	page := max(1, s.page-5)
+	if s.keys.key(key, max(1, s.page-5), move) {
+		return nil
+	}
 	switch key {
 	case "tab", "shift+tab", "esc":
 		s.pv.focused = false
-	case "j", "down":
-		move(1)
-	case "k", "up":
-		move(-1)
-	case "g":
-		if prev == "g" {
-			move(-1 << 30)
-			s.lastKey = ""
-		}
-	case "G":
-		move(1 << 30)
-	case "ctrl+d":
-		move(max(1, page/2))
-	case "ctrl+u":
-		move(-max(1, page/2))
 	case "1", "2", "3", "4":
 		s.pv.focused = false
 		s.cat = category(key[0] - '1')
