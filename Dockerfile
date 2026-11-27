@@ -29,9 +29,10 @@ WORKDIR /src
 ADD --checksum=sha256:8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e \
     https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz /ffmpeg.tar.xz
 # musl's copyright notice, of the musl version in this Alpine release;
-# the build fails once Alpine moves to another one.
-ADD --checksum=sha256:b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e97b \
-    https://git.musl-libc.org/cgit/musl/plain/COPYRIGHT?h=v1.2.6 /musl-COPYRIGHT
+# the build fails once Alpine moves to another one. It is musl's COPYRIGHT
+# at v1.2.6, kept in the repository so that a release does not wait for
+# musl's server; the checksum below is that file's.
+COPY tools/ffprobe/musl-COPYRIGHT /musl-COPYRIGHT
 RUN tar -xJf /ffmpeg.tar.xz --strip-components=1 \
  && ./configure \
       --disable-everything --disable-autodetect --disable-programs --enable-ffprobe \
@@ -44,6 +45,7 @@ RUN tar -xJf /ffmpeg.tar.xz --strip-components=1 \
  && make -j"$(nproc)" \
  && strip ffprobe \
  && apk list --installed musl-dev | grep -q '^musl-dev-1\.2\.6-' \
+ && echo 'b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e97b  /musl-COPYRIGHT' | sha256sum -c - \
  && chmod 644 /musl-COPYRIGHT
 
 FROM ${GOLANG} AS build

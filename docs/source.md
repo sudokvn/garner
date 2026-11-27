@@ -30,7 +30,7 @@ The archive holds the source. The compilers and the system libraries that the bu
 | Part | Needs | Network |
 | --- | --- | --- |
 | `garner` and `garnerd` | Go, in the version `garner/mise.toml` names; no C compiler | None |
-| The server image | Podman or Docker; the base images the Dockerfile pins by digest; Alpine's `build-base`, `xz`, `zlib-dev` and `zlib-static` for FFprobe, and `libgcc` at run time | For the base images, the Alpine packages, the FFmpeg release and musl's copyright notice |
+| The server image | Podman or Docker; the base images the Dockerfile pins by digest; Alpine's `build-base`, `xz`, `zlib-dev` and `zlib-static` for FFprobe, and `libgcc` at run time | For the base images, the Alpine packages and the FFmpeg release |
 | Turso's native library | The Rust image `turso/turso.env` pins, with Rust and Cargo 1.88.0 and GCC; Alpine's `musl-dev` | To add `musl-dev` to the image; none for the build |
 
 Turso's library also links Rust's standard library, which comes with the Rust toolchain. Its source is in Rust's source release for the version `turso/turso.env` names, such as `rustc-1.88.0-src.tar.gz`, and in the toolchain's `rust-src` component.
