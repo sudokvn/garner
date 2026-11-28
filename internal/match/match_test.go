@@ -160,7 +160,7 @@ var matchTests = []struct {
 	{lanternHarbor, anime, "Lantern.Harbor.S04E01.1080p.WEB-GRP", time.Time{}, "unknown", "TVDB has no S04E01"},
 
 	// Contents
-	{lanternHarbor, anime, "Lantern.Harbor.S01.1080p.BluRay.x264-GRP", time.Time{}, "season S01E01-S01E23 (23) uncertain", "may hold the whole show"},
+	{lanternHarbor, anime, "Lantern.Harbor.S01.1080p.BluRay.x264-GRP", time.Time{}, "season S01E01-S01E23 (23)", ""},
 	{harborPrecinct, Options{}, "Harbor.Precinct.S01.German.DL.720p.WEB-GRP", time.Time{}, "season S01E01-S01E22 (22)", ""},
 	{lanternHarbor, anime, "Lantern.Harbor.S01.NCOP.1080p.BluRay.x264-GRP", time.Time{}, "extra", "NCOP"},
 	{lanternHarbor, anime, "[Grp] Tourou no Minato - 01 (720p) [2 Hours Special]", time.Time{}, "S01E01 uncertain", "3 episodes aired on 2024-04-05"},

@@ -38,9 +38,8 @@ type Show struct {
 	absolute map[int]int64
 	number   map[int64]int
 	// firstSeasonEnd is the last episode number of TVDB's season 1 in
-	// aired order; seasons counts the regular seasons.
+	// aired order.
 	firstSeasonEnd int
-	seasons        int
 	// scene maps TheXEM's scene numbering, which releases use, to TVDB.
 	scene map[api.Position]api.SceneNumber
 }
@@ -83,7 +82,6 @@ func NewShow(d api.SeriesData, opts Options) *Show {
 		}
 	}
 
-	seasons := map[int]bool{}
 	for _, e := range d.Episodes {
 		ep := &episode{Episode: e}
 		for _, n := range []string{e.Name, e.NameEng, e.NameDeu} {
@@ -98,14 +96,10 @@ func NewShow(d api.SeriesData, opts Options) *Show {
 			}
 			s.positions[order][p] = e.ID
 		}
-		if p, ok := e.Numbers[aired]; ok && p.Season > 0 {
-			seasons[p.Season] = true
-			if p.Season == 1 {
-				s.firstSeasonEnd = max(s.firstSeasonEnd, p.Number)
-			}
+		if p, ok := e.Numbers[aired]; ok && p.Season == 1 {
+			s.firstSeasonEnd = max(s.firstSeasonEnd, p.Number)
 		}
 	}
-	s.seasons = len(seasons)
 	s.number = api.AbsoluteNumbers(d.Episodes)
 	for id, n := range s.number {
 		s.absolute[n] = id

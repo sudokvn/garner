@@ -44,7 +44,6 @@ A release is only a last resort when:
   - the show's original language is unknown or not among the profile's languages
 
   With `unnamed_audio = "reject"`, such a release is rejected.
-- the release is a pack of season 1 of an anime that TheTVDB splits into several seasons. Groups that number a show absolutely call all of it season 1, so the pack may hold the whole show, often hundreds of gigabytes.
 
 ## The audio of a release
 

@@ -285,10 +285,6 @@ func (m *matcher) readAired(n release.Numbering) reading {
 		if len(r.ids) == 0 {
 			r.err = fmt.Sprintf("TVDB has no season %d", n.Season)
 		}
-		if m.s.opts.Anime && n.Season == 1 && len(r.ids) > 0 && m.s.seasons > 1 {
-			r.uncertain = true
-			r.note = fmt.Sprintf("TVDB splits the show into %d seasons, but releases that number it absolutely call all of it season 1, so the pack may hold the whole show", m.s.seasons)
-		}
 	case n.Seasoned:
 		r.ids, r.note, r.err = m.episodes(n.Episodes, func(e release.Episode) (int64, string, string) {
 			if m.s.opts.Anime && n.Season == 1 && m.s.pastFirstSeason(e) {
