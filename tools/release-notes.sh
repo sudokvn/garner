@@ -26,8 +26,9 @@ if [ -z "$note" ] && [ "$(git cat-file -t "refs/tags/$version" 2>/dev/null)" = t
 fi
 
 # The last published stable release before this version. A failed release
-# keeps its tag, so its commits go out with the next version.
-published=$(gh release list --limit 100 --exclude-drafts --json tagName --jq '.[].tagName')
+# keeps its tag, so its commits go out with the next version. The rolling
+# release dev of the dev builds is no version and stays out.
+published=$(published_versions)
 previous=$({ printf '%s\n' "$published" | grep -E "$STABLE_PATTERN" || true; } | before "$version")
 range=$commit
 [ -z "$previous" ] || range="$previous..$commit"

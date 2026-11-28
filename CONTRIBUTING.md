@@ -51,7 +51,7 @@ Keep one-off files from testing, such as a copy of the dev data or a second `gar
 
 `mise run check` checks every file in the working folder that Git does not ignore, committed or not, with Git or jj. It needs Podman, but not the development stack. It runs formatting, vet, shellcheck, the link check, the generated code and notices checks and govulncheck. It runs the tests on your machine with the race detector, again on Linux in the Go image the container is built with, and builds both programs for Linux x86. [tools/check.sh](tools/check.sh) lists every step. If a file changed while it ran, it fails; run it again.
 
-GitHub's [Check workflow](.github/workflows/check.yml) runs the same checks on every pull request and push to `main`. It runs the race detector on Linux instead of macOS, builds `garner` for every release platform and tests `install.sh` against the newest releases. Neither runs the maintainer's private real-case tests.
+GitHub's [Check workflow](.github/workflows/check.yml) runs the same checks on every pull request and push to `main`. It runs the race detector on Linux instead of macOS, builds `garner` for every release platform and tests `install.sh` against the newest stable release and dev build. Once it passes on a push to `main`, GitHub publishes that commit as a dev build; see [How a dev build is built](RELEASING.md#how-a-dev-build-is-built). Neither runs the maintainer's private real-case tests.
 
 Other tasks:
 

@@ -84,7 +84,7 @@ docker compose pull
 docker compose up -d
 ```
 
-`compose.yaml` follows the stable channel, `ghcr.io/sudokvn/garner:latest`. For release candidates, use `:dev`; see [Versions and channels](../../docs/install.md#versions-and-channels).
+`compose.yaml` follows the stable channel, `ghcr.io/sudokvn/garner:latest`. For a release candidate, use its version; for the newest dev build of `main`, use `:dev`; see [Versions and channels](../../docs/install.md#versions-and-channels).
 
 ## Other setups
 

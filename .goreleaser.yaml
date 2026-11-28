@@ -1,12 +1,18 @@
 # GoReleaser builds a release's terminal interface for macOS and Linux, on
 # ARM and x86, and creates the GitHub release with it. The release workflow
 # builds the source archive (tools/source.sh) and the server image first,
-# and passes them as SOURCE_ARCHIVE and IMAGE_REF. Try a release without
-# publishing anything:
+# and passes them as SOURCE_ARCHIVE and IMAGE_REF. The dev workflow builds
+# a snapshot named by GORELEASER_CURRENT_TAG and publishes its Linux
+# archives itself. Try a release without publishing anything:
 #   bash tools/source.sh v0.0.0 /tmp/garner-source
 #   SOURCE_ARCHIVE=/tmp/garner-source/garner-v0.0.0-source.tar.gz goreleaser release --snapshot --clean
 version: 2
 project_name: garner
+
+# The rolling release dev of the dev builds moves its tag along main; it is
+# never a release's current or previous tag.
+git:
+  ignore_tags: [dev]
 
 builds:
   - id: garner
@@ -15,10 +21,11 @@ builds:
     env: [CGO_ENABLED=0]
     flags: [-trimpath]
     # A release names its source archive, which it publishes with the
-    # binaries; a snapshot publishes none, so it names none.
+    # binaries. A dev build names the one the dev workflow publishes in
+    # SOURCE_URL; another snapshot publishes none, so it names none.
     ldflags:
       - "-s -w -X main.version={{ .Tag }} -X main.commit={{ .FullCommit }}"
-      - "{{ if not .IsSnapshot }}-X github.com/sudokvn/garner/internal/buildinfo.sourceURL=https://github.com/sudokvn/garner/releases/download/{{ .Tag }}/garner-{{ .Tag }}-source.tar.gz{{ end }}"
+      - '{{ if isEnvSet "SOURCE_URL" }}-X github.com/sudokvn/garner/internal/buildinfo.sourceURL={{ .Env.SOURCE_URL }}{{ else if not .IsSnapshot }}-X github.com/sudokvn/garner/internal/buildinfo.sourceURL=https://github.com/sudokvn/garner/releases/download/{{ .Tag }}/garner-{{ .Tag }}-source.tar.gz{{ end }}'
     targets: [darwin_arm64, darwin_amd64_v1, linux_amd64_v1, linux_arm64_v8.0]
 
 # Signs and notarizes the macOS binaries with garner's Developer ID, so
@@ -55,7 +62,8 @@ checksum:
 # Homebrew casks in sudokvn/homebrew-tap, one per channel: garner for the
 # stable releases, garner@dev for candidates and stable releases alike, so
 # brew upgrade keeps each on its channel. Both install the command garner,
-# so each conflicts with the other. The release workflow sets the tap's
+# so each conflicts with the other. garner@dev follows the candidates, not
+# the dev builds, which are for Linux only. The release workflow sets the tap's
 # deploy key and says whether this is the newest release of each channel;
 # otherwise a cask is only written into dist/.
 homebrew_casks:
@@ -105,8 +113,8 @@ changelog:
   use: git
   format: "{{ .Message }}"
 
-# A candidate, such as v0.9.0-rc.1, is a pre-release on GitHub: the dev
-# channel. GitHub's latest release, which install.sh follows by default,
+# A candidate, such as v0.9.0-rc.1, is a pre-release on GitHub, as is the
+# rolling release dev of the dev builds. GitHub's latest release, which install.sh follows by default,
 # is the newest stable one. The header names the image, which holds the
 # same source as the binaries, and the source archive both are built from.
 release:

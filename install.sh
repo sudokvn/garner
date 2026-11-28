@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 # Installs or updates `garner`, garner's terminal interface, on macOS or
-# Linux: downloads the newest release of a channel for this machine from
+# Linux: downloads the newest build of a channel for this machine from
 # GitHub, checks it against the release's SHA256SUMS and puts it into
 # ~/.local/bin. Packaged releases keep their licence files alongside the
-# binary in garner-licenses/. It downloads no release files when that
-# version is installed already.
+# binary in garner-licenses/. It installs nothing when that version is
+# installed already.
 #
 #   curl -fsSL https://raw.githubusercontent.com/sudokvn/garner/main/install.sh | bash
 #   curl -fsSL https://raw.githubusercontent.com/sudokvn/garner/main/install.sh | bash -s -- --channel dev
 #
-# The stable channel has the stable releases; dev has the release
-# candidates as well, such as v0.9.0-rc.1, and always the newest version.
-# GARNER_CHANNEL=dev does what --channel dev does. GARNER_VERSION=v0.6.1
-# installs that version instead of the newest, and GARNER_INSTALL_DIR
-# another folder instead of ~/.local/bin.
+# The stable channel has the stable releases. dev has the newest build of
+# main, such as v0.9.0-rc.1-dev.4, untested and for Linux only; on a Mac,
+# the Homebrew cask garner@dev has the release candidates. GARNER_CHANNEL=dev
+# does what --channel dev does. GARNER_VERSION=v0.6.1 installs that
+# release, a candidate or stable, instead, and GARNER_INSTALL_DIR another
+# folder instead of ~/.local/bin.
 set -euo pipefail
 
 repo=https://github.com/sudokvn/garner
@@ -27,23 +28,9 @@ fail() {
 	exit 1
 }
 
+# Releases and dev builds, as in tools/versions.sh.
 version_pattern='^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[1-9][0-9]*)?$'
-
-# newest prints the newest of the versions on stdin, a release after its
-# candidates; sort -V would put v1.0.0 before v1.0.0-rc.1. The release
-# scripts sort the same way (tools/versions.sh).
-newest() {
-	local v base major minor patch rc
-	while read -r v; do
-		[[ "$v" =~ $version_pattern ]] || continue
-		base=${v#v}
-		base=${base%%-*}
-		IFS=. read -r major minor patch <<<"$base"
-		rc=0
-		[[ "$v" != *-rc.* ]] || rc=$((${v##*-rc.} - 1000000))
-		printf '%d %d %d %d %s\n' "$major" "$minor" "$patch" "$rc" "$v"
-	done | sort -n -k1,1 -k2,2 -k3,3 -k4,4 | awk 'END { print $5 }'
-}
+dev_pattern='^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[1-9][0-9]*)?-dev\.[0-9]+$'
 
 # Everything runs from main, so a download cut short runs nothing.
 main() {
@@ -77,8 +64,13 @@ main() {
 		esac
 	done
 
-	local version=${GARNER_VERSION:-}
-	if [ -z "$version" ]; then
+	# tag names the GitHub release to download from: the version's own, or
+	# the rolling release dev, which each dev build replaces.
+	local version=${GARNER_VERSION:-} tag
+	if [ -n "$version" ]; then
+		[[ "$version" =~ $version_pattern ]] || fail "$version is no release version, such as v0.9.0 or v0.9.0-rc.1"
+		tag=$version
+	else
 		case $channel in
 		stable)
 			# GitHub redirects its latest release, the newest stable one, to
@@ -86,17 +78,27 @@ main() {
 			version=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "$repo/releases/latest") ||
 				fail "could not reach GitHub to find the newest release"
 			version=${version##*/}
+			[[ "$version" =~ $version_pattern ]] || fail "no release version found: $version"
+			tag=$version
 			;;
 		dev)
-			# Candidates are pre-releases, which GitHub's latest leaves out.
-			version=$(curl -fsSL "https://api.github.com/repos/sudokvn/garner/releases?per_page=30" |
-				sed -n 's/^ *"tag_name": *"\([^"]*\)".*/\1/p' | newest) ||
-				fail "could not reach GitHub to find the newest release"
+			[ "$os" = linux ] ||
+				fail "dev builds are for Linux only; for release candidates on a Mac, use the Homebrew cask garner@dev: brew install --cask sudokvn/tap/garner@dev"
+			# The dev build's version is in its archives' names, so the
+			# checksums name the version and the files of one build.
+			tag=dev
+			tmp=$(mktemp -d)
+			curl -fsSL -o "$tmp/SHA256SUMS" "$repo/releases/download/dev/SHA256SUMS" ||
+				fail "could not download the checksums of the dev build"
+			version=$(awk -v suffix="-$os-$arch.tar.gz" '
+				index($2, "garner-") == 1 && substr($2, length($2) - length(suffix) + 1) == suffix {
+					print substr($2, 8, length($2) - 7 - length(suffix)); exit
+				}' "$tmp/SHA256SUMS")
+			[[ "$version" =~ $dev_pattern ]] || fail "the dev build has no archive for $os on $arch"
 			;;
 		*) fail "there is no channel $channel; choose stable or dev" ;;
 		esac
 	fi
-	[[ "$version" =~ $version_pattern ]] || fail "no release version found: $version"
 
 	local file="garner-$version-$os-$arch"
 	local dir=${GARNER_INSTALL_DIR:-$HOME/.local/bin}
@@ -106,9 +108,11 @@ main() {
 	fi
 	local licences="$dir/garner-licenses"
 	local packaged=false notice
-	tmp=$(mktemp -d)
-	curl -fsSL -o "$tmp/SHA256SUMS" "$repo/releases/download/$version/SHA256SUMS" ||
-		fail "could not download the checksums of $version"
+	if [ -z "$tmp" ]; then
+		tmp=$(mktemp -d)
+		curl -fsSL -o "$tmp/SHA256SUMS" "$repo/releases/download/$tag/SHA256SUMS" ||
+			fail "could not download the checksums of $version"
+	fi
 	# Old MIT releases shipped bare binaries. Choose from the checksum list,
 	# never fall back to a bare binary after an archive download fails.
 	if awk -v f="$file.tar.gz" '$2 == f { found = 1 } END { exit !found }' "$tmp/SHA256SUMS"; then
@@ -121,8 +125,8 @@ main() {
 	[ -n "$want" ] || fail "SHA256SUMS of $version lists no $file"
 
 	printf 'Downloading garner %s for %s on %s...\n' "$version" "$os" "$arch"
-	curl -fsSL -o "$tmp/download" "$repo/releases/download/$version/$file" ||
-		fail "could not download $file from $repo/releases/tag/$version"
+	curl -fsSL -o "$tmp/download" "$repo/releases/download/$tag/$file" ||
+		fail "could not download $file from $repo/releases/tag/$tag"
 	if command -v sha256sum >/dev/null; then
 		got=$(sha256sum "$tmp/download" | awk '{ print $1 }')
 	else

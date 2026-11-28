@@ -3,8 +3,9 @@
 # generated database code, the third-party notices, known vulnerabilities,
 # the tests on Linux as the container image builds garner and again with
 # the race detector, and builds for every release platform. It also runs
-# install.sh against the newest release of each channel. The private
-# real-case tests are not part of it.
+# install.sh against the newest stable release and dev build. Once it
+# passes on a push to main, the Dev workflow builds that commit. The
+# private real-case tests are not part of it.
 name: Check
 
 on:
@@ -100,12 +101,19 @@ jobs:
           CGO_ENABLED: "1"
         run: go test -race ./...
 
+      # Before the first dev build, the release dev does not exist; failing
+      # then would keep the Dev workflow from ever building one.
       - name: Install script
         run: |
           GARNER_INSTALL_DIR="$RUNNER_TEMP/bin" bash install.sh
           "$RUNNER_TEMP/bin/garner" --version
-          GARNER_INSTALL_DIR="$RUNNER_TEMP/dev" bash install.sh --channel dev
-          "$RUNNER_TEMP/dev/garner" --version
+          sums=$(curl -sSLI -o /dev/null -w '%{http_code}' https://github.com/sudokvn/garner/releases/download/dev/SHA256SUMS)
+          if [ "$sums" = 404 ]; then
+            echo "::notice::there is no dev build yet; install.sh --channel dev was not tested"
+          else
+            GARNER_INSTALL_DIR="$RUNNER_TEMP/dev" bash install.sh --channel dev
+            "$RUNNER_TEMP/dev/garner" --version
+          fi
 
       - name: Builds for the release platforms
         env:

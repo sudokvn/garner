@@ -8,7 +8,7 @@
 #
 # Usage: mise run release VERSION [revision] [--note TEXT] [--hotfix]
 #
-# A candidate, vX.Y.Z-rc.N, goes to the dev channel. A stable release,
+# A candidate, vX.Y.Z-rc.N, goes out as a pre-release. A stable release,
 # vX.Y.Z, releases the commit of the newest candidate once it proved
 # itself (RELEASING.md): the nightly passed on that commit,
 # and the candidate ran for a day, or for a new minor version for a week,
@@ -63,7 +63,8 @@ latest=$(git tag --list 'v*' | sort_versions | tail -1)
 	fail "$version is not newer than $latest"
 # A failed release keeps its tag, so its commit may go out again under the
 # next version; only a published release counts.
-published=$(gh release list --limit 100 --exclude-drafts --json tagName --jq '.[].tagName' | sort_versions) ||
+# The rolling release dev of the dev builds is no version and stays out.
+published=$(published_versions) ||
 	fail "could not list the releases on GitHub"
 stable=$(printf '%s\n' "$published" | grep -E "$STABLE_PATTERN" | tail -1 || true)
 # The candidates since the last stable release, oldest first: the list is
@@ -81,7 +82,7 @@ if ! is_candidate "$version"; then
 	[ "$base" = "$version" ] ||
 		{ git rev-parse --verify --quiet "refs/tags/$base" >/dev/null && same_minor "$base" "$version"; } ||
 		fail "the newest candidate, $candidate, is for $base; release it as $base, as a patch version of it if $base failed, or a candidate for $version first"
-	# What goes out is what the dev channel ran: the newest candidate.
+	# What goes out is what the maintainer's server ran: the newest candidate.
 	[ ${#args[@]} -ge 2 ] || rev=$(git rev-list -n 1 "refs/tags/$candidate")
 fi
 
@@ -92,7 +93,7 @@ commit=$commits
 	fail "${commit:0:12} is not on main on GitHub; push it first"
 
 if is_candidate "$version"; then
-	# A new candidate brings something new to the dev channel.
+	# A new candidate brings something not already released.
 	newest=$(printf '%s\n' "$published" | tail -1)
 	[ -z "$newest" ] || ! git merge-base --is-ancestor "$commit" "$newest" ||
 		fail "${commit:0:12} is already part of $newest"

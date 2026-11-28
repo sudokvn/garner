@@ -76,7 +76,7 @@ The examples assume these folders on the server. Adjust them to your setup:
    sudo chown "$USER": /srv/garner
    ```
 
-2. Start the container with the newest version from the [releases](https://github.com/sudokvn/garner/releases). Pick one not marked Pre-release unless you run the [dev channel](#versions-and-channels):
+2. Start the container with the newest version from the [releases](https://github.com/sudokvn/garner/releases). Pick one not marked Pre-release unless you want a release candidate or a dev build; see [Versions and channels](#versions-and-channels):
 
    ```bash
    podman run -d --name garner \
@@ -138,21 +138,27 @@ Run it daily, for example from a systemd timer, and delete old copies. garner al
 | Channel | Gets | Server image | Terminal interface |
 | --- | --- | --- | --- |
 | stable | stable releases, such as `v0.9.0` | `ghcr.io/sudokvn/garner:latest`, or the version | `install.sh`, or `brew install sudokvn/tap/garner` |
-| dev | release candidates, such as `v0.9.0-rc.1`, and every stable release | `ghcr.io/sudokvn/garner:dev`, or the version | `install.sh --channel dev`, or `brew install sudokvn/tap/garner@dev` |
+| dev | a build of every change to `main`, such as `v0.9.0-rc.1-dev.4`; Linux only | `ghcr.io/sudokvn/garner:dev`, or the version | `install.sh --channel dev` on Linux |
 
-A release candidate is what the next release will be. It runs on the maintainer's own server before it becomes a stable release: at least a week for new features, a day for a release that only fixes. Run the dev channel to get new versions early and to report what breaks; run stable otherwise. Use the same channel for the server and the terminal interface.
+A dev build is untested beyond garner's automatic checks. Its version names the newest release before it and the number of changes since, so `v0.9.0-rc.1-dev.4` is four changes after `v0.9.0-rc.1`. The [pre-release `dev`](https://github.com/sudokvn/garner/releases/tag/dev) holds only the newest dev build; the images of the twenty newest stay on `ghcr.io`.
 
-To install the terminal interface from the dev channel:
+A release candidate, such as `v0.9.0-rc.1`, is what the next release will be. It is a pre-release on GitHub and runs on the maintainer's own server before it becomes a stable release: at least a week for new features, a day for a release that only fixes. To run one, use its version: the image `ghcr.io/sudokvn/garner:v0.9.0-rc.1` and `GARNER_VERSION=v0.9.0-rc.1` for `install.sh`. On a Mac, the Homebrew cask `garner@dev` follows the candidates and every stable release.
+
+Run the dev channel or a candidate to get changes early and to report what breaks; run stable otherwise. Use the same version for the server and the terminal interface.
+
+To install the terminal interface from the dev channel on Linux:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sudokvn/garner/main/install.sh | bash -s -- --channel dev
 ```
 
-With Homebrew, the two channels are separate casks that cannot be installed together. To switch to dev, run `brew uninstall --cask garner`, then `brew install --cask sudokvn/tap/garner@dev`. To switch back, do the reverse. The terminal interface keeps its connection either way.
+Run it again to update; it installs nothing when the newest dev build is installed already. On a Mac, `--channel dev` stops and names the cask `garner@dev` instead.
+
+With Homebrew, `garner` and `garner@dev` are separate casks that cannot be installed together. To switch to the candidates, run `brew uninstall --cask garner`, then `brew install --cask sudokvn/tap/garner@dev`. To switch back, do the reverse. The terminal interface keeps its connection either way.
 
 The first time a garner installed with Homebrew starts, macOS asks once in a window whether to open it, because it was downloaded from the internet. The terminal waits until you answer. `install.sh` installs it without this question.
 
-Going back from dev to stable means running an older version until the next stable release. If a candidate changed the database, its release notes say so, and the older version refuses to start on it. Going back then needs the backup garner made before that change: `pre-migration-v<version>-<time>.db` in `backups/` in the data folder.
+Going back from a dev build or a candidate to stable means running an older version until the next stable release. A dev build or candidate may change the database; a candidate's release notes say so, a dev build has none. The older version then refuses to start on it. Going back then needs the backup garner made before that change: `pre-migration-v<version>-<time>.db` in `backups/` in the data folder.
 
 ## Upgrade
 

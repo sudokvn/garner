@@ -4,16 +4,16 @@ Only the maintainer releases garner. This guide describes the versions, the chan
 
 ## Channels
 
-garner has a stable and a dev channel; [Versions and channels](docs/install.md#versions-and-channels) describes them and how users install them. A candidate is a pre-release on GitHub. The maintainer's own server and terminal interface run the dev channel, where each candidate must run before it becomes stable.
+garner has a stable and a dev channel; [Versions and channels](docs/install.md#versions-and-channels) describes them and how users install them. The dev channel gets a dev build of every push to `main` that passes the Check workflow, with no release. A candidate is a pre-release on GitHub and the step before a stable release; the Homebrew cask `garner@dev` follows the candidates. The maintainer's own server runs dev builds, and each candidate must run there before it becomes stable.
 
 ## Versions
 
-Versions follow semantic versioning. Until 1.0, a new minor version, such as `v0.9.0`, brings new features, a change to the database or a setting that changes meaning or is no longer accepted. A patch version, such as `v0.9.1`, only fixes. Candidates count up per version: `v0.9.0-rc.1`, `v0.9.0-rc.2`.
+Versions follow semantic versioning. Until 1.0, a new minor version, such as `v0.9.0`, brings new features, a change to the database or a setting that changes meaning or is no longer accepted. A patch version, such as `v0.9.1`, only fixes. Candidates count up per version: `v0.9.0-rc.1`, `v0.9.0-rc.2`. A dev build is no version of its own: it is named after the newest version tag in its history and the commits since, such as `v0.9.0-rc.2-dev.3`, and gets no tag.
 
 ## From change to release
 
-1. A change lands on `main` after `mise run check`, as every change does.
-2. When `main` holds something worth releasing, release it as a candidate: `mise run release v0.9.0-rc.1`. It goes to the dev channel, and the maintainer upgrades their server and terminal interface to it. Fixes found meanwhile go into the next candidate.
+1. A change lands on `main` after `mise run check`, as every change does. Once the Check workflow passes on it, it becomes a dev build, with no release; see [How a dev build is built](#how-a-dev-build-is-built). To try it, the maintainer upgrades their server to it by hand.
+2. When `main` holds something worth releasing, release it as a candidate: `mise run release v0.9.0-rc.1`. It goes out as a pre-release, and the maintainer upgrades their server and terminal interface to it. Fixes found meanwhile go into the next candidate.
 3. Run the nightly on the newest candidate: `gh workflow run nightly.yml --ref v0.9.0-rc.1`. The scheduled nightly tests `main`, which may have moved on.
 4. Once the newest candidate proved itself, release it as stable: `mise run release v0.9.0` releases the commit of the newest candidate.
 
@@ -40,14 +40,14 @@ There is no fixed release day.
 `mise run release VERSION [revision] [--note TEXT] [--hotfix]` tags a commit of `main` and pushes the tag. A candidate defaults to the newest commit of `main`; stable defaults to the newest candidate's commit. The commit must be on `main` on GitHub. A candidate must bring a commit not already included in the newest published release. A stable release must bring a commit not already included in the newest published stable release. Before it tags, the task shows the release notes the workflow will write. Use `--note` for what users must do or know before upgrading, such as a setting that is no longer accepted. GitHub's release workflow (`.github/workflows/release.yml`) then builds:
 
 - the source archive, `garner-VERSION-source.tar.gz`, with `tools/source.sh`: the tag's files with the Go modules, the FFmpeg release FFprobe is built from, and the source of Turso's native library with its Rust crates. [Build garner from its source archive](docs/source.md#build-garner-from-its-source-archive) describes it.
-- the server image from the source archive's `garner/` folder, with garner's TheTVDB key from the repository secret `TVDB_API_KEY` built in; the workflow fails without it. The image names its source archive in its description and to the terminal interface. The workflow keeps the image on the runner until GoReleaser has published the release with the source archive, then pushes it as `ghcr.io/sudokvn/garner:VERSION` and names its digest in the release. The newest version also gets the tag `dev`, and the newest stable one `latest`, which the Compose example in `examples/compose` pulls. Intermediate layers stay in GitHub Actions' cache rather than the public registry. Caches are scoped to a tag: a rerun may reuse them, but each new version rebuilds FFprobe.
+- the server image from the source archive's `garner/` folder, with garner's TheTVDB key from the repository secret `TVDB_API_KEY` built in; the workflow fails without it. The image names its source archive in its description and to the terminal interface. The workflow keeps the image on the runner until GoReleaser has published the release with the source archive, then pushes it as `ghcr.io/sudokvn/garner:VERSION` and names its digest in the release. The newest stable version also gets the tag `latest`, which the Compose example in `examples/compose` pulls. The tag `dev` belongs to the dev builds. Intermediate layers stay in GitHub Actions' cache rather than the public registry. Caches are scoped to a tag: a rerun may reuse them, but each new version rebuilds FFprobe.
 - with GoReleaser (`.goreleaser.yaml`), the terminal interface for macOS and Linux, on ARM and x86: one `garner-VERSION-OS-ARCH.tar.gz` per platform with `garner`, `LICENSE`, `NOTICE` and `THIRD-PARTY-NOTICES.txt`. It publishes them with SHA-256 sums and the source archive in the GitHub release, with the image's tag and the notes. The binaries name the source archive, as the image does.
 
 `tools/release-notes.sh` writes the notes: the commits since the last published stable release that change garner itself, then an Upgrading section when the version changes the database or the tag carries a note. Commits that only change the documentation, the tests, CI or the scripts in `tools/` are left out; the build files, such as `.goreleaser.yaml`, count.
 
 GoReleaser signs the macOS binaries with garner's Developer ID certificate and has Apple notarise them, so macOS opens them. The certificate and its password come from the repository secrets `MACOS_SIGN_P12` and `MACOS_SIGN_PASSWORD`, the App Store Connect key for notarising from `MACOS_NOTARY_KEY`, `MACOS_NOTARY_KEY_ID` and `MACOS_NOTARY_ISSUER_ID`; the workflow fails without them. The maintainer keeps copies in Infisical (`garner`, `dev`, `/macos-signing`). The certificate expires on 27 November 2027; binaries signed before then stay valid, and later releases need a new certificate in both places.
 
-GoReleaser also updates the Homebrew casks in [`sudokvn/homebrew-tap`](https://github.com/sudokvn/homebrew-tap), `garner` for a stable release and `garner@dev` for every newest version, with that repository's deploy key from the secret `HOMEBREW_TAP_KEY`; Infisical keeps a base64 copy in `/homebrew-tap`. The [install guide](docs/install.md#versions-and-channels) describes the installer and Homebrew channels.
+GoReleaser also updates the Homebrew casks in [`sudokvn/homebrew-tap`](https://github.com/sudokvn/homebrew-tap), `garner` for a stable release and `garner@dev` for every newest version, candidates included, with that repository's deploy key from the secret `HOMEBREW_TAP_KEY`; Infisical keeps a base64 copy in `/homebrew-tap`. The [install guide](docs/install.md#versions-and-channels) describes the installer and Homebrew channels.
 
 To run GoReleaser's part locally into `dist/` without publishing anything, build a source archive first:
 
@@ -56,7 +56,21 @@ bash tools/source.sh v0.0.0 /tmp/garner-source
 SOURCE_ARCHIVE=/tmp/garner-source/garner-v0.0.0-source.tar.gz goreleaser release --snapshot --clean
 ```
 
-A snapshot's binaries name no source archive. The workflow keeps the twenty newest image versions.
+A snapshot's binaries name no source archive. The workflow keeps the twenty newest release images: those tagged only with versions, so neither dev images nor the image tagged `latest` count or are removed.
+
+## How a dev build is built
+
+GitHub's dev workflow (`.github/workflows/dev.yml`) runs when the Check workflow passes on a push to `main`. It builds the commit Check tested; a newer build cancels an older one still running. To start one by hand: `gh workflow run dev.yml --ref main`.
+
+The build's version is the newest version tag merged into the commit, then `-dev.` and the number of commits since that tag (`dev_version` in `tools/versions.sh`): `v0.11.0-rc.3-dev.2`, or `v0.11.0-dev.0` for the commit of the stable release `v0.11.0`. It builds what a release builds, from the same files:
+
+- the source archive, with `tools/source.sh`.
+- the server image from it, with the TheTVDB key and the version in `garnerd` and in the image's version label. It pushes the image as `ghcr.io/sudokvn/garner:VERSION` and moves the tag `dev` to it. The layers come from an Actions cache that all dev builds on `main` share, so FFprobe is rebuilt only when it changes.
+- with GoReleaser as a snapshot, the terminal interface's Linux archives for ARM and x86. It does not sign anything or update a Homebrew cask.
+
+The pre-release `dev` holds only the newest dev build: its Linux archives, `SHA256SUMS` and the source archive. Each build replaces them and moves the tag `dev` to its commit; the ruleset protects only version tags. The release's title is the version. Its body names the image as releases do, `` Server image: `ghcr.io/sudokvn/garner:VERSION@sha256:…` ``, and the commit. `homelab upgrade garner dev` reads both. The binaries and the image name the source archive in the release `dev`, which the next dev build replaces.
+
+The workflow keeps twenty dev images: the one tagged `dev` and the nineteen newest before it, counting only images tagged with nothing but dev versions. It never removes a release's image. Removing images needs the repository to have the Admin role under the package's Manage Actions access on GitHub. Without it, both workflows fail to remove images but still publish.
 
 ### Third-party notices and Turso's library
 

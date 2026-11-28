@@ -22,12 +22,13 @@ while [ $# -gt 0 ]; do
 	esac
 done
 [ -n "$out" ] && [ -n "$url" ] || exit 2
+printf '%s\n' "$url" >>"$FIXTURES/requests"
 cp "$FIXTURES/${url##*/}" "$out"
 SH
 cat >"$work/bin/uname" <<'SH'
 #!/usr/bin/env bash
 case $1 in
--s) echo Linux ;;
+-s) echo "${UNAME_S:-Linux}" ;;
 -m) echo x86_64 ;;
 *) exit 2 ;;
 esac
@@ -86,4 +87,26 @@ cmp "$work/old" "$GARNER_INSTALL_DIR/garner" || fail "failed download replaced t
 checksum "$file"
 install_fixture || fail "legacy install failed"
 [ "$("$GARNER_INSTALL_DIR/garner" --version)" = "garner $GARNER_VERSION" ] || fail "wrong legacy binary"
+
+# The dev channel installs the build the rolling release dev holds, named
+# by its checksums, and nothing when that build is installed already.
+rm -f "$FIXTURES"/*
+unset GARNER_VERSION
+dev=v9.9.9-rc.1-dev.3
+file="garner-$dev-linux-amd64"
+printf '#!/usr/bin/env bash\necho "garner %s (0123456)"\n' "$dev" >"$work/package/garner"
+tar -czf "$FIXTURES/$file.tar.gz" -C "$work/package" garner LICENSE NOTICE THIRD-PARTY-NOTICES.txt
+cp "$FIXTURES/$file.tar.gz" "$FIXTURES/garner-$dev-linux-arm64.tar.gz"
+printf 'source\n' >"$FIXTURES/garner-$dev-source.tar.gz"
+(cd "$FIXTURES" && if command -v sha256sum >/dev/null; then sha256sum garner-*; else shasum -a 256 garner-*; fi) >"$work/sums"
+mv "$work/sums" "$FIXTURES/SHA256SUMS"
+install_dev() { bash "$root/install.sh" --channel dev >"$work/output" 2>&1; }
+install_dev || fail "dev install failed: $(cat "$work/output")"
+[ "$("$GARNER_INSTALL_DIR/garner" --version)" = "garner $dev (0123456)" ] || fail "wrong dev binary"
+! grep -v -q '/releases/download/dev/' "$FIXTURES/requests" || fail "dev install downloaded from another release"
+rm "$FIXTURES/$file.tar.gz"
+install_dev || fail "an installed dev build was downloaded again"
+grep -q "is installed already" "$work/output" || fail "an installed dev build was not recognised"
+if UNAME_S=Darwin install_dev; then fail "installed a dev build on macOS"; fi
+grep -q 'garner@dev' "$work/output" || fail "macOS dev install does not name the cask garner@dev"
 printf '✓ Installer passed\n'

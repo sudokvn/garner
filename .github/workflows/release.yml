@@ -77,11 +77,12 @@ jobs:
             }
           done
 
-      # The channels: latest names the newest stable release on main, which
-      # the Compose example pulls, and dev the newest version of all,
-      # candidates included. Only they move the Homebrew casks garner and
-      # garner@dev and GitHub's latest release; a rerun of an older release
-      # leaves them alone. The image tags move once the release is out.
+      # The channels: the newest stable release on main moves the image tag
+      # latest, which the Compose example pulls, the Homebrew cask garner
+      # and GitHub's latest release. The newest version of all, candidates
+      # included, moves the cask garner@dev. A rerun of an older release
+      # leaves them alone. The image tag dev belongs to the dev builds
+      # (dev.yml), and sort_versions leaves their tag dev out.
       - name: Choose the channels
         id: tags
         run: |
@@ -90,10 +91,9 @@ jobs:
           newest=$(printf '%s\n' "$versions" | tail -1)
           stable=$(printf '%s\n' "$versions" | grep -E "$STABLE_PATTERN" | tail -1 || true)
           channels=""
-          [ "$stable" != "$TAG" ] || channels="$channels latest"
-          [ "$newest" != "$TAG" ] || channels="$channels dev"
+          [ "$stable" != "$TAG" ] || channels="latest"
           {
-            echo "channels=${channels# }"
+            echo "channels=$channels"
             echo "newest=$([ "$newest" = "$TAG" ] && echo true || echo false)"
             echo "newest_stable=$([ "$stable" = "$TAG" ] && echo true || echo false)"
           } >> "$GITHUB_OUTPUT"
@@ -245,13 +245,23 @@ jobs:
           done
           docker buildx imagetools create --prefer-index=false "${args[@]}" "$IMAGE@$DIGEST"
 
-      # The container registry is free for now; keeping twenty image
-      # versions stays small if that changes. The
-      # release is out by now, so a failure here must not fail it.
+      # The container registry is free for now; keeping twenty release
+      # images stays small if that changes. Only images tagged with nothing
+      # but release versions count, so the dev builds' images, which dev.yml
+      # prunes, never push a release's image out, and latest is never
+      # removed. actions/delete-package-versions cannot tell them apart: it
+      # matches the digest, not the tags. The release is out by now, so a
+      # failure here must not fail it.
       - name: Remove old images
         continue-on-error: true
-        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
-        with:
-          package-name: garner
-          package-type: container
-          min-versions-to-keep: 20
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          source tools/versions.sh
+          gh api --paginate "users/$OWNER/packages/container/garner/versions" \
+            --jq '.[] | [.id, .created_at, (.metadata.container.tags | join(","))] | @tsv' |
+            old_images release |
+            while read -r id; do
+              gh api --method DELETE "users/$OWNER/packages/container/garner/versions/$id"
+            done
