@@ -18,9 +18,10 @@ import (
 )
 
 // TestLibraryTabs offers only the categories garner has shows of: All, TV
-// and Anime, then Upcoming. tab and shift+tab go round them at every
-// width, also where the preview shows, and 1 to 4 jump to one. o sorts
-// the show tabs by the next column; s, which searches, leaves them be.
+// and Anime, then Upcoming. At every width the table spans the window
+// and l, h and the arrows beside them change nothing. tab and shift+tab
+// go round the categories, and 1 to 4 jump to one. o sorts the show tabs
+// by the next column; s, which searches, leaves them be.
 func TestLibraryTabs(t *testing.T) {
 	sess := &session{}
 	a := &app{sess: sess, library: newLibrary(sess)}
@@ -42,17 +43,25 @@ func TestLibraryTabs(t *testing.T) {
 
 	press := func(code rune, mod tea.KeyMod) {
 		t.Helper()
-		text := string(code)
-		if code == tea.KeyTab {
-			text = ""
+		text := ""
+		if code > ' ' && code <= '~' {
+			text = string(code)
 		}
 		a.update(tea.KeyPressMsg{Code: code, Mod: mod, Text: text})
 	}
-	for _, width := range []int{120, previewWidth} {
+	for _, width := range []int{120, 160} {
 		a.width, a.height, a.library.cat = width, 36, catAll
-		a.View()
-		if a.library.wide() != (width >= previewWidth) {
-			t.Fatalf("at %d columns the preview shows: %v", width, a.library.wide())
+		view := ansi.Strip(a.View().Content)
+		lines := strings.Split(view, "\n")
+		row := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, " > ") })
+		if row < 0 || ansi.StringWidth(lines[row]) != width || strings.Contains(view, "│") {
+			t.Errorf("at %d columns the table does not span the window alone:\n%s", width, view)
+		}
+		for _, code := range []rune{'l', tea.KeyRight, 'h', tea.KeyLeft} {
+			press(code, 0)
+			if got := ansi.Strip(a.View().Content); a.screen != screen(a.library) || got != view {
+				t.Errorf("at %d columns %s changed the Library:\n%s", width, tea.KeyPressMsg{Code: code}, got)
+			}
 		}
 		var seen []category
 		for range 5 {

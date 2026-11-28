@@ -249,7 +249,7 @@ func TestPaletteOffersWhatRuns(t *testing.T) {
 	library := newLibrary(sess)
 	library.loaded = true
 	check("Library, empty", library, library.bottom(120, 0, 0), "enter", "a", "i")
-	// The show tabs sort with o; s searches only in the preview.
+	// The show tabs sort with o; s, which searches, does nothing there.
 	library.sess = &session{shows: []api.Show{{Series: api.Series{ID: 42, Name: "Harbor Precinct", Type: api.TypeTV}}}}
 	library.selected = 42
 	check("Library", library, library.bottom(120, 1, 1), "enter", "i", "s")
@@ -257,10 +257,6 @@ func TestPaletteOffersWhatRuns(t *testing.T) {
 	if !slices.ContainsFunc(screenActions(library), func(e paletteEntry) bool { return e.key == "o" && e.label == "Sort by the next column" }) {
 		t.Errorf("the Library's palette lacks o, Sort by the next column: %v", screenActions(library))
 	}
-	library.pv = preview{focused: true, details: map[int64]*api.SeriesDetail{42: show.detail}, cursor: 101}
-	library.width = previewWidth
-	check("Library, in the preview", library, library.bottom(previewWidth, 1, 1), "enter", "s")
-	library.pv, library.width = preview{}, 0
 	// With no show under the cursor, the keys that act on one grey out
 	// and the palette leaves them out.
 	library.filter = "zzz"

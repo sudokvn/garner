@@ -272,10 +272,6 @@ type EpisodeStatus struct {
 	Attempts int `json:"attempts,omitempty"`
 	// Download is the latest download when it explains the state.
 	Download *Download `json:"download,omitempty"`
-	// Rejected lists, newest first, the episode's earlier attempts in the
-	// same run as Download that the file check rejected, as
-	// ActivityItem.Rejected does; empty without Download.
-	Rejected []Download `json:"rejected,omitempty"`
 	// Summary comes from the latest search; NextRetry is when the monitor
 	// searches again, unset when it does not get the episode.
 	Summary   string     `json:"summary,omitempty"`

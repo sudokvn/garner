@@ -163,16 +163,7 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		a.width, a.height = msg.Width, msg.Height
-		// The Library loads its preview once the terminal has room for it,
-		// also while another screen is open.
-		var cmd, libCmd tea.Cmd
-		if a.screen != nil {
-			a.screen, cmd = a.screen.update(msg)
-		}
-		if a.library != nil && a.screen != screen(a.library) {
-			_, libCmd = a.library.update(msg)
-		}
-		return a, tea.Batch(cmd, libCmd)
+		return a, nil
 	case tea.BackgroundColorMsg:
 		usePalette(msg.IsDark(), msg.Color)
 		// The screen may keep styles of its own, such as a text field's.
@@ -300,13 +291,6 @@ func (a *app) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, cmd
 	case upcomingMsg:
 		// Likewise its upcoming episodes.
-		if a.library == nil || msg.from != a.library {
-			return a, nil
-		}
-		_, cmd := a.library.update(msg)
-		return a, cmd
-	case libraryPreviewMsg:
-		// Likewise the preview: a lost answer would stop it loading.
 		if a.library == nil || msg.from != a.library {
 			return a, nil
 		}

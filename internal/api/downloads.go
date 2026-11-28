@@ -72,7 +72,7 @@ type Download struct {
 	Import       Import    `json:"import"`
 	// Attempt is the download's place among every download started for
 	// its episode, 1 for the first. It is set on the downloads of an
-	// ActivityItem and on EpisodeStatus.Rejected, and zero elsewhere.
+	// ActivityItem and zero elsewhere.
 	Attempt int `json:"attempt,omitempty"`
 }
 

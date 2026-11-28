@@ -4,7 +4,7 @@ These are the conventions of `internal/tui`, garner's terminal interface. Follow
 
 ## Size
 
-Screens are designed for 120 by 36 cells (`designWidth` in `style.go`). A wider terminal keeps the layout at the left edge, except the Library: from 160 columns (`previewWidth` in `preview.go`) its table takes the left half and a preview of the show under the cursor the right, behind a rule in the border colour. Tables span the window, and their last column, usually State, takes the extra width. Framed panes and running text stay at 120 cells at most, so lines stay readable. On a narrower terminal, columns give way in a fixed order, and names keep at least `minName` cells.
+Screens are designed for 120 by 36 cells (`designWidth` in `style.go`). A wider terminal keeps the layout at the left edge. Tables span the window, and their last column, usually State, takes the extra width. Framed panes and running text stay at 120 cells at most, so lines stay readable. On a narrower terminal, columns give way in a fixed order, and names keep at least `minName` cells.
 
 ## Screen layout
 
@@ -101,13 +101,13 @@ Some keys mean the same everywhere:
 - `:` opens the command palette (`palette.go`). With nothing typed it lists the screen's actions from its `help()` that run on the current row, then what works anywhere. A screen answers for its keys in `action`, which its key bar uses to grey keys out, so a key the bar greys out is not offered, nor a key that acts on a row when there is none, and a key whose meaning depends on the row, such as `s` on the Show screen, carries the key bar's label. Typing filters them and adds shows, profiles and the open show's episodes. Choosing an action hands its key to the screen, so a new key in `help()` appears there by itself. Entries whose keys move the cursor, such as `j k`, `h l` or `tab`, are left out.
 - `n` opens the next episode that needs the user (`needs.go`): failures not cleared first, then files Jellyfin did not confirm. Pressed again on that episode, it moves on and wraps around, and the bottom line counts the queue.
 - `/` filters as you type in the bottom line, where a list offers a filter, as in the Library's show tabs; `enter` keeps the filter and `esc` clears it.
-- `s` always searches for releases: the episode or season under the cursor on the Show screen, the episode under the cursor on the Library's Upcoming tab and in its preview, the episode on the Episode screen, and once more on Releases. It has no other job, so on the Library's show tabs it does nothing.
+- `s` always searches for releases: the episode or season under the cursor on the Show screen, the episode under the cursor on the Library's Upcoming tab, the episode on the Episode screen, and once more on Releases. It has no other job, so on the Library's show tabs it does nothing.
 - `r` always retries or refreshes the thing in front of the user: the import on the Episode screen, the show's data from TheTVDB on Show details.
 - `o` sorts by the next column and `I` reverses the order, where a list offers sorting, as in the Library's show tabs. The Upcoming tab, which lists episodes by day, has neither, nor `/`. On Show details, Add show's details and About, `o` opens a link instead.
 - `i` opens the details of the show under the cursor, in the Library on every tab, and of the open show on the Show screen.
 - `d` deletes and is never a navigation key.
-- `tab` steps to the next section of a view and `shift+tab` to the one before: the category in the Library, the season on the Show screen, the answer of a question or pick list. It does the same at every width, also from inside a pane. In the Library, `1` to `4` also jump to a category.
-- `l` and `h` move into and out of a pane beside a list, such as the Library's preview from 160 columns; `right` and `left` do the same, and `esc` also leaves. Below 160 columns, where the Library shows no pane, they do nothing there. On the Show screen, which has no pane, `h l` fold and unfold a season. `j k` never leave a pane.
+- `tab` steps to the next section of a view and `shift+tab` to the one before: the category in the Library, the season on the Show screen, the answer of a question or pick list. It does the same at every width. In the Library, `1` to `4` also jump to a category.
+- On the Show screen, `h l` fold and unfold a season. `j k` never leave a pane.
 - While text is typed or a question is open, the screen takes every key, including `?`, `A`, `:` and `n`.
 
 ## Text

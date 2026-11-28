@@ -122,13 +122,6 @@ func (s *Store) summarise(ctx context.Context, now time.Time, only int64, sc *Sc
 			}
 			if cleared || explains(state, d) {
 				st.Download = d
-				// Only an episode with an earlier download can have rejected
-				// attempts, so most need no query.
-				if st.Attempts > 1 {
-					if st.Rejected, err = s.rejectedAttempts(ctx, *d); err != nil {
-						return nil, nil, err
-					}
-				}
 			}
 			if searched && !cleared {
 				st.Summary = search.summary
@@ -154,17 +147,6 @@ func (s *Store) summarise(ctx context.Context, now time.Time, only int64, sc *Sc
 		}
 	}
 	return shows, states, nil
-}
-
-// rejectedAttempts lists, newest first and numbered, the attempts before
-// d in d's run that the file check rejected, as Activity does.
-func (s *Store) rejectedAttempts(ctx context.Context, d Download) ([]Download, error) {
-	downloads, err := s.EpisodeDownloads(ctx, d.EpisodeID)
-	if err != nil {
-		return nil, err
-	}
-	numberAttempts(&d, downloads)
-	return rejectedInRun(d, downloads), nil
 }
 
 // fileOrigin is what the download an imported file came from says about

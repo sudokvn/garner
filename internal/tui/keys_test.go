@@ -153,23 +153,6 @@ func TestListKeys(t *testing.T) {
 			l.press(listKeyPress(t, "/"))
 			return l
 		}},
-		{name: "Library, preview", screen: "libraryScreen", open: func(t *testing.T) cursorList {
-			a, s := libraryList(t, catAll)
-			a.width, a.height = 160, 36
-			d := manyEpisodes(1, "Harbor Precinct 01")
-			s.pv.details = map[int64]*api.SeriesDetail{1: &d}
-			s.pv.fresh = map[int64]bool{1: true}
-			l := inApp(a, func() int {
-				_, se, _ := s.previewShown()
-				return slices.IndexFunc(se.episodes, func(e episodeRow) bool { return e.episode.ID == s.pv.cursor })
-			}, 60, func() int { return max(1, s.page-5) })
-			l.draw()
-			l.press(listKeyPress(t, "l"))
-			if !s.pv.focused {
-				t.Fatal("l did not move into the preview")
-			}
-			return l
-		}},
 		{name: "Show", screen: "showScreen", open: func(t *testing.T) cursorList {
 			sess := &session{}
 			s := newShow(sess, nil, 1, "Harbor Precinct", "")
@@ -407,10 +390,8 @@ func TestOneJobPerLetter(t *testing.T) {
 	onEpisode.cursor = rowKey{season: 1, episode: 101}
 	upcoming := newLibrary(&session{})
 	upcoming.cat = catUpcoming
-	pane := newLibrary(&session{})
-	pane.pv.focused = true
 	screens := map[string][]screen{
-		"libraryScreen":       {newLibrary(&session{}), upcoming, pane},
+		"libraryScreen":       {newLibrary(&session{}), upcoming},
 		"showScreen":          {show, onEpisode},
 		"episodeScreen":       {newEpisode(&session{}, show, 101)},
 		"releasesScreen":      {&releasesScreen{back: show}},
